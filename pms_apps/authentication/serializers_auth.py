@@ -5,8 +5,9 @@ from pms_apps.authentication.models import User
 class UserAuthSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True)
     role = serializers.ChoiceField(
-        choices=[choice[0] for choice in User.ROLE_CHOICES],  # dynamically from model
-        help_text="Role of the user."
+        choices=[choice[0] for choice in User.ROLE_CHOICES],  
+        help_text="Role of the user.",
+        required = False,
     )
     module = serializers.CharField(required=False, allow_blank=True)
 
@@ -17,7 +18,7 @@ class UserAuthSerializer(serializers.Serializer):
 
         if not phone_number:
             raise serializers.ValidationError({"phone_number": "Phone number is required."})
-        if not role:
+        if module != "Lead" and not role:
             raise serializers.ValidationError({"role": "Role is required."})
         if not module:
             raise serializers.ValidationError({"module": "Module is required."})

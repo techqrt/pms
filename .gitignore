@@ -23,3 +23,7 @@ env/
 # Ignore system files
 .DS_Store
 Thumbs.db
+
+help_notes/
+employees/
+db.sqlite3

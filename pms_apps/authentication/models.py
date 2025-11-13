@@ -10,8 +10,7 @@ from django.core.validators import RegexValidator
 
 class User(AbstractBaseUser):
     DEPARTMENT_CHOICES = [
-        ("Landlord", "Landlord"),
-        ("Tenant Login", "Tenant Login"),
+        ("Lead", "Lead"),
         ("Marketing Dept login", "Marketing Dept login"),
         ("Property Management login", "Property Management login"),
         ("Tenant Management Module", "Tenant Management Module"),
@@ -59,3 +58,7 @@ class User(AbstractBaseUser):
         self.otp_expiry = timezone.now() + timezone.timedelta(minutes=10)
         self.save()
         return otp
+    
+    def get(user_id : int) -> dict:
+        return User.objects.filter(user_id=user_id).values(
+            'user_id','phone_number','name','email','department','role').first()

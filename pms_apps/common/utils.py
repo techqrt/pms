@@ -14,7 +14,7 @@ class Utils:
         self.validation_error = Constants.validation_error
 
     @staticmethod
-    def success_response_data(message, data: Union[list, dict] = None, image=False):
+    def success_response_data(message, data: list | dict = None, image=False):
         if image:
             return message
         if data is None and message is None:
@@ -36,26 +36,45 @@ class Utils:
         return Constants.server_error
 
     @staticmethod
-    def add_page_parameter(final_data: list, page_num: int, total_page: int, total_count: int, present_url: str,
-                           next_page_required: bool = False):
+    def add_page_parameter(
+        final_data: list,
+        page_num: int,
+        total_page: int,
+        present_url: str,
+        next_page_required: bool = False
+    ):
+        """
+        Adds pagination info (present, total, next, and previous page URLs) to the response.
+        """
         to_return = {
             'data': final_data,
             'presentPage': page_num,
             'totalPage': total_page,
-            'totalCount': total_count
         }
-        if next_page_required and total_page > 1:
-            if 'pageNum' in present_url:
-                to_return['nextPageUrl'] = present_url.replace('pageNum=' + str(page_num),
-                                                               'pageNum=' + str(page_num + 1))
+
+        if total_page > 1:
+            if 'page_num' in present_url:
+                base_next_url = present_url
             else:
                 if '?' in present_url:
-                    params, base_url = Utils.extract_params(url=present_url)
-                    present_url = base_url + '?' + '&'.join(params)
-                    to_return['nextPageUrl'] = present_url + '&pageNum=' + str(page_num + 1)
+                    base_next_url = present_url + '&page_num=' + str(page_num)
                 else:
-                    to_return['nextPageUrl'] = present_url + '?pageNum=' + str(page_num + 1)
+                    base_next_url = present_url + '?page_num=' + str(page_num)
+
+            if next_page_required and page_num < total_page:
+                to_return['nextPageUrl'] = base_next_url.replace(
+                    f'page_num={page_num}',
+                    f'page_num={page_num + 1}'
+                )
+
+            if page_num > 1:
+                to_return['previousPageUrl'] = base_next_url.replace(
+                    f'page_num={page_num}',
+                    f'page_num={page_num - 1}'
+                )
+
         return to_return
+
 
     @staticmethod
     def extract_params(url: str):
@@ -63,7 +82,7 @@ class Utils:
         if len(query) > 1:
             info = query[1]
         else:
-            info = 'pageNum=1'
+            info = 'page_num=1'
         return info.split('&'), query[0]
 
     @staticmethod

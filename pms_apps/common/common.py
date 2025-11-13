@@ -20,8 +20,10 @@ class Common:
     @staticmethod
     def mapper_value_error(mapped_column_names: dict, columns_required: list):
         for column in columns_required:
-            if column not in mapped_column_names.keys():
+            if column not in mapped_column_names.values():
                 raise ValueError(f'{column} not a proper column name')
+            
+
 
     def exception_handler(self, func):
         def exceptions(*args, **kwargs):
