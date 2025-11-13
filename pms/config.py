@@ -5,5 +5,6 @@ class Configurations:
     db_user = config('DB_USER')
     db_password = config('DB_PASSWORD')
     db_host = config('DB_HOST')
+    pagination_count = 20
     db_port = config('DB_PORT')
     debug = False if config('DEBUG') == 'False' else True

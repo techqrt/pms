@@ -22,7 +22,7 @@ class User(AbstractBaseUser):
         ("Legal Dept Login", "Legal Dept Login"),
         ("IT Dept login", "IT Dept login"),
         ("IT Technician", "IT Technician"),
-        ("Agreement Team", "Agreement Team"),   
+        ("Agreement Team", "Agreement Team"),   # Remove the department - Known as a Legal Dept
         ("General Manager", "General Manager"),
         ("Owner", "Owner"),
     ]
