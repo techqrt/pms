@@ -8,3 +8,4 @@ class Configurations:
     pagination_count = 20
     db_port = config('DB_PORT')
     debug = False if config('DEBUG') == 'False' else True
+    pagination_count = 2

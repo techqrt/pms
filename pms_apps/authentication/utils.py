@@ -1,6 +1,8 @@
 import jwt
 import datetime
 from django.conf import settings
+from django.http import JsonResponse
+
 
 def send_otp_sms(phone_number, otp):
     """Send OTP via SMS using Twilio."""
@@ -17,3 +19,5 @@ def generate_jwt_token(user):
     }
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
     return token
+
+

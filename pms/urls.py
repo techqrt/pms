@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-    
+from pms_apps.authentication.urls import urlpatterns as auth_patterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,13 +29,12 @@ urlpatterns = [
 # ----------------------------
     # # Core Auth & Users
     # # ----------------------------
-    path('auth/', include('pms_apps.authentication.urls')),
+    path('auth/',include('pms_apps.authentication.urls')),
 
     # # ----------------------------
     # # Department Modules
     # # ----------------------------
-    # path('tenant/', include('pms_apps.tenant.urls')),
-    # path('landlord/', include('pms_apps.landlord.urls')),
+    path('lead/',include('pms_apps.lead.urls')),
     # path('marketing/', include('pms_apps.marketing.urls')),
     path('property/', include('pms_apps.property.urls')),
     # path('maintenance/', include('pms_apps.maintenance.urls')),
