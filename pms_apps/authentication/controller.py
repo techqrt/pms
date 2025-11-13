@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from rest_framework.authentication import SessionAuthentication
 
-from pms_apps.authentication.serializers import (
+from pms_apps.authentication.serializers_auth import (
     UserAuthSerializer,
     OTPVerifySerializer,
     UserAuthResponseSerializer,

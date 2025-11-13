@@ -3,8 +3,8 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from remedizz.config import Configurations
-from remedizz.constants import Constants
+from pms.config import Configurations
+from pms.constants import Constants
 from typing import Union
 
 

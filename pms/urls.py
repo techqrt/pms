@@ -37,7 +37,7 @@ urlpatterns = [
     # path('tenant/', include('pms_apps.tenant.urls')),
     # path('landlord/', include('pms_apps.landlord.urls')),
     # path('marketing/', include('pms_apps.marketing.urls')),
-    # path('property/', include('pms_apps.property.urls')),
+    path('property/', include('pms_apps.property.urls')),
     # path('maintenance/', include('pms_apps.maintenance.urls')),
     # path('reception/', include('pms_apps.reception.urls')),
     # path('finance/', include('pms_apps.finance.urls')),

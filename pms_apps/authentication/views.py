@@ -8,7 +8,7 @@ from django.utils import timezone
 from pms_apps.authentication.models import User
 from pms_apps.general_manager.models import GeneralManager
 from pms_apps.owner.models import Owner
-from pms_apps.authentication.serializers import (
+from pms_apps.authentication.serializers_auth import (
     UserAuthSerializer,
     OTPVerifySerializer,
     UserAuthResponseSerializer,
@@ -16,10 +16,9 @@ from pms_apps.authentication.serializers import (
 from pms_apps.authentication.utils import send_otp_sms, generate_jwt_token
 
 # Import module models
-from pms_apps.landlord.models import Landlord
-from pms_apps.tenant.models import Tenant, TenantManager, TenantEmployee
+
 from pms_apps.marketing.models import MarketingManager, MarketingEmployee
-from pms_apps.property.models import PropertyManager, PropertyEmployee
+from pms_apps.property.models.property_employee import PropertyManager, PropertyEmployee
 from pms_apps.maintenance.models import MaintenanceManager, MaintenanceEmployee, Technician
 from pms_apps.reception.models import ReceptionManager, ReceptionEmployee
 from pms_apps.finance.models import FinanceManager, FinanceEmployee
@@ -152,8 +151,6 @@ class UserAuthView(APIView):
 
         # Module-based role mapping
         module_map = {
-            "Landlord": lambda: Landlord.objects.create(landlord_id=user),
-            "Tenant Login": lambda: Tenant.objects.create(tenant_id=user),
 
             "Marketing Dept login": lambda: (
                 MarketingManager.objects.create(manager_id=user)
@@ -164,11 +161,6 @@ class UserAuthView(APIView):
                 PropertyManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else PropertyEmployee.objects.create(employee_id=user)
-            ),
-            "Tenant Management Module": lambda: (
-                TenantManager.objects.create(manager_id=user)
-                if role == "Manager"
-                else TenantEmployee.objects.create(employee_id=user)
             ),
             "Maintenance Dept login": lambda: (
                 MaintenanceManager.objects.create(manager_id=user)
