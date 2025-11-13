@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 import os
+from pms.config import Configurations
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -54,7 +55,6 @@ INSTALLED_APPS = [
     'pms_apps.IT',
     'pms_apps.supervisor',
     'pms_apps.store_manager',
-    'pms_apps.agreement_team',
     'pms_apps.reception',
     'pms_apps.collection',
     'pms_apps.property',
@@ -95,11 +95,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'pms.wsgi.application'
 
 
-
 DATABASES = {
-    'default':{
-        'ENGINE' : 'django.db.backends.sqlite3',
-        'NAME' : BASE_DIR / 'db.sqlite3'
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': Configurations.db_name,
+        'USER': Configurations.db_user,
+        'PASSWORD': Configurations.db_password,
+        'HOST': Configurations.db_host,
+        'PORT': Configurations.db_port,
+        'TEST': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'test_postgres',
+            'USER': 'postgres',
+            'PASSWORD': '123456789',
+            'HOST':'localhost',
+            'PORT':'5433'
+        }
     }
 }
 
