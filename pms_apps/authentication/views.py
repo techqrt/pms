@@ -25,7 +25,6 @@ from pms_apps.finance.models import FinanceManager, FinanceEmployee
 from pms_apps.collection.models import CollectionManager, CollectionEmployee
 from pms_apps.legal.models import LegalManager, LegalEmployee
 from pms_apps.IT.models import ITManager, ITEmployee, ITTechnician
-from pms_apps.agreement_team.models import AgreementTeamManager, AgreementTeamEmployee
 
 class UserAuthView(APIView):
     permission_classes = [AllowAny]
@@ -193,11 +192,6 @@ class UserAuthView(APIView):
                 else ITEmployee.objects.create(employee_id=user)
             ),
             "IT Technician": lambda: ITTechnician.objects.create(technician_id=user),
-            "Agreement Team": lambda: (
-                AgreementTeamManager.objects.create(manager_id=user)
-                if role == "Manager"
-                else AgreementTeamEmployee.objects.create(employee_id=user)
-            ),
         }
 
         create_fn = module_map.get(module)
