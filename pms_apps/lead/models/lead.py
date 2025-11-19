@@ -2,20 +2,23 @@ from django.db import models
 from django.db.models import Q
 from pms_apps.common.models import Country
 from pms_apps.authentication.models import User
+from pms_apps.lead.models.property_permission import PropertyPermission
+#Lead.py
+#LeadPermission.py - id fireig 
 class Lead(models.Model):
     
 
     LEAD_TYPES = [
-        ("web user", "Web User"),
-        ("admin", "Admin"),
-        ("application", "Application"),
-        ("wa", "WA"),
-        ("marketing team", "Marketing team"),
+        ("Web User", "Web User"),
+        ("Admin", "Admin"),
+        ("Application", "Application"),
+        ("WA", "WA"),
+        ("Marketing Team", "Marketing Team"),
         ]
 
     PURPOSE_CHOICES = [
-        ("tenant", "Tenant"),
-        ("landlord", "Landlord"),
+        ("Tenant", "Tenant"),
+        ("Landlord", "Landlord"),
         ]
 
     lead_id = models.OneToOneField(
@@ -34,6 +37,7 @@ class Lead(models.Model):
         verbose_name="Firstname",
         max_length=15,
     )
+    
     last_name = models.CharField(
         verbose_name="Lastname",
         max_length=15
@@ -69,6 +73,10 @@ class Lead(models.Model):
         verbose_name="Updated At",
         auto_now=True
     )
+    proprty_permissions = models.ForeignKey(
+        to=PropertyPermission,
+        on_delete=models.DO_NOTHING
+    )
     is_active = models.BooleanField(
         verbose_name="Is Active",
         default=True
@@ -90,7 +98,8 @@ class Lead(models.Model):
         address: str,
         nationality: int,
         passport_or_id: str,
-        purpose: str 
+        purpose: str,
+        proprty_permissions_id : int
     ) -> int:
         self.lead_id_id = lead_id
         self.lead_assign_to_id = lead_assign_to
@@ -101,6 +110,7 @@ class Lead(models.Model):
         self.nationality_id = nationality
         self.passport_or_id = passport_or_id
         self.purpose = purpose
+        self.proprty_permissions = PropertyPermission(proprty_permissions_id)
         self.save()
         return self.lead_id
 
@@ -115,7 +125,8 @@ class Lead(models.Model):
         nationality: int = None,
         passport_or_id: str = None,
         purpose: str = None,
-        is_active: bool = None
+        is_active: bool = None,
+        proprty_permissions_id : int = None,
     ) -> int:
         lead = Lead.objects.get(lead_id_id=lead_id)
         if lead_assign_to is not None:
@@ -136,6 +147,9 @@ class Lead(models.Model):
             lead.purpose = purpose
         if is_active is not None:
             lead.is_active = is_active
+        if proprty_permissions_id is not None: 
+            lead.proprty_permissions = PropertyPermission(proprty_permissions_id)
+
         lead.save()
         return lead.lead_id
 
@@ -151,7 +165,7 @@ class Lead(models.Model):
             "lead_id",  "first_name", "last_name", "lead_origin",
             "address", "nationality__name", "passport_or_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name","nationality__country_id",
-            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email"
+            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","proprty_permissions__permission_id","proprty_permissions__property"
         ).first()
 
     @staticmethod
@@ -177,6 +191,6 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address", "nationality", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active",
-                "lead_assign_to__phone_number", "lead_assign_to__email"
+                "lead_assign_to__phone_number", "lead_assign_to__email","proprty_permissions__permission_id","proprty_permissions__property"
             )
             )

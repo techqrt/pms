@@ -3,4 +3,4 @@ from typing import List
 
 @dataclass
 class PropertyDeleteManyRequest:
-    ids: List[int]
+    property_ids: List[int]

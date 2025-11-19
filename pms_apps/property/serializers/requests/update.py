@@ -2,8 +2,13 @@ from rest_framework import serializers
 from pms_apps.authentication.serializers.request.create import PropertyUserSerializer
 from pms_apps.property.dataclasses.requests.update import PropertyUpdateRequest
 
+
+class UserRequestSerilizer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=False,allow_null=True)
+
 class PropertyUpdateSerializer(serializers.Serializer):
     property_id = serializers.IntegerField()
+    block = serializers.CharField(max_length = 10,required = False)
     building_details = serializers.CharField(required=False, allow_blank=True)
     floor = serializers.CharField(required=False, allow_blank=True)
     flat_number = serializers.IntegerField(required=False)
@@ -24,8 +29,13 @@ class PropertyUpdateSerializer(serializers.Serializer):
     agreement_id = serializers.IntegerField(required=False)
     photos = serializers.ListField(child=serializers.URLField(), required=False, allow_null=True)
     videos = serializers.ListField(child=serializers.URLField(), required=False, allow_null=True)
-    assigned_to = PropertyUserSerializer()
-    is_active = PropertyUserSerializer()
+    assigned_to = UserRequestSerilizer(required=False,allow_null=True)
 
     def create(self, validated_data) -> PropertyUpdateRequest:
-        return PropertyUpdateRequest(**validated_data)
+        assigned_user_data = validated_data.pop('assigned_to',{})
+
+        assigned_to_user_id = assigned_user_data.get('user_id',None)
+        return PropertyUpdateRequest(
+            **validated_data,
+            assigned_to=assigned_to_user_id
+            )

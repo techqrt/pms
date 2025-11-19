@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
 
+class LeadPermissionRequestSerilizer(serializers.Serializer):
+    property_permission = serializers.BooleanField(required = False)
+
 class CountryRequestSerilizer(serializers.Serializer):
     country_id = serializers.IntegerField()
 
@@ -36,15 +39,21 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
     updated_at = serializers.DateTimeField(
         read_only = True
     )
+    permissions = LeadPermissionRequestSerilizer()
 
     def create(self,validated_data) -> LeadCreateRequest:
         user_data = validated_data.pop('lead_assign_to')
         country_data = validated_data.pop('nationality')
+        permission_data = validated_data.pop('permissions')
+
         lead_assign_to = user_data['user_id']
         nationality = country_data['country_id']
+        property_permission = permission_data['property_permission']
+
         return LeadCreateRequest(
             lead_assign_to=lead_assign_to,
             nationality=nationality,
+            property_permission = property_permission,
             **validated_data
         )
     

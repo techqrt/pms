@@ -16,7 +16,7 @@ from pms_apps.authentication.serializers_auth import (
 from pms_apps.authentication.utils import send_otp_sms, generate_jwt_token
 
 # Import module models
-from pms_apps.lead.models import Lead
+from pms_apps.lead.models.lead import Lead
 from pms_apps.marketing.models import MarketingManager, MarketingEmployee
 from pms_apps.property.models.property_employee import PropertyManager, PropertyEmployee
 from pms_apps.maintenance.models import MaintenanceManager, MaintenanceEmployee, Technician
@@ -25,6 +25,7 @@ from pms_apps.finance.models import FinanceManager, FinanceEmployee
 from pms_apps.collection.models import CollectionManager, CollectionEmployee
 from pms_apps.legal.models import LegalManager, LegalEmployee
 from pms_apps.IT.models import ITManager, ITEmployee, ITTechnician
+from pms_apps.hr.models import HREmployee
 
 class UserAuthView(APIView):
     permission_classes = [AllowAny]
@@ -149,7 +150,9 @@ class UserAuthView(APIView):
 
         # Module-based role mapping
         module_map = {
-            "Lead": lambda: Lead.objects.create(lead_id=user),
+            "Tenant": lambda: Lead.objects.create(lead_id=user,purpose='Tenant'),
+            "Landlord": lambda: Lead.objects.create(lead_id=user,purpose='Landlord'),
+            "HR": lambda: HREmployee.objects.create(hr_employee_id=user),
 
             "Marketing Dept login": lambda: (
                 MarketingManager.objects.create(manager_id=user)

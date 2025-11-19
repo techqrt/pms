@@ -4,7 +4,7 @@ from pms_apps.property.dataclasses.requests.delete_many import PropertyDeleteMan
 
 
 class PropertyDeleteManySerializer(serializers.Serializer):
-    property_id = serializers.ListField(required=True)
+    property_ids = serializers.ListField(required=True)
 
     def create(self, validated_data) -> PropertyDeleteManyRequest:
         return PropertyDeleteManyRequest(**validated_data)
