@@ -13,17 +13,15 @@ from pms_apps.property.serializers.requests.delete import PropertyDeleteSerializ
 from pms_apps.property.serializers.requests.delete_many import PropertyDeleteManySerializer
 from pms_apps.property.serializers.requests.get import PropertyGetSerializer
 
-from pms_apps.property.serializers.response.get import PropertyGetResponseSerializer
-from pms_apps.property.serializers.response.get_all import PropertyGetAllResponseSerializer
+from pms_apps.property.serializers.response.get import PropertyResponseGetSerializer
+from pms_apps.property.serializers.response.get_all import PropertyResponseGetAllSerializer
 from pms_apps.property.views import PropertyView
 
 
 # noinspection PyMethodParameters
 class PropertyViewController:
 
-    # -------------------------------
-    # CREATE PROPERTY
-    # -------------------------------
+
     @extend_schema(
         description="Add a Property",
         request=PropertyCreateSerializer,
@@ -35,9 +33,7 @@ class PropertyViewController:
     def create(request: Request) -> Response:
         return PropertyView().create_extract(params=request.params)
 
-    # -------------------------------
-    # UPDATE PROPERTY
-    # -------------------------------
+
     @extend_schema(
         description="Update a Property",
         request=PropertyUpdateSerializer,
@@ -49,9 +45,7 @@ class PropertyViewController:
     def update(request: Request) -> Response:
         return PropertyView().update_extract(params=request.params)
 
-    # -------------------------------
-    # DELETE PROPERTY
-    # -------------------------------
+   
     @extend_schema(
         description="Delete a Property",
         parameters=PropertyDeleteSerializer.get_parameters(),
@@ -63,35 +57,29 @@ class PropertyViewController:
     def delete(request: Request) -> Response:
         return PropertyView().delete_extract(params=request.params)
 
-    # -------------------------------
-    # GET SINGLE PROPERTY
-    # -------------------------------
+
     @extend_schema(
         description="Get a Property by ID",
         parameters=PropertyGetSerializer.get_parameters(),
-        responses=SwaggerPage.response(response=PropertyGetResponseSerializer)
+        responses=SwaggerPage.response(response=PropertyResponseGetSerializer)
     )
     @api_view(["GET"])
     @SerializerValidations(serializer=PropertyGetSerializer).validate
     def get(request: Request) -> Response:
         return PropertyView().get_extract(params=request.params)
 
-    # -------------------------------
-    # GET ALL PROPERTIES
-    # -------------------------------
+
     @extend_schema(
         description="Get all Properties (Paginated)",
         parameters=SwaggerPage.get_all_parameters(),
-        responses=SwaggerPage.response(response=PropertyGetAllResponseSerializer)
+        responses=SwaggerPage.response(response=PropertyResponseGetAllSerializer)
     )
     @api_view(["GET"])
     @SerializerValidations(serializer=GetAllSerializer).validate
     def get_all(request: Request) -> Response:
         return PropertyView().get_all_extract(params=request.params)
 
-    # -------------------------------
-    # DELETE MULTIPLE PROPERTIES
-    # -------------------------------
+
     @extend_schema(
         description="Delete multiple Properties",
         request=PropertyDeleteManySerializer,

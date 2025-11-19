@@ -18,8 +18,6 @@ class UserAuthSerializer(serializers.Serializer):
 
         if not phone_number:
             raise serializers.ValidationError({"phone_number": "Phone number is required."})
-        if module != "Lead" and not role:
-            raise serializers.ValidationError({"role": "Role is required."})
         if not module:
             raise serializers.ValidationError({"module": "Module is required."})
 

@@ -10,19 +10,18 @@ from django.core.validators import RegexValidator
 
 class User(AbstractBaseUser):
     DEPARTMENT_CHOICES = [
-        ("Lead", "Lead"),
-        ("Marketing Dept login", "Marketing Dept login"),
-        ("Property Management login", "Property Management login"),
-        ("Tenant Management Module", "Tenant Management Module"),
-        ("Maintenance Dept login", "Maintenance Dept login"),
-        ("Reception Dept login", "Reception Dept login"),
-        ("Finance Dept Login", "Finance Dept Login"),
-        ("Collection Dept login", "Collection Dept login"),
-        ("Legal Dept Login", "Legal Dept Login"),
-        ("IT Dept login", "IT Dept login"),
-        ("IT Technician", "IT Technician"),
-        ("Agreement Team", "Agreement Team"),   # Remove the department - Known as a Legal Dept
+        ("Tenant", "Tenant"),
+        ("Landlord", "Landlord"),
+        ("Marketing", "Marketing"),
+        ("Property", "Property"),
+        ("Maintenance", "Maintenance"),
+        ("Reception login", "Reception"),
+        ("Finance", "Finance"),
+        ("Collection", "Collection"),
+        ("Legal", "Legal"),
+        ("IT", "IT"),
         ("General Manager", "General Manager"),
+        ("HR" , "HR"),
         ("Owner", "Owner"),
     ]
 
@@ -60,5 +59,8 @@ class User(AbstractBaseUser):
         return otp
     
     def get(user_id : int) -> dict:
-        return User.objects.filter(user_id=user_id).values(
+        user = User.objects.filter(user_id=user_id).values(
             'user_id','phone_number','name','email','department','role').first()
+        if not user:
+            raise ValueError(f'Invalid User id : {user_id}')
+        return user

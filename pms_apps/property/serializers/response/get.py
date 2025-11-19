@@ -1,37 +1,42 @@
 from rest_framework import serializers
-from pms_apps.common.serializers.response.api_response import APiResponseSerializer
-from pms_apps.authentication.serializers.response.get_all import PropertyUserSerializer
 
 
-
-class PropertyGetDataSerializer(serializers.Serializer):
-    property_id = serializers.IntegerField()
-    building_details = serializers.CharField(required=False, allow_blank=True)
-    floor = serializers.CharField(required=False, allow_blank=True)
-    flat_number = serializers.IntegerField(required=False, allow_null=True)
-    dimension_length_ft = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
-    dimension_breadth_ft = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
-    dimension_area_sqft = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
-    rental_type = serializers.CharField(required=False, allow_blank=True)
-    hall = serializers.BooleanField(required=False)
-    bedroom_count = serializers.IntegerField(required=False)
-    kitchen = serializers.BooleanField(required=False)
-    attached_bathroom_count = serializers.IntegerField(required=False)
-    single_bathroom_count = serializers.IntegerField(required=False)
-    balcony = serializers.BooleanField(required=False)
-    store_room = serializers.BooleanField(required=False)
-    rental_for = serializers.CharField(required=False, allow_blank=True)
-    advance_amount_rent = serializers.IntegerField(required=False, allow_null=True)
-    expected_rent = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
-    agreement_id = serializers.IntegerField(required=False, allow_null=True)
-    photos = serializers.ListField(child=serializers.URLField(), required=False, allow_null=True)
-    videos = serializers.ListField(child=serializers.URLField(), required=False, allow_null=True)
-    created_by = PropertyUserSerializer()
-    assigned_to = PropertyUserSerializer()
-    created_at = serializers.DateTimeField()
-    updated_at = serializers.DateTimeField()
-    is_active = serializers.BooleanField()
+class UserGetSerializer(serializers.Serializer):
+    userId = serializers.IntegerField(read_only=True)
+    phoneNumber = serializers.CharField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
 
 
-class PropertyGetResponseSerializer(APiResponseSerializer):
-    data = PropertyGetDataSerializer()
+class PropertyGetSerializer(serializers.Serializer):
+    block = serializers.CharField(read_only=True)
+    propertyId = serializers.IntegerField(read_only=True)
+    buildingDetails = serializers.CharField(read_only=True)
+    floor = serializers.CharField(read_only=True)
+    flatNumber = serializers.IntegerField(read_only=True)
+    dimensionLengthFt = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    dimensionBreadthFt = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    dimensionAreaSqft = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    rentalType = serializers.CharField(read_only=True)
+    hall = serializers.BooleanField(read_only=True)
+    bedroomCount = serializers.IntegerField(read_only=True)
+    kitchen = serializers.BooleanField(read_only=True)
+    attachedBathroomCount = serializers.IntegerField(read_only=True)
+    singleBathroomCount = serializers.IntegerField(read_only=True)
+    balcony = serializers.BooleanField(read_only=True)
+    storeRoom = serializers.BooleanField(read_only=True)
+    rentalFor = serializers.CharField(read_only=True)
+    advanceAmountRent = serializers.IntegerField(read_only=True)
+    expectedRent = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    agreementId = serializers.IntegerField(read_only=True)
+    photos = serializers.ListField(child=serializers.URLField(), read_only=True)
+    videos = serializers.ListField(child=serializers.URLField(), read_only=True)
+    createdBy = UserGetSerializer(read_only=True)
+    assignedTo = UserGetSerializer(read_only=True)
+    createdAt = serializers.DateTimeField(read_only=True)
+    updatedAt = serializers.DateTimeField(read_only=True)
+    isActive = serializers.BooleanField(read_only=True)
+
+
+class PropertyResponseGetSerializer(serializers.Serializer):
+    data = PropertyGetSerializer(read_only=True)

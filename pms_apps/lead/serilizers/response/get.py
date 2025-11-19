@@ -1,5 +1,8 @@
 from rest_framework import serializers
 
+class LeadPermissionsGetSeriazlier(serializers.Serializer):
+    property =  serializers.BooleanField()
+
 class CountryGetSerializer(serializers.Serializer):
     name = serializers.CharField()
 
@@ -22,6 +25,7 @@ class LeadGetSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField(read_only = True)
     updatedAt = serializers.DateTimeField(read_only = True)
     isActive = serializers.BooleanField(read_only = True)
+    permissions = LeadPermissionsGetSeriazlier(read_only = True)
 
 class LeadResponseGetSerializer(serializers.Serializer):
     data = LeadGetSerializer()

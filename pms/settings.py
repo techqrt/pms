@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'pms_apps.property',
     'pms_apps.common',
     'pms_apps.lead',
+    'pms_apps.hr',
     
 ]
 AUTH_USER_MODEL = 'auth.User'

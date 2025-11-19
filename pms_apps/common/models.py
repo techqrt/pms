@@ -13,9 +13,11 @@ class Country(models.Model):
 
     @staticmethod
     def get(country_id : str):
-        return Country.objects.filter(country_id=country_id).values(
+        country = Country.objects.filter(country_id=country_id).values(
             "country_id","name"
         ).first()
+        if not country:
+            raise ValueError(f'Invalid Country Id : {country_id}')
 
     def __str__(self):
         return str(self.name)

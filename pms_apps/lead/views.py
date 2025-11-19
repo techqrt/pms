@@ -1,4 +1,5 @@
-from .models import Lead
+from .models.lead import Lead
+from pms_apps.lead.models.property_permission import PropertyPermission
 from django.db import transaction
 from pms_apps.common.common import Common
 from rest_framework.response import Response
@@ -25,11 +26,17 @@ class LeadView:
         self.db_error = "Database Error"
         self.error = "Something went wrong"
 
+
     @Common().exception_handler
     def create_extract(self, params : LeadCreateRequest):  
         with transaction.atomic():
             country_data = Country.get(country_id=params.nationality)
             user_data = User.get(user_id=params.lead_assign_to)
+
+            lead_permission = PropertyPermission()
+            if params.property_permission.property : lead_permission.property = params.property_permission.property
+            lead_permission.save()
+
             lead = Lead()
             lead_id = lead.create(
                 lead_id = params.user_id, 
@@ -40,7 +47,8 @@ class LeadView:
                 address=params.address,
                 nationality = country_data.get('country_id'),
                 passport_or_id=params.passport_or_id,
-                purpose=params.purpose
+                purpose=params.purpose,
+                proprty_permissions_id=lead_permission.permission_id
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -55,6 +63,11 @@ class LeadView:
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data  is None:
                 raise ValueError(self.data_no_match)
+            
+            LeadPermission.update(
+                permission_id = lead_data.get("lead_permissions__permission_id"),
+                property_permission = params.property_permission
+            )
 
             Lead.update(
                 lead_id=lead_data.get('lead_id'),
@@ -88,6 +101,11 @@ class LeadView:
     @Common(response_handler=LeadResponseGetSerializer).exception_handler
     def get_extract(self, params):
         with transaction.atomic():
+
+            #other user can not access another user
+            if params.lead_id != params.user_id:
+                raise ValueError(self.data_no_match + ': User not authorized to access this lead')
+
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
@@ -123,8 +141,12 @@ class LeadView:
         lead_utils = LeadUtils(columns_required=[column for column in params.values.split(',') if column])
         data = json.loads(lead_utils.mapper(data=data))
 
-        data = Utils.add_page_parameter(final_data=data,page_num=params.page_num,total_page=pages.num_pages,present_url=params.present_url,next_page_required=True if pages.num_pages != params.page_num else False)
-        print(data)
+        data = Utils.add_page_parameter(
+            final_data=data,
+            page_num=params.page_num,
+            total_page=pages.num_pages,
+            present_url=params.present_url,
+            next_page_required=True if pages.num_pages != params.page_num else False)
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_get,data=data)
