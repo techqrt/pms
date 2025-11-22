@@ -154,47 +154,50 @@ class UserAuthView(APIView):
             "Landlord": lambda: Lead.objects.create(lead_id=user,purpose='Landlord'),
             "HR": lambda: HREmployee.objects.create(hr_employee_id=user),
 
-            "Marketing Dept login": lambda: (
+            "Marketing": lambda: (
                 MarketingManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else MarketingEmployee.objects.create(employee_id=user)
             ),
-            "Property Management login": lambda: (
+            "Property": lambda: (
                 PropertyManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else PropertyEmployee.objects.create(employee_id=user)
             ),
-            "Maintenance Dept login": lambda: (
+            "Maintenance": lambda: (
                 MaintenanceManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else MaintenanceEmployee.objects.create(employee_id=user)
             ),
-            "Reception Dept login": lambda: (
+            "Reception": lambda: (
                 ReceptionManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else ReceptionEmployee.objects.create(employee_id=user)
             ),
-            "Finance Dept Login": lambda: (
+            "Finance": lambda: (
                 FinanceManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else FinanceEmployee.objects.create(employee_id=user)
             ),
-            "Collection Dept login": lambda: (
+            "Collection": lambda: (
                 CollectionManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else CollectionEmployee.objects.create(employee_id=user)
             ),
-            "Legal Dept Login": lambda: (
+            "Legal": lambda: (
                 LegalManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else LegalEmployee.objects.create(employee_id=user)
             ),
-            "IT Dept login": lambda: (
+            "IT": lambda: (
                 ITManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else ITEmployee.objects.create(employee_id=user)
-            ),
-            "IT Technician": lambda: ITTechnician.objects.create(technician_id=user),
+                if role == "Employee"
+                else ITTechnician.objects.create(technician_id=user)
+                if role == "Technician"
+                else None
+            )
         }
 
         create_fn = module_map.get(module)

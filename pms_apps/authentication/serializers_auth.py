@@ -16,6 +16,14 @@ class UserAuthSerializer(serializers.Serializer):
         role = data.get("role")
         module = data.get("module")
 
+
+        if module in ["Tenant", "Lanlord"]:
+            data.pop("role",None)
+        else:
+            if not role:
+                raise serializers.ValidationError(
+                    {"role": "Role is required for this module."}
+                )   
         if not phone_number:
             raise serializers.ValidationError({"phone_number": "Phone number is required."})
         if not module:
