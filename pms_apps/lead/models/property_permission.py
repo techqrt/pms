@@ -22,10 +22,14 @@ class PropertyPermission(models.Model):
         return self.permission_id
 
     @staticmethod
-    def update(permission_id: int, property: bool) -> int:
+    def update(
+        permission_id: int, 
+        property: bool = None
+        ) -> int:
 
         permission = PropertyPermission.objects.get(permission_id=permission_id)
-        permission.property = property
+        if property is not None:
+            permission.property = property
         permission.save()
         return permission.permission_id
 

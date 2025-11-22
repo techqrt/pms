@@ -32,11 +32,14 @@ class LeadView:
         with transaction.atomic():
             country_data = Country.get(country_id=params.nationality)
             user_data = User.get(user_id=params.lead_assign_to)
+            if not country_data:
+                raise ValueError(f'Invalid Country Id : {params.nationality}')
+            if not user_data:
+                raise ValueError(f'Invalid User id : {params.lead_assign_to}')
 
             lead_permission = PropertyPermission()
             if params.property_permission.property : lead_permission.property = params.property_permission.property
             lead_permission.save()
-
             lead = Lead()
             lead_id = lead.create(
                 lead_id = params.user_id, 
@@ -48,7 +51,7 @@ class LeadView:
                 nationality = country_data.get('country_id'),
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
-                proprty_permissions_id=lead_permission.permission_id
+                property_permissions_id=lead_permission.permission_id
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -64,21 +67,25 @@ class LeadView:
             if lead_data  is None:
                 raise ValueError(self.data_no_match)
             
-            LeadPermission.update(
-                permission_id = lead_data.get("lead_permissions__permission_id"),
-                property_permission = params.property_permission
+            property_permission_id = lead_data.get("property_permissions__permission_id")
+
+            PropertyPermission.update(
+                permission_id = property_permission_id,
+                property = params.property_permission.property
             )
 
             Lead.update(
                 lead_id=lead_data.get('lead_id'),
-                lead_assign_to = user_data.get('user_id'),
+                lead_assign_to = user_data.get('user_id') if user_data else None,
                 first_name=params.first_name,
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,
                 address=params.address,
-                nationality = country_data.get('country_id'),
+                nationality = country_data.get('country_id') if country_data else None,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
+                property_permission_id=property_permission_id
+
             )
         return Response(
             status=status.HTTP_200_OK,

@@ -15,7 +15,7 @@ class User(AbstractBaseUser):
         ("Marketing", "Marketing"),
         ("Property", "Property"),
         ("Maintenance", "Maintenance"),
-        ("Reception login", "Reception"),
+        ("Reception", "Reception"),
         ("Finance", "Finance"),
         ("Collection", "Collection"),
         ("Legal", "Legal"),
@@ -61,6 +61,4 @@ class User(AbstractBaseUser):
     def get(user_id : int) -> dict:
         user = User.objects.filter(user_id=user_id).values(
             'user_id','phone_number','name','email','department','role').first()
-        if not user:
-            raise ValueError(f'Invalid User id : {user_id}')
         return user

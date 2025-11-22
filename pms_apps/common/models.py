@@ -16,8 +16,7 @@ class Country(models.Model):
         country = Country.objects.filter(country_id=country_id).values(
             "country_id","name"
         ).first()
-        if not country:
-            raise ValueError(f'Invalid Country Id : {country_id}')
+        return country
 
     def __str__(self):
         return str(self.name)
