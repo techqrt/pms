@@ -1,5 +1,6 @@
 from decouple import config
- 
+
+
 class Configurations:
     db_name = config('DB_NAME')
     db_user = config('DB_USER')

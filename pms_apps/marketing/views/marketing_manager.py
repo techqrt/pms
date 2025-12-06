@@ -1,0 +1,138 @@
+from django.db import transaction
+from django.core.paginator import Paginator
+from rest_framework.response import Response
+from rest_framework import status
+import json
+
+from pms_apps.common.common import Common
+from pms_apps.common.utils import Utils
+from pms_apps.common.dataclasses.request.get_all import GetAll
+
+from pms_apps.marketing.models.marketing_manager import MarketingManager
+from pms_apps.marketing.models.marketing_permission import MarketingPermission
+from pms_apps.marketing.dataclasses.request.create.create_manager import MarketingManagerCreateRequest
+from pms_apps.marketing.dataclasses.request.update.update_manager import MarketingManagerUpdateRequest
+from pms_apps.marketing.serializers.response.get.get_manager import MarketingManagerResponseGetSerializer
+from pms_apps.marketing.serializers.response.get_all.get_all_manager import MarketingManagerResponseGetAllSerializer
+
+from pms_apps.marketing.utils import MarketingUtils
+
+
+class MarketingManagerView:
+    def __init__(self):
+        self.manager_create = "Marketing manager added successfully"
+        self.manager_update = "Marketing manager updated successfully"
+        self.manager_delete = "Marketing manager deleted successfully"
+
+        self.data_no_match = "No matching record found"
+        self.data_get = "Data fetched successfully"
+        self.db_error = "Database Error"
+        self.error = "Something went wrong"
+
+    @Common().exception_handler
+    def create_manager_extract(self, params: MarketingManagerCreateRequest):
+        with transaction.atomic():
+            permission_id = None
+            if hasattr(params, 'permission') and params.permission:
+                permission_obj = MarketingPermission()
+                permission_id = permission_obj.create(
+                    lead=params.permission.lead,
+                    property=params.permission.property
+                )
+
+            obj = MarketingManager()
+            manager_id = obj.create(
+                manager_id=params.manager_id,
+                name=params.name,
+                dob=params.dob,
+                department=params.department,
+                campaigns_led=params.campaigns_led,
+                team_size=params.team_size,
+                permission_id=permission_id,
+            )
+        return Response(
+            status=status.HTTP_201_CREATED,
+            data=Utils.success_response_data(
+                message=self.manager_create, data={"manager_id": manager_id})
+        )
+
+    @Common().exception_handler
+    def update_manager_extract(self, params: MarketingManagerUpdateRequest):
+        with transaction.atomic():
+            manager_data = MarketingManager.get(manager_id=params.manager_id)
+            if manager_data is None:
+                raise ValueError(self.data_no_match)
+
+            permission_id = manager_data.get('permission_id')
+            if hasattr(params, 'permission') and params.permission:
+                if permission_id:
+                    MarketingPermission.update(
+                        permission_id=permission_id,
+                        lead=params.permission.lead,
+                        property=params.permission.property
+                    )
+                else:
+                    permission_obj = MarketingPermission()
+                    permission_id = permission_obj.create(
+                        lead=params.permission.lead,
+                        property=params.permission.property
+                    )
+
+            MarketingManager.update(
+                manager_id=params.manager_id,
+                name=params.name,
+                dob=params.dob,
+                department=params.department,
+                campaigns_led=params.campaigns_led,
+                team_size=params.team_size,
+                permission_id=permission_id,
+            )
+        return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.manager_update))
+
+    @Common().exception_handler
+    def delete_manager_extract(self, params):
+        with transaction.atomic():
+            manager_data = MarketingManager.get(manager_id=params.manager_id)
+            if manager_data is None:
+                raise ValueError(self.data_no_match)
+            MarketingManager.remove(manager_id=params.manager_id)
+        return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.manager_delete))
+
+    @Common(response_handler=MarketingManagerResponseGetSerializer).exception_handler
+    def get_manager_extract(self, params):
+        with transaction.atomic():
+            manager_data = MarketingManager.get(manager_id=params.manager_id)
+            if manager_data is None:
+                raise ValueError(self.data_no_match)
+            marketing_utils = MarketingUtils(entity='manager', columns_required=[
+                                             column for column in params.values.split(',') if column])
+            data = json.loads(marketing_utils.mapper([manager_data]))[0]
+        return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.data_get, data=data))
+
+    @Common(response_handler=MarketingManagerResponseGetAllSerializer).exception_handler
+    def get_all_manager_extract(self, params: GetAll):
+        reversed_mapped = MarketingUtils.reverse_mapper([
+            params.sort_by,
+            params.filter_key
+        ])
+
+        pages = Paginator(MarketingManager.get_all(
+            sort_by=reversed_mapped.get(params.sort_by),
+            sort_order=params.sort_order,
+            filter_key=reversed_mapped.get(params.filter_key),
+            filter_value=params.filter_value,
+            search_key=params.search_key
+        ), per_page=params.limit)
+
+        if pages.num_pages < params.page_num:
+            raise ValueError('Page limit exceed!')
+
+        page_data = pages.page(params.page_num)
+        utils = MarketingUtils(entity='manager', columns_required=[
+                               column for column in params.values.split(',') if column])
+        data = json.loads(utils.mapper(list(page_data)))
+
+        data = Utils.add_page_parameter(final_data=data, page_num=params.page_num, total_page=pages.num_pages,
+                                        present_url=params.present_url,
+                                        next_page_required=True if pages.num_pages != params.page_num else False)
+        return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.data_get, data=data))
