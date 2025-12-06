@@ -30,6 +30,7 @@ class User(AbstractBaseUser):
         ("General Manager", "General Manager"),
         ("Manager", "Manager"),
         ("Employee", "Employee"),
+        ("Technician", "Technician"),
     ]
 
     user_id = models.AutoField(primary_key=True)

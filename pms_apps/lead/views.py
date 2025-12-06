@@ -9,12 +9,13 @@ from pms_apps.common.models import Country
 from pms_apps.common.dataclasses.request.get_all import GetAll
 from pms_apps.authentication.models import User
 from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
-from pms_apps.lead.dataclasses.request.update import  LeadUpdateRequest
+from pms_apps.lead.dataclasses.request.update import LeadUpdateRequest
 from pms_apps.lead.serilizers.response.get import LeadResponseGetSerializer
 from pms_apps.lead.serilizers.response.get_all import LeadResponseGetAllSerilizer
 from .utils import LeadUtils
 from django.core.paginator import Paginator
 import json
+
 
 class LeadView:
     def __init__(self):
@@ -26,9 +27,8 @@ class LeadView:
         self.db_error = "Database Error"
         self.error = "Something went wrong"
 
-
     @Common().exception_handler
-    def create_extract(self, params : LeadCreateRequest):  
+    def create_extract(self, params: LeadCreateRequest):
         with transaction.atomic():
             country_data = Country.get(country_id=params.nationality)
             user_data = User.get(user_id=params.lead_assign_to)
@@ -38,50 +38,54 @@ class LeadView:
                 raise ValueError(f'Invalid User id : {params.lead_assign_to}')
 
             lead_permission = PropertyPermission()
-            if params.property_permission.property : lead_permission.property = params.property_permission.property
+            if params.property_permission.property:
+                lead_permission.property = params.property_permission.property
             lead_permission.save()
             lead = Lead()
             lead_id = lead.create(
-                lead_id = params.user_id, 
-                lead_assign_to = user_data.get('user_id'),
+                lead_id=params.user_id,
+                lead_assign_to=user_data.get('user_id'),
                 first_name=params.first_name,
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,
                 address=params.address,
-                nationality = country_data.get('country_id'),
+                nationality=country_data.get('country_id'),
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
                 property_permissions_id=lead_permission.permission_id
             )
         return Response(
             status=status.HTTP_201_CREATED,
-            data=Utils.success_response_data(message=self.data_create, data={"lead_id": lead_id.user_id})
+            data=Utils.success_response_data(message=self.data_create, data={
+                                             "lead_id": lead_id.user_id})
         )
-    
+
     @Common().exception_handler
-    def update_extract(self,params : LeadUpdateRequest):
+    def update_extract(self, params: LeadUpdateRequest):
         with transaction.atomic():
             country_data = Country.get(country_id=params.nationality)
             user_data = User.get(user_id=params.lead_assign_to)
             lead_data = Lead.get(lead_id=params.lead_id)
-            if lead_data  is None:
+            if lead_data is None:
                 raise ValueError(self.data_no_match)
-            
-            property_permission_id = lead_data.get("property_permissions__permission_id")
+
+            property_permission_id = lead_data.get(
+                "property_permissions__permission_id")
 
             PropertyPermission.update(
-                permission_id = property_permission_id,
-                property = params.property_permission.property
+                permission_id=property_permission_id,
+                property=params.property_permission.property
             )
 
             Lead.update(
                 lead_id=lead_data.get('lead_id'),
-                lead_assign_to = user_data.get('user_id') if user_data else None,
+                lead_assign_to=user_data.get('user_id') if user_data else None,
                 first_name=params.first_name,
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,
                 address=params.address,
-                nationality = country_data.get('country_id') if country_data else None,
+                nationality=country_data.get(
+                    'country_id') if country_data else None,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
                 property_permission_id=property_permission_id
@@ -91,9 +95,9 @@ class LeadView:
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_update)
         )
-    
+
     @Common().exception_handler
-    def delete_extract(self,params):
+    def delete_extract(self, params):
         with transaction.atomic():
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
@@ -104,29 +108,31 @@ class LeadView:
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_delete)
         )
-    
+
     @Common(response_handler=LeadResponseGetSerializer).exception_handler
     def get_extract(self, params):
         with transaction.atomic():
 
-            #other user can not access another user
+            # other user can not access another user
             if params.lead_id != params.user_id:
-                raise ValueError(self.data_no_match + ': User not authorized to access this lead')
+                raise ValueError(self.data_no_match +
+                                 ': User not authorized to access this lead')
 
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            
-            lead_utils = LeadUtils(columns_required=[column for column in params.values.split(',') if column])
+
+            lead_utils = LeadUtils(
+                columns_required=[column for column in params.values.split(',') if column])
             lead_data = [lead_data]
             data = json.loads(lead_utils.mapper(lead_data))[0]
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_get, data=data)
         )
-    
+
     @Common(response_handler=LeadResponseGetAllSerilizer).exception_handler
-    def get_all_extract(self,params : GetAll):
+    def get_all_extract(self, params: GetAll):
 
         reversed_mapped = LeadUtils.reverse_mapper([
             params.sort_by,
@@ -139,13 +145,14 @@ class LeadView:
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
             search_key=params.search_key
-        ),per_page=params.limit)
+        ), per_page=params.limit)
 
         if pages.num_pages < params.page_num:
             raise ValueError('Page limit exceed!')
-            
+
         data = pages.page(params.page_num)
-        lead_utils = LeadUtils(columns_required=[column for column in params.values.split(',') if column])
+        lead_utils = LeadUtils(
+            columns_required=[column for column in params.values.split(',') if column])
         data = json.loads(lead_utils.mapper(data=data))
 
         data = Utils.add_page_parameter(
@@ -156,10 +163,5 @@ class LeadView:
             next_page_required=True if pages.num_pages != params.page_num else False)
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message=self.data_get,data=data)
+            data=Utils.success_response_data(message=self.data_get, data=data)
         )
-
-    
-
-
-

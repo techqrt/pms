@@ -17,9 +17,13 @@ from pms_apps.authentication.utils import send_otp_sms, generate_jwt_token
 
 # Import module models
 from pms_apps.lead.models.lead import Lead
-from pms_apps.marketing.models import MarketingManager, MarketingEmployee
-from pms_apps.property.models.property_employee import PropertyManager, PropertyEmployee
-from pms_apps.maintenance.models import MaintenanceManager, MaintenanceEmployee, Technician
+from pms_apps.marketing.models.marketing_employee import MarketingEmployee
+from pms_apps.marketing.models.marketing_manager import MarketingManager
+from pms_apps.property.models.property_employee import PropertyEmployee
+from pms_apps.property.models.property_manager import PropertyManager
+from pms_apps.maintenance.models.maintenance_employee import MaintenanceEmployee
+from pms_apps.maintenance.models.maintenance_manager import MaintenanceManager
+from pms_apps.maintenance.models.maintenance_technician import MaintenanceTechnician
 from pms_apps.reception.models import ReceptionManager, ReceptionEmployee
 from pms_apps.finance.models import FinanceManager, FinanceEmployee
 from pms_apps.collection.models import CollectionManager, CollectionEmployee
@@ -150,8 +154,8 @@ class UserAuthView(APIView):
 
         # Module-based role mapping
         module_map = {
-            "Tenant": lambda: Lead.objects.create(lead_id=user,purpose='Tenant'),
-            "Landlord": lambda: Lead.objects.create(lead_id=user,purpose='Landlord'),
+            "Tenant": lambda: Lead.objects.create(lead_id=user, purpose='Tenant'),
+            "Landlord": lambda: Lead.objects.create(lead_id=user, purpose='Landlord'),
             "HR": lambda: HREmployee.objects.create(hr_employee_id=user),
 
             "Marketing": lambda: (
@@ -168,6 +172,10 @@ class UserAuthView(APIView):
                 MaintenanceManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else MaintenanceEmployee.objects.create(employee_id=user)
+                if role == "Employee"
+                else MaintenanceTechnician.objects.create(technician_id=user)
+                if role == "Technician"
+                else None
             ),
             "Reception": lambda: (
                 ReceptionManager.objects.create(manager_id=user)
