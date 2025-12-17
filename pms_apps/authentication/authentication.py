@@ -1,9 +1,17 @@
 import jwt
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.renderers import JSONRenderer
+from pms.constants import Constants
+from pms_apps.common.utils import Utils 
 from django.conf import settings
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth.models import AnonymousUser
+from pms_apps.common.dataclasses.request.permission import Permissions, PermissionsProperty
+
 from pms_apps.authentication.models import User  # Adjust this to your actual User model
+from pms_apps.authentication.utils import get_user_info_from_db
 
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
@@ -19,12 +27,71 @@ class JWTAuthentication(BaseAuthentication):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed("Invalid token")
 
+        user_info = get_user_info_from_db(user_id=payload["user_id"])
+        
+        if token != user_info['token']:
+            return error_response(status_code=status.HTTP_401_UNAUTHORIZED, data=Constants.invalid_access_token)
+
         # Fetch the user (assuming `User` model has an `id` field)
         try:
             user = User.objects.get(user_id=payload["user_id"])
             user.role = payload.get("role")  # Attach role dynamically
         except User.DoesNotExist:
             raise AuthenticationFailed("User not found")
+        
+        token_role = payload.get("role")
+        token_department = payload.get("department")
 
-        return user, None  # DRF expects a (user, auth) tuple
+        if token_role and token_role != user.role:
+            raise AuthenticationFailed("Token role mismatch")
 
+        if token_department and token_department != user.department:
+            raise AuthenticationFailed("Token department mismatch")
+
+        if not self.validate_permissions(request=request, payload=payload):
+                return error_response(status_code=status.HTTP_403_FORBIDDEN, data=Constants.forbidden_access)
+        
+        permissions = map_permissions_from_payload(payload['permissions'])
+
+        payload['permissions'] = permissions
+
+        # Attach payload if you want to use it later
+        request.payload = payload
+
+        return user, payload  # DRF expects a (user, auth) tuple
+    
+    def validate_permissions(self, request, payload) -> bool:
+        path = request.path.lower()
+        permissions = payload['permissions']
+
+        # Dictionary mapping URL paths to permissions fields
+        permissions_mapping = {
+            'property': permissions['property'],
+        }
+
+        # Iterate over the dictionary to check if the user has the required permissions
+        for key, permission_group in permissions_mapping.items():
+            if key in path:
+                # Dynamically check all fields in the permission group
+                for field, value in permission_group.items():
+                    if not value:  # If any field is False, deny access
+                        return False
+
+        return True
+
+
+def error_response(status_code=status.HTTP_401_UNAUTHORIZED, data=Constants.auth_error) -> Response:
+    response_data = Utils.error_response_data(message=data, error=[data])
+    response = Response(status=status_code, data=response_data)
+    response.accepted_renderer = JSONRenderer()
+    response.accepted_media_type = "application/json"
+    response.renderer_context = {}
+    response.render()
+    return response
+
+def map_permissions_from_payload(payload_permissions):
+    return Permissions(
+        property=PermissionsProperty(
+            property=payload_permissions['property']['property'],
+        ),
+    )

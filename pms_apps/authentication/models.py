@@ -39,6 +39,8 @@ class User(AbstractBaseUser):
     email = models.EmailField(blank=True, null=True)
     department = models.CharField(max_length=100, choices=DEPARTMENT_CHOICES, blank=True, null=True)
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, blank=True, null=True)
+    access_token = models.TextField(default='')
+    refresh_token = models.TextField(default='')
     otp = models.IntegerField(null=True, blank=True)
     otp_expiry = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
