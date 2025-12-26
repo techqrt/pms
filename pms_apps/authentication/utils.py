@@ -3,13 +3,13 @@ import datetime
 from django.conf import settings
 from django.http import JsonResponse
 from .models import User
-from pms_apps.common.dataclasses.request.permission import Permissions
+from pms_apps.authentication.models import User
 
 def send_otp_sms(phone_number, otp):
     """Send OTP via SMS using Twilio."""
     pass
 
-def generate_jwt_token(user):
+def generate_jwt_token(user : User):
     """Generate JWT token for authenticated user."""
     payload = {
         'user_id': user.user_id,
@@ -18,8 +18,8 @@ def generate_jwt_token(user):
         'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1),
         'iat': datetime.datetime.now(datetime.timezone.utc),
         'token': None,
-        'permissions': Permissions().to_dict(),
     }
+
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
     payload['token'] = token
     

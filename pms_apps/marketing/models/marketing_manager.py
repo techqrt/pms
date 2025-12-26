@@ -2,34 +2,56 @@ from django.db import models
 from django.utils import timezone
 from django.db.models import Q
 from pms_apps.authentication.models import User
-from pms_apps.marketing.models.marketing_permission import MarketingPermission
+from pms_apps.common.models.permissions import LeadPermission, PropertyPermission
 
 
 class MarketingManager(models.Model):
     manager_id = models.OneToOneField(
-        User, on_delete=models.CASCADE, primary_key=True, related_name="marketing_manager_profile"
+        User,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name="marketing_manager_profile"
     )
     name = models.CharField(max_length=100, default="")
     dob = models.DateField(null=True, blank=True)
-    # e.g. Digital, Field Marketing
     department = models.CharField(max_length=100, blank=True, null=True)
     campaigns_led = models.IntegerField(default=0)
     team_size = models.IntegerField(default=0)
-    permission = models.ForeignKey(
-        MarketingPermission, on_delete=models.DO_NOTHING, null=True, blank=True, related_name="marketing_manager_permission"
+
+    lead_permission = models.ForeignKey(
+        LeadPermission,
+        on_delete=models.DO_NOTHING,
+        null=True
     )
+    property_permission = models.ForeignKey(
+        PropertyPermission,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
+
     created_date_time = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "marketing_manager"
 
     def __str__(self):
-        return f"{self.name} {self.manager_id.phone_number}"
+        return f"{self.name} ({self.manager_id.phone_number})"
 
-    # ----------------------
-    # Static CRUD Operations
-    # ----------------------
 
+    @staticmethod
+    def get_permissions(user_id: int) -> dict:
+        manager = MarketingManager.objects.filter(manager_id__user_id=user_id).first()
+
+        permissions = {}
+        if manager:
+            if manager.lead_permission:
+                permissions["lead"] = manager.lead_permission.lead
+            if manager.property_permission:
+                permissions["property"] = manager.property_permission.property
+
+        return {"permissions": permissions}
+
+ 
     def create(
         self,
         manager_id: int,
@@ -38,55 +60,81 @@ class MarketingManager(models.Model):
         department: str,
         campaigns_led: int,
         team_size: int,
-        permission_id: int,
+        lead_permission_id: int = None,
+        property_permission_id: int = None,
     ) -> int:
-        """Create a new Marketing Manager profile"""
         self.manager_id_id = manager_id
         self.name = name
         self.dob = dob
         self.department = department
         self.campaigns_led = campaigns_led
         self.team_size = team_size
-        if permission_id:
-            self.permission_id = permission_id
+        self.lead_permission = LeadPermission(lead_permission_id)
+        self.property_permission = PropertyPermission(property_permission_id)
+
         self.created_date_time = timezone.now()
         self.save()
         return self.manager_id_id
 
     @staticmethod
     def update(
-        manager_id: int,
-        name: str,
-        dob: str,
-        department: str,
-        campaigns_led: int,
-        team_size: int,
-        permission_id: int,
+        manager_id: int = None,
+        name: str = None,
+        dob: str = None,
+        department: str = None,
+        campaigns_led: int = None,
+        team_size: int = None,
+        lead_permission_id: int = None,
+        property_permission_id: int = None,
     ) -> int:
-        """Update marketing manager profile"""
         manager = MarketingManager.objects.get(manager_id=manager_id)
-        manager.name = name
-        manager.dob = dob
-        manager.department = department
-        manager.campaigns_led = campaigns_led
-        manager.team_size = team_size
-        if permission_id:
-            manager.permission_id = permission_id
+
+        if name is not None:
+            manager.name = name
+
+        if dob is not None:
+            manager.dob = dob
+
+        if department is not None:
+            manager.department = department
+
+        if campaigns_led is not None:
+            manager.campaigns_led = campaigns_led
+
+        if team_size is not None:
+            manager.team_size = team_size
+
+        if lead_permission_id is not None:
+            manager.lead_permission_id = lead_permission_id
+
+        if property_permission_id is not None:
+            manager.property_permission_id = property_permission_id
+
         manager.save()
         return manager.manager_id_id
 
+
     @staticmethod
     def remove(manager_id: int) -> None:
-        """Delete marketing manager profile"""
-        MarketingManager.objects.get(manager_id=manager_id).delete()
+        MarketingManager.objects.get(manager_id_id=manager_id).delete()
+
 
     @staticmethod
     def get(manager_id: int) -> dict:
-        """Fetch single marketing manager profile"""
-        return MarketingManager.objects.filter(manager_id=manager_id).values(
-            "manager_id", "name", "dob", "department", "campaigns_led", "team_size",
-            "permission_id", "permission_id__lead", "permission_id__property",
-            "created_date_time", "manager_id__phone_number", "manager_id__email"
+        return MarketingManager.objects.filter(manager_id__user_id=manager_id).values(
+            "manager_id",
+            "name",
+            "dob",
+            "department",
+            "campaigns_led",
+            "team_size",
+            "created_date_time",
+            "property_permission__permission_id",
+            "property_permission__property",
+            "lead_permission__permission_id",
+            "lead_permission__lead",
+            "manager_id__phone_number",
+            "manager_id__email",
         ).first()
 
     @staticmethod
@@ -97,24 +145,36 @@ class MarketingManager(models.Model):
         filter_value: str = '',
         search_key: str = '',
     ) -> list:
-        """Fetch all marketing managers"""
         data = MarketingManager.objects.all()
+
         if filter_key and filter_value:
-            data = MarketingManager.objects.filter(
-                **{f"{filter_key}__icontains": filter_value})
+            data = data.filter(**{f"{filter_key}__icontains": filter_value})
+
         if search_key:
-            data = MarketingManager.objects.filter(
+            data = data.filter(
                 Q(name__icontains=search_key) |
                 Q(department__icontains=search_key)
             )
+
         if sort_by:
             data = data.order_by(
-                ('-' if sort_order == 'desc' else '') + sort_by)
+                ('-' if sort_order == 'desc' else '') + sort_by
+            )
+
         return list(
             data.values(
-                "manager_id", "manager_id__phone_number", "manager_id__email",
-                "name", "dob", "department", "campaigns_led", "team_size",
-                "permission_id", "permission_id__lead", "permission_id__property",
-                "created_date_time"
+                 "manager_id",
+                    "name",
+                    "dob",
+                    "department",
+                    "campaigns_led",
+                    "team_size",
+                    "created_date_time",
+                    "property_permission__permission_id",
+                    "property_permission__property",
+                    "lead_permission__permission_id",
+                    "lead_permission__lead",
+                    "manager_id__phone_number",
+                    "manager_id__email",
             )
         )

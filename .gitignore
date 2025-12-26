@@ -19,6 +19,7 @@ env/
 *.log
 *.tmp
 *.bak
+.vscode
 
 # Ignore system files
 .DS_Store

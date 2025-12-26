@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from datetime import datetime
 
 @dataclass
 class GetAll:
@@ -11,6 +11,8 @@ class GetAll:
     filter_key: str
     filter_value: str
     search_key: str
+    from_date: datetime
+    to_date: datetime
     
 
     def __post_init__(self):

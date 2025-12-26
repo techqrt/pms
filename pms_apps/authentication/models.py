@@ -1,11 +1,11 @@
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
-import random
 from datetime import timedelta
 from django.utils import timezone
 
 from django.utils.timezone import now
 from django.core.validators import RegexValidator
+
 
 
 class User(AbstractBaseUser):
@@ -52,6 +52,28 @@ class User(AbstractBaseUser):
     def __str__(self):
         return f"{self.name or self.phone_number} ({self.department or 'No Dept'})"
 
+    def get_permissions(self):
+        from pms_apps.lead.models.lead import Lead
+        from pms_apps.marketing.models.marketing_employee import MarketingEmployee
+        from pms_apps.marketing.models.marketing_manager import MarketingManager
+
+        permission_map = {
+            "Tenant": lambda: Lead.get_permissions(user_id=self.user_id),
+            "Marketing": lambda: (
+                MarketingManager.get_permissions(user_id=self.user_id)
+                if self.role == "Manager"
+                else MarketingEmployee.get_permissions(user_id=self.user_id)
+            ),
+        }
+
+        permission_func = permission_map.get(self.department)
+        if not permission_func:
+            return {}
+
+        permissions = permission_func().get("permissions", {})
+        return permissions
+
+
     # Optional helper for OTP generation
     def generate_otp(self):
         import random
@@ -60,8 +82,8 @@ class User(AbstractBaseUser):
         self.otp_expiry = timezone.now() + timezone.timedelta(minutes=10)
         self.save()
         return otp
-    
+
     def get(user_id : int) -> dict:
         user = User.objects.filter(user_id=user_id).values(
-            'user_id','phone_number','name','email','department','role').first()
+            'user_id','phone_number','name','email','department','role','access_token').first()
         return user

@@ -13,4 +13,4 @@ class MarketingManagerUpdateRequest:
     department: str
     campaigns_led: int
     team_size: int
-    permission: MarketingPermissionUpdateRequest
+    permissions: MarketingPermissionUpdateRequest

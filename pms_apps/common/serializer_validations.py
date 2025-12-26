@@ -25,7 +25,6 @@ class SerializerValidations:
             data = request.data
             data.update(Utils.get_query_params(request=request))
             serializer = self.serializer(data=data)
-            print(serializer.is_valid())
             validator = Utils().validator(serializer=serializer)
             if isinstance(validator, bool):
                 params = serializer.create(serializer.validated_data)

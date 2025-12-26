@@ -1,8 +1,6 @@
 import dataclasses
+from pms_apps.common.dataclasses.request.permission import Permissions
 
-@dataclasses.dataclass
-class PropertyPermissionCreateRequest:
-    property : bool 
 
 @dataclasses.dataclass
 class LeadCreateRequest:
@@ -14,4 +12,4 @@ class LeadCreateRequest:
     nationality : int
     passport_or_id : str
     purpose : str
-    property_permission : PropertyPermissionCreateRequest 
+    permissions : Permissions

@@ -3,7 +3,7 @@ from django.utils import timezone
 from django.db.models import Q
 from pms_apps.authentication.models import User
 from pms_apps.marketing.models.marketing_manager import MarketingManager
-from pms_apps.marketing.models.marketing_permission import MarketingPermission
+from pms_apps.common.models.permissions import LeadPermission,PropertyPermission
 
 
 class MarketingEmployee(models.Model):
@@ -19,8 +19,15 @@ class MarketingEmployee(models.Model):
     manager_ref = models.ForeignKey(
         MarketingManager, on_delete=models.DO_NOTHING, null=True, blank=True, related_name="marketing_employee_manager_ref"
     )
-    permission = models.ForeignKey(
-        MarketingPermission, on_delete=models.DO_NOTHING, null=True, blank=True, related_name="marketing_employee_permission"
+    lead_permission = models.ForeignKey(
+        LeadPermission,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
+    property_permission = models.ForeignKey(
+        PropertyPermission,
+        on_delete=models.DO_NOTHING,
+        null=True
     )
     created_date_time = models.DateTimeField(default=timezone.now)
 
@@ -30,9 +37,20 @@ class MarketingEmployee(models.Model):
     def __str__(self):
         return f"{self.name} ({self.employee_id.phone_number})"
 
-    # ----------------------
-    # Static CRUD Operations
-    # ----------------------
+    @staticmethod
+    def get_permissions(user_id : int) -> dict:
+        employee = MarketingEmployee.objects.filter(employee_id = user_id).first()
+
+        permissions = {}
+        if employee :
+            if employee.lead_permission:
+                permissions["lead"] = employee.lead_permission.lead
+            if employee.property_permission:
+                permissions["property"] = employee.property_permission.property
+        print(permissions)
+        return {
+            "permissions" : permissions
+        }
 
     def create(
         self,
@@ -44,9 +62,9 @@ class MarketingEmployee(models.Model):
         campaigns_assigned: int,
         leads_generated: int,
         manager_ref: int,
-        permission_id: int,
+        lead_permission_id : int,
+        property_permission_id : int,
     ) -> int:
-        """Create a new Marketing Employee profile"""
         self.employee_id_id = employee_id
         self.name = name
         self.dob = dob
@@ -56,51 +74,68 @@ class MarketingEmployee(models.Model):
         self.leads_generated = leads_generated
         if manager_ref:
             self.manager_ref_id = manager_ref
-        if permission_id:
-            self.permission_id = permission_id
+        self.lead_permission = LeadPermission(lead_permission_id)
+        self.property_permission = PropertyPermission(property_permission_id)
         self.created_date_time = timezone.now()
         self.save()
         return self.employee_id_id
 
     @staticmethod
     def update(
-        employee_id: int,
-        name: str,
-        dob: str,
-        designation: str,
-        department: str,
-        campaigns_assigned: int,
-        leads_generated: int,
-        manager_ref: int,
-        permission_id: int,
+        employee_id: int = None,
+        name: str = None,
+        dob: str = None,
+        designation: str = None,
+        department: str = None,
+        campaigns_assigned: int = None,
+        leads_generated: int = None,
+        manager_ref: int = None,
+        lead_permission_id: int = None,
+        property_permission_id: int = None,
     ) -> int:
-        """Update marketing employee profile"""
         employee = MarketingEmployee.objects.get(employee_id=employee_id)
-        employee.name = name
-        employee.dob = dob
-        employee.designation = designation
-        employee.department = department
-        employee.campaigns_assigned = campaigns_assigned
-        employee.leads_generated = leads_generated
+
+        if name is not None:
+            employee.name = name
+
+        if dob is not None:
+            employee.dob = dob
+
+        if designation is not None:
+            employee.designation = designation
+
+        if department is not None:
+            employee.department = department
+
+        if campaigns_assigned is not None:
+            employee.campaigns_assigned = campaigns_assigned
+
+        if leads_generated is not None:
+            employee.leads_generated = leads_generated
+
         if manager_ref is not None:
             employee.manager_ref_id = manager_ref
-        if permission_id:
-            employee.permission_id = permission_id
+
+        if lead_permission_id is not None:
+            employee.lead_permission_id = lead_permission_id
+
+        if property_permission_id is not None:
+            employee.property_permission_id = property_permission_id
+
         employee.save()
         return employee.employee_id_id
 
     @staticmethod
     def remove(employee_id: int) -> None:
-        """Delete marketing employee"""
         MarketingEmployee.objects.get(employee_id=employee_id).delete()
 
     @staticmethod
     def get(employee_id: int) -> dict:
-        """Fetch single marketing employee profile"""
         return MarketingEmployee.objects.filter(employee_id=employee_id).values(
             "employee_id", "name", "dob", "designation", "department",
             "campaigns_assigned", "leads_generated", "manager_ref_id",
-            "permission_id", "permission_id__lead", "permission_id__property",
+            "lead_permission__permission_id", "property_permission__permission_id",
+            "lead_permission__lead","property_permission__property",
             "created_date_time", "employee_id__phone_number", "employee_id__email"
         ).first()
 
@@ -112,7 +147,6 @@ class MarketingEmployee(models.Model):
         filter_value: str = '',
         search_key: str = '',
     ) -> list:
-        """Fetch all marketing employees"""
         data = MarketingEmployee.objects.all()
         if filter_key and filter_value:
             data = MarketingEmployee.objects.filter(
@@ -127,10 +161,10 @@ class MarketingEmployee(models.Model):
                 ('-' if sort_order == 'desc' else '') + sort_by)
         return list(
             data.values(
-                "employee_id", "employee_id__phone_number", "employee_id__email", "manager_ref_id",
-                "name", "dob", "designation", "department",
-                "campaigns_assigned", "leads_generated",
-                "permission_id", "permission_id__lead", "permission_id__property",
-                "created_date_time", 
+                 "employee_id", "name", "dob", "designation", "department",
+            "campaigns_assigned", "leads_generated", "manager_ref_id",
+            "lead_permission__permission_id", "property_permission__permission_id",
+            "lead_permission__lead","property_permission__property",
+            "created_date_time", "employee_id__phone_number", "employee_id__email"
             )
         )

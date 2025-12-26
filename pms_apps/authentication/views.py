@@ -133,6 +133,11 @@ class UserAuthView(APIView):
 
         # Generate token
         token = generate_jwt_token(user)
+
+        #saving the token in db
+        user.access_token = token
+        user.save()
+
         response_data = UserAuthResponseSerializer(user).data
         response_data["token"] = token
 

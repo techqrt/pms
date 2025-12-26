@@ -81,7 +81,6 @@ class PropertyView:
         if not property_obj:
             raise ValueError(self.data_no_match)
         
-        print(params)
 
         with transaction.atomic():
             Property.update(

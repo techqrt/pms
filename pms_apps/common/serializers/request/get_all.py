@@ -2,6 +2,8 @@ from rest_framework import serializers
 
 from pms.config import Configurations
 from pms_apps.common.dataclasses.get_all import GetAll
+from datetime import datetime,time
+from django.utils import timezone
 
 
 class GetAllSerializer(serializers.Serializer):
@@ -13,6 +15,17 @@ class GetAllSerializer(serializers.Serializer):
     filter_key = serializers.CharField(max_length=100, required=False, default='')
     filter_value = serializers.CharField(max_length=100, required=False, default='')
     search_key = serializers.CharField(max_length=100, required=False, default='')
+    from_date = serializers.DateField(input_formats=["%d-%m-%y"],required=False,default='')
+    to_date = serializers.DateField(input_formats=["%d-%m-%y"],required=False,default = '')
 
-    def create(self, validated_data) -> GetAll:
+    def create(self,validated_data) -> GetAll:
+        from_date = validated_data.get('from_date',None)
+        to_date = validated_data.get('to_date',None)
+        if from_date:
+            validated_data['from_date'] = timezone.make_aware(
+                value=datetime.combine(date=from_date,time=time.min))
+        if to_date:
+            validated_data['to_date'] = timezone.make_aware(
+                value=datetime.combine(date=to_date,time=time.max))
+            
         return GetAll(**validated_data)

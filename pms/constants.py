@@ -5,6 +5,7 @@ class Constants:
     access_token_expired = 'Expired access token'
     refresh_token_invalid = 'Invalid refresh token'
     invalid_header = 'Invalid authorization header'
+    none_permissions = 'You are not allowed to access any modules'
     auth_success = 'Authentication successful'
     invalid_access_token = "Invalid access token"
     mobile_number_not_unique = "The mobile number already exist, please provide another mobile number"

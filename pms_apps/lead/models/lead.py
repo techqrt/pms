@@ -1,12 +1,9 @@
 from django.db import models
 from django.db.models import Q
-from pms_apps.common.models import Country
+from pms_apps.common.models.country import Country
 from pms_apps.authentication.models import User
-from pms_apps.lead.models.property_permission import PropertyPermission
-#Lead.py
-#LeadPermission.py - id fireig 
+from pms_apps.common.models.permissions import PropertyPermission
 
-#FIX PROPERTY PERMISSION SPELLING
 class Lead(models.Model):
     
 
@@ -90,6 +87,17 @@ class Lead(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.lead_origin})"
+    
+    @staticmethod
+    def get_permissions(user_id : int) -> dict:
+        lead = Lead.objects.filter(lead_id = user_id).first()
+
+        permissions = {}
+        if lead and lead.property_permissions:
+            permissions["property"] = lead.property_permissions.property
+        return {
+            "permissions" : permissions
+        }
 
     def create(
         self,
@@ -152,7 +160,6 @@ class Lead(models.Model):
             lead.is_active = is_active
         if property_permission_id is not None: 
             lead.property_permissions = PropertyPermission(property_permission_id)
-
         lead.save()
         return lead.lead_id
 
