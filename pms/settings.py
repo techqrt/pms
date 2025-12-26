@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'pms_apps.common',
     'pms_apps.lead',
     'pms_apps.hr',
+    'pms_apps.activity_log',
     
 ]
 AUTH_USER_MODEL = 'auth.User'
@@ -74,6 +75,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+EXTERNAL_MIDDLEWARE = [
+    'pms_apps.activity_log.middlewares.log_middleware.LogMiddleware'
+]
+
+MIDDLEWARE += EXTERNAL_MIDDLEWARE
 
 ROOT_URLCONF = 'pms.urls'
 

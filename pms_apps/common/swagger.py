@@ -2,9 +2,7 @@ from drf_spectacular.utils import OpenApiResponse, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
 from pms.config import Configurations
-from pms.constants import Constants
-from pms_apps.common.utils import Utils
-
+from datetime import datetime
 
 class SwaggerPage:
     
@@ -38,7 +36,18 @@ class SwaggerPage:
                              required=False,
                              location=OpenApiParameter.QUERY,
                              type=str, enum=['true','false']),
-            OpenApiParameter(name='search_key', description='Field to search by (e.g., "name")',required=False,location=OpenApiParameter.QUERY,type=str)
+            OpenApiParameter(name='search_key', description='Field to search by (e.g., "name")',
+                             required=False,
+                             location=OpenApiParameter.QUERY,
+                             type=str),
+            OpenApiParameter(name='from_date', description='filter data from date (format : DD-MM-YY)',
+                             required=False,
+                             location=OpenApiParameter.QUERY,
+                             type=datetime),
+            OpenApiParameter(name='to_date', description='filter data to date (format : DD-MM-YY)',
+                             required=False,
+                             location=OpenApiParameter.QUERY,
+                             type=datetime)
 
         ]
     

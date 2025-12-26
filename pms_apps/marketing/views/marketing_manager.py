@@ -9,13 +9,13 @@ from pms_apps.common.utils import Utils
 from pms_apps.common.dataclasses.request.get_all import GetAll
 
 from pms_apps.marketing.models.marketing_manager import MarketingManager
-from pms_apps.marketing.models.marketing_permission import MarketingPermission
 from pms_apps.marketing.dataclasses.request.create.create_manager import MarketingManagerCreateRequest
 from pms_apps.marketing.dataclasses.request.update.update_manager import MarketingManagerUpdateRequest
 from pms_apps.marketing.serializers.response.get.get_manager import MarketingManagerResponseGetSerializer
 from pms_apps.marketing.serializers.response.get_all.get_all_manager import MarketingManagerResponseGetAllSerializer
 
 from pms_apps.marketing.utils import MarketingUtils
+from pms_apps.common.models.permissions import LeadPermission,PropertyPermission
 
 
 class MarketingManagerView:
@@ -32,13 +32,13 @@ class MarketingManagerView:
     @Common().exception_handler
     def create_manager_extract(self, params: MarketingManagerCreateRequest):
         with transaction.atomic():
-            permission_id = None
-            if hasattr(params, 'permission') and params.permission:
-                permission_obj = MarketingPermission()
-                permission_id = permission_obj.create(
-                    lead=params.permission.lead,
-                    property=params.permission.property
-                )
+            lead_permission_id = LeadPermission().create(
+                lead=params.permissions.lead
+            )
+            property_permission_id = PropertyPermission().create(
+                property=params.permissions.property
+            )
+            
 
             obj = MarketingManager()
             manager_id = obj.create(
@@ -48,7 +48,8 @@ class MarketingManagerView:
                 department=params.department,
                 campaigns_led=params.campaigns_led,
                 team_size=params.team_size,
-                permission_id=permission_id,
+                lead_permission_id=lead_permission_id,
+                property_permission_id=property_permission_id
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -63,20 +64,31 @@ class MarketingManagerView:
             if manager_data is None:
                 raise ValueError(self.data_no_match)
 
-            permission_id = manager_data.get('permission_id')
-            if hasattr(params, 'permission') and params.permission:
-                if permission_id:
-                    MarketingPermission.update(
-                        permission_id=permission_id,
-                        lead=params.permission.lead,
-                        property=params.permission.property
-                    )
-                else:
-                    permission_obj = MarketingPermission()
-                    permission_id = permission_obj.create(
-                        lead=params.permission.lead,
-                        property=params.permission.property
-                    )
+            lead_permission_id = None
+            propery_permission_id = None
+            if params.permissions:
+                if params.permissions.lead is not None:
+                    lead_permission_id = manager_data.get('lead_permission__permission_id')
+                    if lead_permission_id:
+                        LeadPermission.update(
+                            permission_id=lead_permission_id,
+                            lead=params.permissions.lead
+                        )
+                    else:
+                        lead_permission_id = LeadPermission().create(
+                            lead=params.permissions.lead
+                        )
+                if params.permissions.property is not None:
+                    propery_permission_id = manager_data.get('property_permission__permission_id')
+                    if propery_permission_id:
+                        PropertyPermission.update(
+                            permission_id=propery_permission_id,
+                            property= params.permissions.property
+                        )
+                    else:
+                        propery_permission_id=PropertyPermission().create(
+                            property=params.permissions.property
+                        )
 
             MarketingManager.update(
                 manager_id=params.manager_id,
@@ -85,7 +97,8 @@ class MarketingManagerView:
                 department=params.department,
                 campaigns_led=params.campaigns_led,
                 team_size=params.team_size,
-                permission_id=permission_id,
+                property_permission_id=propery_permission_id,
+                lead_permission_id=lead_permission_id
             )
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.manager_update))
 
@@ -101,7 +114,9 @@ class MarketingManagerView:
     @Common(response_handler=MarketingManagerResponseGetSerializer).exception_handler
     def get_manager_extract(self, params):
         with transaction.atomic():
+            print(params)
             manager_data = MarketingManager.get(manager_id=params.manager_id)
+            print(manager_data)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
             marketing_utils = MarketingUtils(entity='manager', columns_required=[

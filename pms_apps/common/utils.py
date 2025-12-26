@@ -2,7 +2,6 @@ import random
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-
 from pms.config import Configurations
 from pms.constants import Constants
 from typing import Union
@@ -12,6 +11,8 @@ class Utils:
     def __init__(self):
         super().__init__()
         self.validation_error = Constants.validation_error
+
+
 
     @staticmethod
     def success_response_data(message, data: list | dict = None, image=False):

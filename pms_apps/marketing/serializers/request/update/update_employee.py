@@ -19,7 +19,7 @@ class MarketingEmployeeUpdateRequestSerializer(serializers.Serializer):
     campaigns_assigned = serializers.IntegerField(required=False, default=0)
     leads_generated = serializers.IntegerField(required=False, default=0)
     manager_ref = ManagerRequestSerializer(required=False, allow_null=True)
-    permission = MarketingPermissionRequestSerializer(required=False)
+    permissions = MarketingPermissionRequestSerializer(required=False)
 
     def create(self, validated_data) -> MarketingEmployeeUpdateRequest:
         if 'manager_ref' in validated_data and validated_data['manager_ref']:
@@ -28,8 +28,9 @@ class MarketingEmployeeUpdateRequestSerializer(serializers.Serializer):
         elif 'manager_ref' in validated_data:
             validated_data['manager_ref'] = None
 
-        if 'permission' in validated_data and validated_data['permission']:
-            permission_data = validated_data.pop('permission')
-            validated_data['permission'] = MarketingPermissionUpdateRequest(**permission_data)
+        if 'permissions' in validated_data and validated_data['permissions']:
+            print(validated_data)
+            permission_data = validated_data.pop('permissions')
+            validated_data['permissions'] = MarketingPermissionUpdateRequest(**permission_data)
 
         return MarketingEmployeeUpdateRequest(**validated_data)

@@ -12,10 +12,10 @@ class MarketingManagerUpdateRequestSerializer(serializers.Serializer):
         max_length=100, required=False, allow_blank=True, allow_null=True)
     campaigns_led = serializers.IntegerField(required=False, default=0)
     team_size = serializers.IntegerField(required=False, default=0)
-    permission = MarketingPermissionRequestSerializer(required=False)
+    permissions = MarketingPermissionRequestSerializer(required=False)
 
     def create(self, validated_data) -> MarketingManagerUpdateRequest:
-        if 'permission' in validated_data and validated_data['permission']:
-            permission_data = validated_data.pop('permission')
-            validated_data['permission'] = MarketingPermissionUpdateRequest(**permission_data)
+        if 'permissions' in validated_data and validated_data['permissions']:
+            permission_data = validated_data.pop('permissions')
+            validated_data['permissions'] = MarketingPermissionUpdateRequest(**permission_data)
         return MarketingManagerUpdateRequest(**validated_data)

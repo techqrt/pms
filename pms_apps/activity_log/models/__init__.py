@@ -1,0 +1,2 @@
+from pms_apps.activity_log.models.activity_log import ActivityLog
+from pms_apps.activity_log.models.archive_log import ArchiveLog

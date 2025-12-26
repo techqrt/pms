@@ -10,13 +10,13 @@ from pms_apps.common.dataclasses.request.get_all import GetAll
 from pms_apps.authentication.models import User
 
 from pms_apps.marketing.models.marketing_employee import MarketingEmployee
-from pms_apps.marketing.models.marketing_permission import MarketingPermission
 from pms_apps.marketing.dataclasses.request.create.create_employee import MarketingEmployeeCreateRequest
 from pms_apps.marketing.dataclasses.request.update.update_employee import MarketingEmployeeUpdateRequest
 from pms_apps.marketing.serializers.response.get.get_employee import MarketingEmployeeResponseGetSerializer
 from pms_apps.marketing.serializers.response.get_all.get_all_employee import MarketingEmployeeResponseGetAllSerializer
 
 from pms_apps.marketing.utils import MarketingUtils
+from pms_apps.common.models.permissions import LeadPermission,PropertyPermission
 
 
 class MarketingEmployeeView:
@@ -35,13 +35,16 @@ class MarketingEmployeeView:
         with transaction.atomic():
             _ = User.get(user_id=params.employee_id)
 
-            permission_id = None
-            if hasattr(params, 'permission') and params.permission:
-                permission_obj = MarketingPermission()
-                permission_id = permission_obj.create(
-                    lead=params.permission.lead,
-                    property=params.permission.property
-                )
+            lead_permission = LeadPermission()
+            property_permission = PropertyPermission()
+
+            if params.permissions.lead:
+                lead_permission.lead = params.permissions.lead
+                lead_permission.save()
+            if params.permissions.property:
+                property_permission.property = params.permissions.property
+                property_permission.save()
+            
 
             obj = MarketingEmployee()
             employee_id = obj.create(
@@ -53,7 +56,8 @@ class MarketingEmployeeView:
                 campaigns_assigned=params.campaigns_assigned,
                 leads_generated=params.leads_generated,
                 manager_ref=params.manager_ref,
-                permission_id=permission_id,
+                lead_permission_id=lead_permission.permission_id,
+                property_permission_id=property_permission.permission_id,
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -69,20 +73,31 @@ class MarketingEmployeeView:
             if employee_data is None:
                 raise ValueError(self.data_no_match)
 
-            permission_id = employee_data.get('permission_id')
-            if hasattr(params, 'permission') and params.permission:
-                if permission_id:
-                    MarketingPermission.update(
-                        permission_id=permission_id,
-                        lead=params.permission.lead,
-                        property=params.permission.property
-                    )
-                else:
-                    permission_obj = MarketingPermission()
-                    permission_id = permission_obj.create(
-                        lead=params.permission.lead,
-                        property=params.permission.property
-                    )
+            lead_permission_id = None
+            propery_permission_id = None
+            if params.permissions:
+                if params.permissions.lead is not None:
+                    lead_permission_id = employee_data.get('lead_permission__permission_id')
+                    if lead_permission_id:
+                        LeadPermission.update(
+                            permission_id=lead_permission_id,
+                            lead=params.permissions.lead
+                        )
+                    else:
+                        lead_permission_id = LeadPermission().create(
+                            lead=params.permissions.lead
+                        )
+                if params.permissions.property is not None:
+                    propery_permission_id = employee_data.get('property_permission__permission_id')
+                    if propery_permission_id:
+                        PropertyPermission.update(
+                            permission_id=propery_permission_id,
+                            property= params.permissions.property
+                        )
+                    else:
+                        propery_permission_id=PropertyPermission().create(
+                            property=params.permissions.property
+                        )
 
             MarketingEmployee.update(
                 employee_id=params.employee_id,
@@ -93,7 +108,8 @@ class MarketingEmployeeView:
                 campaigns_assigned=params.campaigns_assigned,
                 leads_generated=params.leads_generated,
                 manager_ref=params.manager_ref,
-                permission_id=permission_id,
+                lead_permission_id=lead_permission_id,
+                property_permission_id=propery_permission_id
             )
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.employee_update))
 

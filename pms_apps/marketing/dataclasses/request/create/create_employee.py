@@ -1,5 +1,5 @@
 import dataclasses
-from pms_apps.marketing.dataclasses.request.create.create_manager import MarketingPermissionCreateRequest
+from pms_apps.common.dataclasses.request.permission import Permissions
 
 
 @dataclasses.dataclass
@@ -12,4 +12,4 @@ class MarketingEmployeeCreateRequest:
     campaigns_assigned: int
     leads_generated: int
     manager_ref: int
-    permission: MarketingPermissionCreateRequest
+    permissions: Permissions

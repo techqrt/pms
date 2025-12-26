@@ -65,6 +65,7 @@ class MarketingManagerViewController:
     @permission_classes([IsAuthenticated])
     @SerializerValidations(serializer=MarketingManagerGetRequestSerializer).validate
     def get_manager(request: Request) -> Response:
+        print('ehre')
         return MarketingManagerView().get_manager_extract(params=request.params)
 
     @extend_schema(

@@ -1,10 +1,5 @@
 import dataclasses
-
-
-@dataclasses.dataclass
-class MarketingPermissionCreateRequest:
-    lead: bool
-    property: bool
+from pms_apps.common.dataclasses.request.permission import Permissions
 
 
 @dataclasses.dataclass
@@ -15,4 +10,4 @@ class MarketingManagerCreateRequest:
     department: str
     campaigns_led: int
     team_size: int
-    permission: MarketingPermissionCreateRequest
+    permissions: Permissions

@@ -11,4 +11,4 @@ class MarketingEmployeeUpdateRequest:
     campaigns_assigned: int
     leads_generated: int
     manager_ref: int
-    permission: MarketingPermissionUpdateRequest
+    permissions: MarketingPermissionUpdateRequest

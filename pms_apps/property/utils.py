@@ -195,14 +195,18 @@ class PropertyUtils:
         mapped = []
         for prop in data:
             mapped.append({
-                "property_id": prop.property_id,
-                "building_details": prop.building_details,
-                "expected_rent": str(prop.expected_rent) if prop.expected_rent else None,
-                "created_by": self.map_user_with_role(prop.created_by),
-                "assigned_to": self.map_user_with_role(prop.assigned_to),
-                "is_active": prop.is_active,
-                "created_at": prop.created_at,
-                "updated_at": prop.updated_at,
+                "property_id": prop.get("property_id"),
+                "building_details": prop.get("building_details"),
+                "expected_rent": (
+                    str(prop.get("expected_rent"))
+                    if prop.get("expected_rent") is not None
+                    else None
+                ),
+                "created_by": self.map_user_with_role(prop.get("created_by")),
+                "assigned_to": self.map_user_with_role(prop.get("assigned_to")),
+                "is_active": prop.get("is_active"),
+                "created_at": prop.get("created_at"),
+                "updated_at": prop.get("updated_at"),
             })
         return json.dumps(mapped, default=str)
 
