@@ -1,11 +1,12 @@
 from rest_framework import status
 from rest_framework.response import Response
 import jwt
-
+from pms_apps.helper_apis.models.city import City
 from pms.constants import Constants
 from pms_apps.common.exceptions.token_errors import TokenErrors
 from pms_apps.common.exceptions.validation_errors import ValidationErrors
 from pms_apps.common.utils import Utils
+from rest_framework.exceptions import ValidationError
 
 
 class Common:
@@ -23,8 +24,23 @@ class Common:
             if column not in mapped_column_names.values():
                 raise ValueError(f'{column} not a proper column name')
             
+    def country_city_validation(self,func):
+        def wrapper(*args, **kwargs):
+            params = kwargs.get("params")
 
+            city_id = getattr(params, 'city_id', None)
+            country_id = getattr(params, 'country_id', None)
 
+            if city_id and country_id:
+                if not City.objects.filter(
+                    city_id=city_id,
+                    country_id=country_id
+                ).exists():
+                    raise ValidationError("City does not belong to country")
+
+            return func(*args, **kwargs)
+        return wrapper
+    
     def exception_handler(self, func):
         def exceptions(*args, **kwargs):
             try:

@@ -29,7 +29,6 @@ class MarketingEmployeeUpdateRequestSerializer(serializers.Serializer):
             validated_data['manager_ref'] = None
 
         if 'permissions' in validated_data and validated_data['permissions']:
-            print(validated_data)
             permission_data = validated_data.pop('permissions')
             validated_data['permissions'] = MarketingPermissionUpdateRequest(**permission_data)
 
