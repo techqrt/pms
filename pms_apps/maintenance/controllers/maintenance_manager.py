@@ -14,7 +14,6 @@ from pms_apps.maintenance.serializers.request.delete.delete_manager import Maint
 from pms_apps.maintenance.serializers.request.get.get_manager import MaintenanceManagerGetRequestSerializer
 from pms_apps.maintenance.serializers.response.get.get_manager import MaintenanceManagerResponseGetSerializer
 from pms_apps.maintenance.serializers.response.get_all.get_all_manager import MaintenanceManagerResponseGetAllSerializer
-
 from pms_apps.maintenance.views.maintenance_manager import MaintenanceManagerView
 
 class MaintenanceManagerViewController:

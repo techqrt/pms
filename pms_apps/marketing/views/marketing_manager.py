@@ -62,6 +62,8 @@ class MarketingManagerView:
         with transaction.atomic():
             if params.user_id != params.manager_id:
                 raise ValueError("Not allowed to access this resource")
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MarketingManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
@@ -107,6 +109,8 @@ class MarketingManagerView:
     @Common().exception_handler
     def delete_manager_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             if params.user_id != params.manager_id:
                 raise ValueError("Not allowed to access this resource")
             manager_data = MarketingManager.get(manager_id=params.manager_id)

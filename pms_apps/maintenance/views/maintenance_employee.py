@@ -8,15 +8,13 @@ from pms_apps.common.common import Common
 from pms_apps.common.utils import Utils
 from pms_apps.common.dataclasses.request.get_all import GetAll
 from pms_apps.authentication.models import User
+from pms_apps.common.models.permissions import PropertyPermission
 
 from pms_apps.maintenance.models.maintenance_employee import MaintenanceEmployee
-
 from pms_apps.maintenance.dataclasses.request.create.create_employee import MaintenanceEmployeeCreateRequest
 from pms_apps.maintenance.dataclasses.request.update.update_employee import MaintenanceEmployeeUpdateRequest
-
 from pms_apps.maintenance.serializers.response.get.get_employee import MaintenanceEmployeeResponseGetSerializer
 from pms_apps.maintenance.serializers.response.get_all.get_all_employee import MaintenanceEmployeeResponseGetAllSerializer
-
 from pms_apps.maintenance.utils import MaintenanceUtils
 
 
@@ -36,6 +34,12 @@ class MaintenanceEmployeeView:
         with transaction.atomic():
             _ = User.get(user_id=params.employee_id)
 
+            property_permission = PropertyPermission()
+
+            if params.permissions.property:
+                property_permission.property = params.permissions.property
+                property_permission.save()
+
             obj = MaintenanceEmployee()
             employee_id = obj.create(
                 employee_id=params.employee_id,
@@ -45,6 +49,7 @@ class MaintenanceEmployeeView:
                 specialization=params.specialization,
                 assigned_tasks=params.assigned_tasks,
                 manager_ref=params.manager_ref,
+                property_permission_id=property_permission.permission_id,
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -55,10 +60,27 @@ class MaintenanceEmployeeView:
     @Common().exception_handler
     def update_employee_extract(self, params: MaintenanceEmployeeUpdateRequest):
         with transaction.atomic():
+            if params.user_id != params.employee_id:
+                raise ValueError("Not allowed to access this resource")
             employee_data = MaintenanceEmployee.get(
                 employee_id=params.employee_id)
             if employee_data is None:
                 raise ValueError(self.data_no_match)
+
+            propery_permission_id = None
+
+            if params.permissions:
+                if params.permissions.property is not None:
+                    propery_permission_id = employee_data.get('property_permission__permission_id')
+                    if propery_permission_id:
+                        PropertyPermission.update(
+                            permission_id=propery_permission_id,
+                            property= params.permissions.property
+                        )
+                    else:
+                        propery_permission_id=PropertyPermission().create(
+                            property=params.permissions.property
+                        )
 
             MaintenanceEmployee.update(
                 employee_id=params.employee_id,
@@ -68,12 +90,15 @@ class MaintenanceEmployeeView:
                 specialization=params.specialization,
                 assigned_tasks=params.assigned_tasks,
                 manager_ref=params.manager_ref,
+                property_permission_id=propery_permission_id
             )
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.employee_update))
 
     @Common().exception_handler
     def delete_employee_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.employee_id:
+                raise ValueError("Not allowed to access this resource")
             employee_data = MaintenanceEmployee.get(
                 employee_id=params.employee_id)
             if employee_data is None:
@@ -84,6 +109,8 @@ class MaintenanceEmployeeView:
     @Common(response_handler=MaintenanceEmployeeResponseGetSerializer).exception_handler
     def get_employee_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.employee_id:
+                raise ValueError("Not allowed to access this resource")
             employee_data = MaintenanceEmployee.get(
                 employee_id=params.employee_id)
             if employee_data is None:

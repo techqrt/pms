@@ -5,7 +5,8 @@ from pms_apps.authentication.models import User
 
 
 class Owner(models.Model):
-    owner_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name="owner_profile")
+    owner_id = models.OneToOneField(
+        User, on_delete=models.CASCADE, primary_key=True, related_name="owner_profile")
     name = models.CharField(max_length=100, default="")
     dob = models.DateField(null=True, blank=True)
     ownership_type = models.CharField(max_length=100, blank=True, null=True)
@@ -18,7 +19,14 @@ class Owner(models.Model):
     def __str__(self):
         return f"{self.name} ({self.owner_id.phone_number})"
 
-    def create(self, owner_id: int, name: str, dob=None, ownership_type: str = "", properties_owned: int = 0) -> int:
+    def create(
+        self,
+        owner_id: int,
+        name: str,
+        dob: str,
+        ownership_type: str,
+        properties_owned: int
+    ) -> int:
         self.owner_id_id = owner_id
         self.name = name
         self.dob = dob
@@ -28,7 +36,13 @@ class Owner(models.Model):
         return self.owner_id_id
 
     @staticmethod
-    def update(owner_id: int, name: str, dob=None, ownership_type: str = "", properties_owned: int = 0) -> int:
+    def update(
+        owner_id: int,
+        name: str,
+        dob: str,
+        ownership_type: str,
+        properties_owned: int
+    ) -> int:
         owner = Owner.objects.get(owner_id=owner_id)
         owner.name = name
         owner.dob = dob
@@ -44,18 +58,33 @@ class Owner(models.Model):
     @staticmethod
     def get(owner_id: int) -> dict:
         return Owner.objects.filter(owner_id=owner_id).values(
-            "owner_id", "name", "dob", "ownership_type", "properties_owned", "created_date_time",
-            "owner_id__phone_number", "owner_id__email"
+            "owner_id", "name", "dob", "ownership_type", "properties_owned",
+            "created_date_time", "owner_id__phone_number", "owner_id__email"
         ).first()
 
     @staticmethod
-    def get_all(search_key: str = "") -> list:
-        filters = Q()
+    def get_all(
+        sort_by: str = '',
+        sort_order: str = '',
+        filter_key: str = '',
+        filter_value: str = '',
+        search_key: str = '',
+    ) -> list:
+        data = Owner.objects.all()
+        if filter_key and filter_value:
+            data = Owner.objects.filter(
+                **{f"{filter_key}__icontains": filter_value})
         if search_key:
-            filters &= Q(name__icontains=search_key)
+            data = Owner.objects.filter(
+                Q(name__icontains=search_key) |
+                Q(ownership_type__icontains=search_key)
+            )
+        if sort_by:
+            data = data.order_by(
+                ('-' if sort_order == 'desc' else '') + sort_by)
         return list(
-            Owner.objects.filter(filters).values(
-                "owner_id", "name", "dob", "ownership_type", "properties_owned", "created_date_time",
-                "owner_id__phone_number", "owner_id__email"
+            data.values(
+                "owner_id", "name", "dob", "ownership_type", "properties_owned",
+                "created_date_time", "owner_id__phone_number", "owner_id__email"
             )
         )

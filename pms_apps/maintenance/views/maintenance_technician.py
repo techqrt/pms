@@ -7,13 +7,13 @@ import json
 from pms_apps.common.common import Common
 from pms_apps.common.utils import Utils
 from pms_apps.common.dataclasses.request.get_all import GetAll
+from pms_apps.common.models.permissions import PropertyPermission
 
 from pms_apps.maintenance.models.maintenance_technician import MaintenanceTechnician
 from pms_apps.maintenance.dataclasses.request.create.create_technician import MaintenanceTechnicianCreateRequest
 from pms_apps.maintenance.dataclasses.request.update.update_technician import MaintenanceTechnicianUpdateRequest
 from pms_apps.maintenance.serializers.response.get.get_technician import MaintenanceTechnicianResponseGetSerializer
 from pms_apps.maintenance.serializers.response.get_all.get_all_technician import MaintenanceTechnicianResponseGetAllSerializer
-
 from pms_apps.maintenance.utils import MaintenanceUtils
 
 
@@ -31,6 +31,9 @@ class MaintenanceTechnicianView:
     @Common().exception_handler
     def create_technician_extract(self, params: MaintenanceTechnicianCreateRequest):
         with transaction.atomic():
+            property_permission_id = PropertyPermission().create(
+                property=params.permissions.property
+            )
             obj = MaintenanceTechnician()
             technician_id = obj.create(
                 technician_id=params.technician_id,
@@ -39,6 +42,7 @@ class MaintenanceTechnicianView:
                 skill_type=params.skill_type,
                 years_of_experience=params.years_of_experience,
                 assigned_jobs=params.assigned_jobs,
+                property_permission_id=property_permission_id,
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -49,11 +53,26 @@ class MaintenanceTechnicianView:
     @Common().exception_handler
     def update_technician_extract(self, params: MaintenanceTechnicianUpdateRequest):
         with transaction.atomic():
-            technician_data = MaintenanceTechnician.get(
-                technician_id=params.technician_id)
+            if params.user_id != params.technician_id:
+                raise ValueError("Not allowed to access this resource")
+            technician_data = MaintenanceTechnician.get(technician_id=params.technician_id)
             if technician_data is None:
                 raise ValueError(self.data_no_match)
 
+            propery_permission_id = None
+            if params.permissions:
+                if params.permissions.property is not None:
+                    propery_permission_id = technician_data.get('property_permission__permission_id')
+                    if propery_permission_id:
+                        PropertyPermission.update(
+                            permission_id=propery_permission_id,
+                            property= params.permissions.property
+                        )
+                    else:
+                        propery_permission_id=PropertyPermission().create(
+                            property=params.permissions.property
+                        )
+            
             MaintenanceTechnician.update(
                 technician_id=params.technician_id,
                 name=params.name,
@@ -61,12 +80,15 @@ class MaintenanceTechnicianView:
                 skill_type=params.skill_type,
                 years_of_experience=params.years_of_experience,
                 assigned_jobs=params.assigned_jobs,
+                property_permission_id=propery_permission_id,
             )
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.technician_update))
 
     @Common().exception_handler
     def delete_technician_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.technician_id:
+                raise ValueError("Not allowed to access this resource")
             technician_data = MaintenanceTechnician.get(
                 technician_id=params.technician_id)
             if technician_data is None:
@@ -77,13 +99,15 @@ class MaintenanceTechnicianView:
     @Common(response_handler=MaintenanceTechnicianResponseGetSerializer).exception_handler
     def get_technician_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.technician_id:
+                raise ValueError("Not allowed to access this resource")
             technician_data = MaintenanceTechnician.get(
                 technician_id=params.technician_id)
             if technician_data is None:
                 raise ValueError(self.data_no_match)
-            maintenance_utils = MaintenanceUtils(entity='technician', columns_required=[
+            utils = MaintenanceUtils(entity='technician', columns_required=[
                 column for column in params.values.split(',') if column])
-            data = json.loads(maintenance_utils.mapper([technician_data]))[0]
+            data = json.loads(utils.mapper([technician_data]))[0]
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.data_get, data=data))
 
     @Common(response_handler=MaintenanceTechnicianResponseGetAllSerializer).exception_handler

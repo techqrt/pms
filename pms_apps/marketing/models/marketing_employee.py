@@ -153,7 +153,8 @@ class MarketingEmployee(models.Model):
         if search_key:
             data = MarketingEmployee.objects.filter(
                 Q(name__icontains=search_key) |
-                Q(designation__icontains=search_key)
+                Q(designation__icontains=search_key) |
+                Q(department__icontains=search_key)
             )
         if sort_by:
             data = data.order_by(

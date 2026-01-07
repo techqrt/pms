@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from pms_apps.maintenance.dataclasses.request.update.update_employee import MaintenanceEmployeeUpdateRequest
+from pms_apps.maintenance.dataclasses.request.update.update_manager import MaintenancePermissionUpdateRequest
+from pms_apps.maintenance.serializers.request.create.create_manager import MaintenancePermissionRequestSerializer
 
 class ManagerRequestSerializer(serializers.Serializer):
     manager_id = serializers.IntegerField()
@@ -14,6 +16,7 @@ class MaintenanceEmployeeUpdateRequestSerializer(serializers.Serializer):
         max_length=100, required=False, allow_blank=True, allow_null=True)
     assigned_tasks = serializers.IntegerField(required=False, default=0)
     manager_ref = ManagerRequestSerializer(required=False, allow_null=True)
+    permissions = MaintenancePermissionRequestSerializer(required=False)
 
     def create(self, validated_data) -> MaintenanceEmployeeUpdateRequest:
         if 'manager_ref' in validated_data and validated_data['manager_ref']:
@@ -21,5 +24,10 @@ class MaintenanceEmployeeUpdateRequestSerializer(serializers.Serializer):
             validated_data['manager_ref'] = manager_ref_data['manager_id']
         elif 'manager_ref' in validated_data:
             validated_data['manager_ref'] = None
+
+        if 'permissions' in validated_data and validated_data['permissions']:
+            print(validated_data)
+            permission_data = validated_data.pop('permissions')
+            validated_data['permissions'] = MaintenancePermissionUpdateRequest(**permission_data)
 
         return MaintenanceEmployeeUpdateRequest(**validated_data)
