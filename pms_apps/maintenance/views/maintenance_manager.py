@@ -7,13 +7,13 @@ import json
 from pms_apps.common.common import Common
 from pms_apps.common.utils import Utils
 from pms_apps.common.dataclasses.request.get_all import GetAll
+from pms_apps.common.models.permissions import PropertyPermission
 
 from pms_apps.maintenance.models.maintenance_manager import MaintenanceManager
 from pms_apps.maintenance.dataclasses.request.create.create_manager import MaintenanceManagerCreateRequest
 from pms_apps.maintenance.dataclasses.request.update.update_manager import MaintenanceManagerUpdateRequest
 from pms_apps.maintenance.serializers.response.get.get_manager import MaintenanceManagerResponseGetSerializer
 from pms_apps.maintenance.serializers.response.get_all.get_all_manager import MaintenanceManagerResponseGetAllSerializer
-
 from pms_apps.maintenance.utils import MaintenanceUtils
 
 
@@ -31,6 +31,9 @@ class MaintenanceManagerView:
     @Common().exception_handler
     def create_manager_extract(self, params: MaintenanceManagerCreateRequest):
         with transaction.atomic():
+            property_permission_id = PropertyPermission().create(
+                property=params.permissions.property
+            )
             obj = MaintenanceManager()
             manager_id = obj.create(
                 manager_id=params.manager_id,
@@ -39,6 +42,7 @@ class MaintenanceManagerView:
                 specialization=params.specialization,
                 team_size=params.team_size,
                 years_of_experience=params.years_of_experience,
+                property_permission_id=property_permission_id,
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -49,9 +53,26 @@ class MaintenanceManagerView:
     @Common().exception_handler
     def update_manager_extract(self, params: MaintenanceManagerUpdateRequest):
         with transaction.atomic():
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MaintenanceManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
+            
+            propery_permission_id = None
+            
+            if params.permissions:
+                if params.permissions.property is not None:
+                    propery_permission_id = manager_data.get('property_permission__permission_id')
+                    if propery_permission_id:
+                        PropertyPermission.update(
+                            permission_id=propery_permission_id,
+                            property= params.permissions.property
+                        )
+                    else:
+                        propery_permission_id=PropertyPermission().create(
+                            property=params.permissions.property
+                        )
 
             MaintenanceManager.update(
                 manager_id=params.manager_id,
@@ -60,12 +81,15 @@ class MaintenanceManagerView:
                 specialization=params.specialization,
                 team_size=params.team_size,
                 years_of_experience=params.years_of_experience,
+                property_permission_id=propery_permission_id,
             )
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.manager_update))
 
     @Common().exception_handler
     def delete_manager_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MaintenanceManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
@@ -75,12 +99,14 @@ class MaintenanceManagerView:
     @Common(response_handler=MaintenanceManagerResponseGetSerializer).exception_handler
     def get_manager_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MaintenanceManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
-            maintenance_utils = MaintenanceUtils(entity='manager', columns_required=[
+            utils = MaintenanceUtils(entity='manager', columns_required=[
                 column for column in params.values.split(',') if column])
-            data = json.loads(maintenance_utils.mapper([manager_data]))[0]
+            data = json.loads(utils.mapper([manager_data]))[0]
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.data_get, data=data))
 
     @Common(response_handler=MaintenanceManagerResponseGetAllSerializer).exception_handler

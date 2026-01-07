@@ -5,7 +5,7 @@ from pms_apps.common.common import Common
 from rest_framework.response import Response
 from rest_framework import status
 from pms_apps.common.utils import Utils
-from pms_apps.common.models.country import Country
+from pms_apps.helper_apis.models.country import Country
 from pms_apps.common.dataclasses.request.get_all import GetAll
 from pms_apps.authentication.models import User
 from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
@@ -119,7 +119,6 @@ class LeadView:
     @Common(response_handler=LeadResponseGetSerializer).exception_handler
     def get_extract(self, params):
         with transaction.atomic():
-
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)

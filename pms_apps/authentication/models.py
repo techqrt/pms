@@ -7,7 +7,6 @@ from django.utils.timezone import now
 from django.core.validators import RegexValidator
 
 
-
 class User(AbstractBaseUser):
     DEPARTMENT_CHOICES = [
         ("Tenant", "Tenant"),
@@ -21,7 +20,7 @@ class User(AbstractBaseUser):
         ("Legal", "Legal"),
         ("IT", "IT"),
         ("General Manager", "General Manager"),
-        ("HR" , "HR"),
+        ("HR", "HR"),
         ("Owner", "Owner"),
     ]
 
@@ -37,8 +36,10 @@ class User(AbstractBaseUser):
     phone_number = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100, default="")
     email = models.EmailField(blank=True, null=True)
-    department = models.CharField(max_length=100, choices=DEPARTMENT_CHOICES, blank=True, null=True)
-    role = models.CharField(max_length=50, choices=ROLE_CHOICES, blank=True, null=True)
+    department = models.CharField(
+        max_length=100, choices=DEPARTMENT_CHOICES, blank=True, null=True)
+    role = models.CharField(
+        max_length=50, choices=ROLE_CHOICES, blank=True, null=True)
     access_token = models.TextField(default='')
     refresh_token = models.TextField(default='')
     otp = models.IntegerField(null=True, blank=True)
@@ -56,6 +57,9 @@ class User(AbstractBaseUser):
         from pms_apps.lead.models.lead import Lead
         from pms_apps.marketing.models.marketing_employee import MarketingEmployee
         from pms_apps.marketing.models.marketing_manager import MarketingManager
+        from pms_apps.maintenance.models.maintenance_employee import MaintenanceEmployee
+        from pms_apps.maintenance.models.maintenance_manager import MaintenanceManager
+        from pms_apps.maintenance.models.maintenance_technician import MaintenanceTechnician
 
         permission_map = {
             "Tenant": lambda: Lead.get_permissions(user_id=self.user_id),
@@ -63,6 +67,13 @@ class User(AbstractBaseUser):
                 MarketingManager.get_permissions(user_id=self.user_id)
                 if self.role == "Manager"
                 else MarketingEmployee.get_permissions(user_id=self.user_id)
+            ),
+            "Maintenance": lambda: (
+                MaintenanceTechnician.get_permissions(user_id=self.user_id)
+                if self.role == "Technician"
+                else MaintenanceManager.get_permissions(user_id=self.user_id)
+                if self.role == "Manager"
+                else MaintenanceEmployee.get_permissions(user_id=self.user_id)
             ),
         }
 
@@ -73,8 +84,8 @@ class User(AbstractBaseUser):
         permissions = permission_func().get("permissions", {})
         return permissions
 
-
     # Optional helper for OTP generation
+
     def generate_otp(self):
         import random
         otp = random.randint(100000, 999999)
@@ -83,7 +94,7 @@ class User(AbstractBaseUser):
         self.save()
         return otp
 
-    def get(user_id : int) -> dict:
+    def get(user_id: int) -> dict:
         user = User.objects.filter(user_id=user_id).values(
-            'user_id','phone_number','name','email','department','role','access_token').first()
+            'user_id', 'phone_number', 'name', 'email', 'department', 'role', 'access_token').first()
         return user

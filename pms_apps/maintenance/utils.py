@@ -17,6 +17,7 @@ class MaintenanceUtils:
             'specialization': 'specialization',
             'team_size': 'teamSize',
             'years_of_experience': 'yearsOfExperience',
+            'property_permission__property': 'permissions.property',
             'created_date_time': 'createdAt',
         }
 
@@ -30,6 +31,7 @@ class MaintenanceUtils:
             'specialization': 'specialization',
             'assigned_tasks': 'assignedTasks',
             'manager_ref_id': 'managerRefId',
+            'property_permission__property': 'permissions.property',
             'created_date_time': 'createdAt',
         }
 
@@ -42,6 +44,7 @@ class MaintenanceUtils:
             'skill_type': 'skillType',
             'years_of_experience': 'yearsOfExperience',
             'assigned_jobs': 'assignedJobs',
+            'property_permission__property': 'permissions.property',
             'created_date_time': 'createdAt',
         }
 
@@ -75,8 +78,14 @@ class MaintenanceUtils:
     def mapper(self, data: list) -> str | None:
         if not data:
             return '[]'
+        allowed_fields = set(self.mapped_columns_name.keys())
 
-        dataframe = pandas.DataFrame.from_records(data)
+        filtered_data = [
+                {k: v for k, v in record.items() if k in allowed_fields}
+                for record in data
+            ]
+
+        dataframe = pandas.DataFrame.from_records(filtered_data)
         dataframe.rename(columns=self.mapped_columns_name, inplace=True)
 
         if self.columns_required:

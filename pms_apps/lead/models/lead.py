@@ -1,6 +1,8 @@
 from django.db import models
 from django.db.models import Q
-from pms_apps.common.models.country import Country
+from pms_apps.helper_apis.models.country import Country
+from pms_apps.helper_apis.models.nationality import Nationality
+from pms_apps.helper_apis.models.city import City
 from pms_apps.authentication.models import User
 from pms_apps.common.models.permissions import PropertyPermission
 
@@ -8,17 +10,28 @@ class Lead(models.Model):
     
 
     LEAD_TYPES = [
-        ("Web User", "Web User"),
-        ("Admin", "Admin"),
-        ("Application", "Application"),
-        ("WA", "WA"),
-        ("Marketing Team", "Marketing Team"),
-        ]
+        ("Open Sooq", "Open Sooq"),
+        ("OLX", "OLX"),
+        ("Employee Referral", "Employee Referral"),
+        ("Reference", "Reference"),
+        ("Website Inquiry", "Website Inquiry"),
+        ("Social Media", "Social Media"),
+        ("Walk-in Customer", "Walk-in Customer"),
+        ("Phone Call Inquiry", "Phone Call Inquiry"),
+        ("Office Visit", "Office Visit"),
+        ("Online Property Portal", "Online Property Portal"),
+        ("Printing- Banner, Flex, Hoardings", "Printing- Banner, Flex, Hoardings"),
+    ]
 
     PURPOSE_CHOICES = [
         ("Tenant", "Tenant"),
         ("Landlord", "Landlord"),
         ]
+    
+    TENANT_TYPE = [
+        ("Bachelor", "Bachelor"),
+        ("Married", "Married")
+    ]
 
     lead_id = models.OneToOneField(
         to=User,
@@ -32,6 +45,7 @@ class Lead(models.Model):
         related_name='user_assign',
         null=True,
     )
+    
     first_name = models.CharField(
         verbose_name="Firstname",
         max_length=15,
@@ -41,19 +55,41 @@ class Lead(models.Model):
         verbose_name="Lastname",
         max_length=15
     )
+    type_of_tenant = models.CharField(
+        verbose_name='Type of Tenant',
+        choices=TENANT_TYPE,
+        max_length=15,
+        null=True
+    )
+    feedback = models.TextField(
+        verbose_name="Feedback",
+        null=True
+    )
     lead_origin = models.CharField(
         verbose_name="Lead Origin",
         choices=LEAD_TYPES,
-        max_length=20
+        max_length=50
     )
     address = models.TextField(
         verbose_name="Address",
     )
-    nationality = models.ForeignKey(
-        verbose_name='Nationality',
+    country = models.ForeignKey(
+        verbose_name='Country',
         to=Country,
         on_delete=models.DO_NOTHING,
         null=True,
+    )
+    city = models.ForeignKey(
+        verbose_name='City',
+        to=City,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
+    nationality = models.ForeignKey(
+        verbose_name='Nationality',
+        to=Nationality,
+        on_delete=models.DO_NOTHING,
+        null=True
     )
     passport_or_id = models.CharField(
         verbose_name="Passport/ID",
@@ -85,7 +121,7 @@ class Lead(models.Model):
     class Meta:
         db_table = "lead"
 
-    def __str__(self):
+    def _str_(self):
         return f"{self.first_name} {self.last_name} ({self.lead_origin})"
     
     @staticmethod
@@ -107,7 +143,9 @@ class Lead(models.Model):
         last_name: str,
         lead_origin: str,
         address: str,
-        nationality: int,
+        country_id : int,
+        city_id : int,
+        nationality_id : int,
         passport_or_id: str,
         purpose: str,
         property_permissions_id : int
@@ -118,10 +156,12 @@ class Lead(models.Model):
         self.last_name = last_name
         self.lead_origin = lead_origin
         self.address = address
-        self.nationality_id = nationality
+        self.city_id = city_id
+        self.country_id = country_id
+        self.nationality_id = nationality_id
         self.passport_or_id = passport_or_id
         self.purpose = purpose
-        self.property_permissions = PropertyPermission(property_permissions_id)
+        self.property_permissions_id = property_permissions_id
         self.save()
         return self.lead_id
 
@@ -133,7 +173,9 @@ class Lead(models.Model):
         last_name: str = None,
         lead_origin: str = None,
         address: str = None,
-        nationality: int = None,
+        country_id: int = None,
+        city_id: int = None,
+        nationality_id : int = None,
         passport_or_id: str = None,
         purpose: str = None,
         is_active: bool = None,
@@ -150,8 +192,12 @@ class Lead(models.Model):
             lead.lead_origin = lead_origin
         if address is not None:
             lead.address = address
-        if nationality is not None:
-            lead.nationality_id = nationality
+        if country_id is not None:
+            lead.country_id = country_id
+        if city_id is not None:
+            lead.city_id = city_id
+        if nationality_id is not None:
+            lead.nationality_id = nationality_id
         if passport_or_id is not None:
             lead.passport_or_id = passport_or_id
         if purpose is not None:
@@ -159,13 +205,13 @@ class Lead(models.Model):
         if is_active is not None:
             lead.is_active = is_active
         if property_permission_id is not None: 
-            lead.property_permissions = PropertyPermission(property_permission_id)
+            lead.property_permissions_id = property_permission_id
         lead.save()
         return lead.lead_id
 
     @staticmethod
     def remove(lead_id: int) -> None:
-        lead = Lead.objects.get(lead_id=lead_id)
+        lead = Lead.objects.get(lead_id_id=lead_id)
         lead.delete()
         return lead.lead_id
 
@@ -173,9 +219,9 @@ class Lead(models.Model):
     def get(lead_id: int) -> dict:
         return Lead.objects.filter(lead_id__user_id=lead_id).values(
             "lead_id",  "first_name", "last_name", "lead_origin",
-            "address", "nationality__name", "passport_or_id", "purpose",
-            "created_at", "updated_at", "is_active","lead_assign_to__name","nationality__country_id",
-            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+            "address","country_name","cityname","nationality_name","passport_or_id", "purpose",
+            "created_at", "updated_at", "is_active","lead_assign_to__name",
+            "lead_assign_to_user_id","lead_assign_tophone_number", "lead_assign_toemail","property_permissionspermission_id","property_permissions_property"
         ).first()
 
     @staticmethod
@@ -199,8 +245,8 @@ class Lead(models.Model):
         return list(
             data.values(
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
-                "address", "nationality", "passport_or_id", "purpose",
+                "address","country_name","cityname","nationality_name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+                "lead_assign_to_phone_number", "lead_assign_toemail","property_permissionspermission_id","property_permissions_property"
             )
             )

@@ -81,7 +81,7 @@ class JWTAuthentication(BaseAuthentication):
             'collection' : permissions.get('collection',False),
             'legal' : permissions.get('legal',False),
             'it' : permissions.get('it',False),
-            'general_manager' : permissions.get('general_manager',False),
+            'general manager' : permissions.get('general manager',False),
             'hr' : permissions.get('hr',False),
             'owner' : permissions.get('owner',False),
         }

@@ -14,7 +14,6 @@ from pms_apps.maintenance.serializers.request.delete.delete_technician import Ma
 from pms_apps.maintenance.serializers.request.get.get_technician import MaintenanceTechnicianGetRequestSerializer
 from pms_apps.maintenance.serializers.response.get.get_technician import MaintenanceTechnicianResponseGetSerializer
 from pms_apps.maintenance.serializers.response.get_all.get_all_technician import MaintenanceTechnicianResponseGetAllSerializer
-
 from pms_apps.maintenance.views.maintenance_technician import MaintenanceTechnicianView
 
 

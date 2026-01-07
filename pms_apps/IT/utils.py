@@ -1,0 +1,101 @@
+import pandas
+from pms_apps.common.common import Common
+import json
+
+
+class ITUtils:
+    def __init__(self, entity: str, columns_required: list = []) -> None:
+        self.columns_required = columns_required
+        self.entity = entity  # 'manager', 'employee' or 'technician'
+
+        manager_map = {
+            'manager_id': 'managerId',
+            'manager_id__phone_number': 'phoneNumber',
+            'manager_id__email': 'email',
+            'name': 'name',
+            'dob': 'dob',
+            'department': 'depaertment',
+            'projects_managed': 'projectsManaged',
+            'systems_overseen': 'systemsOverseen',
+            'team_size': 'teamSize',
+            'created_date_time': 'createdAt',
+        }
+
+        employee_map = {
+            'employee_id': 'employeeId',
+            'employee_id__phone_number': 'phoneNumber',
+            'employee_id__email': 'email',
+            'name': 'name',
+            'dob': 'dob',
+            'role_title': 'roleTitle',
+            'tickets_resolved': 'ticketsResolved',
+            'projects_assigned': 'projectsAssigned',
+            'specialization': 'specialization',
+            'manager_ref_id': 'managerRefId',
+            'created_date_time': 'createdAt',
+        }
+
+        technician_map = {
+            'technician_id': 'technicianId',
+            'technician_id__phone_number': 'phoneNumber',
+            'technician_id__email': 'email',
+            'name': 'name',
+            'dob': 'dob',
+            'skill_area': 'skillArea',
+            'tickets_closed': 'ticketsClosed',
+            'years_of_experience': 'yearsOfExperience',
+            'created_date_time': 'createdAt',
+        }
+
+        self.mapped_columns_name = manager_map if entity == 'manager' else employee_map if entity == 'employee' else technician_map
+
+    @staticmethod
+    def flatten_to_nested_dict(df):
+        result = []
+
+        import numpy as np
+
+        df = df.applymap(lambda x: x.isoformat() if isinstance(
+            x, pandas.Timestamp) else (None if pandas.isna(x) else x))
+        df = df.replace({np.nan: None, np.inf: None, -np.inf: None})
+
+        for _, row in df.iterrows():
+            row_dict = {}
+            for col, val in row.items():
+                if "." in col:
+                    parts = col.split(".")
+                    current = row_dict
+                    for part in parts[:-1]:
+                        current = current.setdefault(part, {})
+                    current[parts[-1]] = val
+                else:
+                    row_dict[col] = val
+            result.append(row_dict)
+
+        return result, df
+
+    def mapper(self, data: list) -> str | None:
+        if not data:
+            return '[]'
+
+        dataframe = pandas.DataFrame.from_records(data)
+        dataframe.rename(columns=self.mapped_columns_name, inplace=True)
+
+        if self.columns_required:
+            Common.mapper_value_error(
+                mapped_column_names=self.mapped_columns_name,
+                columns_required=self.columns_required
+            )
+            dataframe = dataframe[self.columns_required]
+
+        flatten_data, _ = self.flatten_to_nested_dict(dataframe)
+        return json.dumps(flatten_data, default=str)
+
+    @staticmethod
+    def reverse_mapper(fields: list[str]) -> dict[str, str]:
+        combined_map = {}
+        combined_map.update(ITUtils('manager').mapped_columns_name)
+        combined_map.update(ITUtils('employee').mapped_columns_name)
+        combined_map.update(ITUtils('technician').mapped_columns_name)
+        reverse_map = {v: k for k, v in combined_map.items()}
+        return {field: reverse_map.get(field, '') for field in fields}

@@ -1,5 +1,5 @@
 import dataclasses
 
 @dataclasses.dataclass
-class MaintenanceEmpleoyeeDeleteRequest:
+class MaintenanceEmployeeDeleteRequest:
     employee_id: int

@@ -39,15 +39,15 @@ urlpatterns = [
     path('property/', include('pms_apps.property.urls')),
     path('maintenance/', include('pms_apps.maintenance.urls')),
     path('activity/',include('pms_apps.activity_log.urls')),
+    path('reception/', include('pms_apps.reception.urls')),
     path('helper/',include('pms_apps.helper_apis.urls')),
-    # path('reception/', include('pms_apps.reception.urls')),
-    # path('finance/', include('pms_apps.finance.urls')),
-    # path('collection/', include('pms_apps.collection.urls')),
-    # path('legal/', include('pms_apps.legal.urls')),
-    # path('it/', include('pms_apps.IT.urls')),
+    path('finance/', include('pms_apps.finance.urls')),
+    path('collection/', include('pms_apps.collection.urls')),
+    path('legal/', include('pms_apps.legal.urls')),
+    path('it/', include('pms_apps.IT.urls')),
     # path('agreement-team/', include('pms_apps.agreement_team.urls')),
-    # path('owner/', include('pms_apps.owner.urls')),
-    # path('general-manager/', include('pms_apps.general_manager.urls')),
+    path('owner/', include('pms_apps.owner.urls')),
+    path('general-manager/', include('pms_apps.general_manager.urls')),
 ]
 
 # ----------------------------

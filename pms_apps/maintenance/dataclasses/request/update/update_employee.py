@@ -1,5 +1,5 @@
 import dataclasses
-
+from pms_apps.maintenance.dataclasses.request.update.update_manager import MaintenancePermissionUpdateRequest
 
 @dataclasses.dataclass
 class MaintenanceEmployeeUpdateRequest:
@@ -10,3 +10,4 @@ class MaintenanceEmployeeUpdateRequest:
     specialization: str
     assigned_tasks: int
     manager_ref: int
+    permissions: MaintenancePermissionUpdateRequest
