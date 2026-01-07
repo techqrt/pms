@@ -47,7 +47,6 @@ class MarketingEmployee(models.Model):
                 permissions["lead"] = employee.lead_permission.lead
             if employee.property_permission:
                 permissions["property"] = employee.property_permission.property
-        print(permissions)
         return {
             "permissions" : permissions
         }

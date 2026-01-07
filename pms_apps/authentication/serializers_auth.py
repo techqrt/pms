@@ -5,29 +5,53 @@ from pms_apps.authentication.models import User
 class UserAuthSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True)
     role = serializers.ChoiceField(
-        choices=[choice[0] for choice in User.ROLE_CHOICES],  
-        help_text="Role of the user.",
-        required = False,
+        choices=[choice[0] for choice in User.ROLE_CHOICES],
+        required=False,
     )
-    module = serializers.CharField(required=False, allow_blank=True)
+    module = serializers.CharField(required=True)
+
+    MODULE_TO_ROLE_MAPPINGS = {
+        "Collection": ("Manager", "Employee"),
+        "Finance": ("Manager", "Employee"),
+        "General Manager": ("General Manager",),
+        "HR": ("Employee",),
+        "IT": ("Manager", "Employee", "Technician"),
+        "Legal": ("Manager", "Employee"),
+        "Maintenance": ("Manager", "Employee", "Technician"),
+        "Marketing": ("Manager", "Employee"),
+        "Owner": ("Owner",),
+        "Property": ("Employee", "Manager"),
+        "Reception": ("Manager", "Employee"),
+    }
 
     def validate(self, data):
         phone_number = data.get("phone_number")
         role = data.get("role")
         module = data.get("module")
 
-
-        if module in ["Tenant", "Lanlord"]:
-            data.pop("role",None)
-        else:
-            if not role:
-                raise serializers.ValidationError(
-                    {"role": "Role is required for this module."}
-                )   
         if not phone_number:
-            raise serializers.ValidationError({"phone_number": "Phone number is required."})
-        if not module:
-            raise serializers.ValidationError({"module": "Module is required."})
+            raise serializers.ValidationError(
+                {"phone_number": "Phone number is required."}
+            )
+
+        if module in ["Tenant", "Landlord"]:
+            data.pop("role", None)
+            return data
+
+        if module not in self.MODULE_TO_ROLE_MAPPINGS:
+            raise serializers.ValidationError(
+                {"module": "Not a valid module"}
+            )
+
+        if not role:
+            raise serializers.ValidationError(
+                {"role": "Role is required for this module"}
+            )
+
+        if role not in self.MODULE_TO_ROLE_MAPPINGS[module]:
+            raise serializers.ValidationError(
+                {"role": "Not a valid role for this module"}
+            )
 
         return data
 

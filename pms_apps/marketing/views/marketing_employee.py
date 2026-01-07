@@ -68,6 +68,8 @@ class MarketingEmployeeView:
     @Common().exception_handler
     def update_employee_extract(self, params: MarketingEmployeeUpdateRequest):
         with transaction.atomic():
+            if params.user_id != params.employee_id:
+                raise ValueError("Not allowed to access this resource")
             employee_data = MarketingEmployee.get(
                 employee_id=params.employee_id)
             if employee_data is None:
@@ -116,6 +118,8 @@ class MarketingEmployeeView:
     @Common().exception_handler
     def delete_employee_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.employee_id:
+                raise ValueError("Not allowed to access this resource")
             employee_data = MarketingEmployee.get(
                 employee_id=params.employee_id)
             if employee_data is None:
@@ -126,6 +130,8 @@ class MarketingEmployeeView:
     @Common(response_handler=MarketingEmployeeResponseGetSerializer).exception_handler
     def get_employee_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.employee_id:
+                raise ValueError("Not allowed to access this resource")          
             employee_data = MarketingEmployee.get(
                 employee_id=params.employee_id)
             if employee_data is None:

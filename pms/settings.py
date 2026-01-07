@@ -19,7 +19,6 @@ from pms.config import Configurations
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -62,6 +61,7 @@ INSTALLED_APPS = [
     'pms_apps.lead',
     'pms_apps.hr',
     'pms_apps.activity_log',
+    'pms_apps.helper_apis',
     
 ]
 AUTH_USER_MODEL = 'auth.User'

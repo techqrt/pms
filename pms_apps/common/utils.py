@@ -117,3 +117,7 @@ class Utils:
         if length < 4:
             raise ValueError("OTP length should be at least 4.")
         return ''.join([str(random.randint(0, 9)) for _ in range(length)])
+    
+
+
+

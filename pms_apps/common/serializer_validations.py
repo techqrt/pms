@@ -1,11 +1,4 @@
-import json
-import uuid
-
-from rest_framework import status
 from rest_framework.request import Request
-from rest_framework.response import Response
-
-from pms.config import Configurations
 from pms.constants import Constants
 from pms_apps.common.utils import Utils
 
@@ -21,7 +14,6 @@ class SerializerValidations:
         def validator(*args, **kwargs):
             request: Request = args[0]
 
-            
             data = request.data
             data.update(Utils.get_query_params(request=request))
             serializer = self.serializer(data=data)

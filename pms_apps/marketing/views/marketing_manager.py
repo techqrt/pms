@@ -60,6 +60,8 @@ class MarketingManagerView:
     @Common().exception_handler
     def update_manager_extract(self, params: MarketingManagerUpdateRequest):
         with transaction.atomic():
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MarketingManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
@@ -105,6 +107,8 @@ class MarketingManagerView:
     @Common().exception_handler
     def delete_manager_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MarketingManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
@@ -114,9 +118,9 @@ class MarketingManagerView:
     @Common(response_handler=MarketingManagerResponseGetSerializer).exception_handler
     def get_manager_extract(self, params):
         with transaction.atomic():
-            print(params)
+            if params.user_id != params.manager_id:
+                raise ValueError("Not allowed to access this resource")
             manager_data = MarketingManager.get(manager_id=params.manager_id)
-            print(manager_data)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
             marketing_utils = MarketingUtils(entity='manager', columns_required=[
