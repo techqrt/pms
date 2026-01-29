@@ -9,7 +9,9 @@ class LeadCreateRequest:
     last_name : str
     lead_origin : str
     address : str
-    nationality : int
+    country_id : int
+    city_id : int
+    nationality_id : int
     passport_or_id : str
     purpose : str
     permissions : Permissions

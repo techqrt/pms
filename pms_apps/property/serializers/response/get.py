@@ -18,13 +18,6 @@ class PropertyGetSerializer(serializers.Serializer):
     dimensionBreadthFt = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     dimensionAreaSqft = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     rentalType = serializers.CharField(read_only=True)
-    hall = serializers.BooleanField(read_only=True)
-    bedroomCount = serializers.IntegerField(read_only=True)
-    kitchen = serializers.BooleanField(read_only=True)
-    attachedBathroomCount = serializers.IntegerField(read_only=True)
-    singleBathroomCount = serializers.IntegerField(read_only=True)
-    balcony = serializers.BooleanField(read_only=True)
-    storeRoom = serializers.BooleanField(read_only=True)
     rentalFor = serializers.CharField(read_only=True)
     advanceAmountRent = serializers.IntegerField(read_only=True)
     expectedRent = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
@@ -36,6 +29,12 @@ class PropertyGetSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField(read_only=True)
     updatedAt = serializers.DateTimeField(read_only=True)
     isActive = serializers.BooleanField(read_only=True)
+
+    # Nested details
+    propertyDetails = serializers.DictField(read_only=True)
+    commercialData = serializers.DictField(read_only=True)
+    flatData = serializers.DictField(read_only=True)
+    villaData = serializers.DictField(read_only=True)
 
 
 class PropertyResponseGetSerializer(serializers.Serializer):

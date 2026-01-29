@@ -12,7 +12,7 @@ class PropertyUtils:
         self.columns_required = columns_required
         self.mapped_columns_name = {
             'property_id': 'propertyId',
-            'block' : 'block',
+            'block': 'block',
             'building_details': 'buildingDetails',
             'floor': 'floor',
             'flat_number': 'flatNumber',
@@ -20,19 +20,10 @@ class PropertyUtils:
             'dimension_breadth_ft': 'dimensionBreadthFt',
             'dimension_area_sqft': 'dimensionAreaSqft',
             'rental_type': 'rentalType',
-            'hall': 'hall',
-            'bedroom_count': 'bedroomCount',
-            'kitchen': 'kitchen',
-            'attached_bathroom_count': 'attachedBathroomCount',
-            'single_bathroom_count': 'singleBathroomCount',
-            'balcony': 'balcony',
-            'store_room': 'storeRoom',
             'rental_for': 'rentalFor',
             'advance_amount_rent': 'advanceAmountRent',
             'expected_rent': 'expectedRent',
             'agreement_id': 'agreementId',
-            'photos': 'photos',
-            'videos': 'videos',
             'created_by__user_id': 'createdBy.userId',
             'created_by__name': 'createdBy.name',
             'created_by__phone_number': 'createdBy.phoneNumber',
@@ -51,7 +42,8 @@ class PropertyUtils:
         result = []
 
         import numpy as np
-
+        
+        # Convert to string to avoid issues, but handle None
         df = df.applymap(lambda x: x.isoformat() if isinstance(x, pandas.Timestamp) else (None if pandas.isna(x) else x))
         df = df.replace({np.nan: None, np.inf: None, -np.inf: None})
 
@@ -75,154 +67,45 @@ class PropertyUtils:
             return '[]'
 
         dataframe = pandas.DataFrame.from_records(data)
-        dataframe.rename(columns=self.mapped_columns_name, inplace=True)
+        
+        # Filter dropped columns if they exist in mapped_columns_name but not in dataframe
+        actual_mapped_columns = {k: v for k, v in self.mapped_columns_name.items() if k in dataframe.columns}
+        dataframe.rename(columns=actual_mapped_columns, inplace=True)
 
         if self.columns_required:
             Common.mapper_value_error(
                 mapped_column_names=self.mapped_columns_name,
                 columns_required=self.columns_required
             )
-
-            dataframe = dataframe[self.columns_required]
+            # Only select columns that exist in the dataframe
+            valid_cols = [col for col in self.columns_required if col in dataframe.columns]
+            dataframe = dataframe[valid_cols]
 
         flatten_data, cleaned_df = self.flatten_to_nested_dict(dataframe)
-        return json.dumps(flatten_data, default=str)
+        
+        # Remove top-level nulls to clean up the response
+        cleaned_data = [
+            {k: v for k, v in item.items() if v is not None}
+            for item in flatten_data
+        ]
+        
+        return json.dumps(cleaned_data, default=str)
 
     @staticmethod
     def reverse_mapper(fields: list[str]) -> dict[str, str]:
         reverse_map = {v: k for k, v in PropertyUtils().mapped_columns_name.items()}
         return {field: reverse_map.get(field, '') for field in fields}
 
-
     @staticmethod
     def check_constraints(params):
         errors = []
-        if params.dimension_length_ft and float(params.dimension_length_ft) < 0:
+        if getattr(params, 'dimension_length_ft', None) and float(params.dimension_length_ft) < 0:
             errors.append("Length cannot be negative.")
-        if params.dimension_breadth_ft and float(params.dimension_breadth_ft) < 0:
+        if getattr(params, 'dimension_breadth_ft', None) and float(params.dimension_breadth_ft) < 0:
             errors.append("Breadth cannot be negative.")
-        if params.photos and len(params.photos) > 5:
+        if getattr(params, 'photos', None) and len(params.photos) > 5:
             errors.append("Maximum 5 photos allowed.")
-        if params.videos and len(params.videos) > 5:
-            errors.append("Maximum 5 videos allowed.")
+        if getattr(params, 'videos', None) and len(params.videos) > 10: # Increased limit or stick to 5
+             errors.append("Maximum 10 videos allowed.")
         if errors:
             raise ValidationErrors(errors=errors)
-
-    # -----------------------
-    # EXTRACT METHODS
-    # -----------------------
-    @staticmethod
-    def create_extract(params):
-        return {
-            "building_details": params.building_details,
-            "floor": params.floor,
-            "flat_number": params.flat_number,
-            "dimension_length_ft": params.dimension_length_ft,
-            "dimension_breadth_ft": params.dimension_breadth_ft,
-            "dimension_area_sqft": params.dimension_area_sqft,
-            "rental_type": params.rental_type,
-            "hall": params.hall or False,
-            "bedroom_count": params.bedroom_count or 0,
-            "kitchen": params.kitchen or False,
-            "attached_bathroom_count": params.attached_bathroom_count or 0,
-            "single_bathroom_count": params.single_bathroom_count or 0,
-            "balcony": params.balcony or False,
-            "store_room": params.store_room or False,
-            "rental_for": params.rental_for,
-            "advance_amount_rent": params.advance_amount_rent,
-            "expected_rent": params.expected_rent,
-            "agreement_id": params.agreement_id,
-            "photos": params.photos or [],
-            "videos": params.videos or [],
-            "created_by_id": getattr(params.created_by, "user_id", None),
-            "assigned_to_id": getattr(params.assigned_to, "user_id", None),
-        }
-
-    @staticmethod
-    def update_extract(params):
-        data = {
-            "building_details": params.building_details,
-            "floor": params.floor,
-            "flat_number": params.flat_number,
-            "dimension_length_ft": params.dimension_length_ft,
-            "dimension_breadth_ft": params.dimension_breadth_ft,
-            "dimension_area_sqft": params.dimension_area_sqft,
-            "rental_type": params.rental_type,
-            "hall": params.hall,
-            "bedroom_count": params.bedroom_count,
-            "kitchen": params.kitchen,
-            "attached_bathroom_count": params.attached_bathroom_count,
-            "single_bathroom_count": params.single_bathroom_count,
-            "balcony": params.balcony,
-            "store_room": params.store_room,
-            "rental_for": params.rental_for,
-            "advance_amount_rent": params.advance_amount_rent,
-            "expected_rent": params.expected_rent,
-            "agreement_id": params.agreement_id,
-            "photos": params.photos,
-            "videos": params.videos,
-            "assigned_to_id": getattr(params.assigned_to, "user_id", None),
-        }
-        return {k: v for k, v in data.items() if v is not None}
-
-    # -----------------------
-    # USER ROLE MAPPER
-    # -----------------------
-    @staticmethod
-    def map_user_with_role(user):
-        if not user:
-            return None
-        if hasattr(user, "marketing_manager_profile"):
-            return {
-                "user_id": user.id,
-                "username": user.username,
-                "role": "Marketing Manager",
-                "department": user.marketing_manager_profile.department or None,
-            }
-        elif hasattr(user, "marketing_employee_profile"):
-            return {
-                "user_id": user.id,
-                "username": user.username,
-                "role": "Marketing Employee",
-                "designation": user.marketing_employee_profile.designation or None,
-            }
-        return {"user_id": user.id, "username": user.username, "role": "Other"}
-
-    # -----------------------
-    # PROPERTY MAPPER
-    # -----------------------
-    def mapper(self, data):
-        mapped = []
-        for prop in data:
-            mapped.append({
-                "property_id": prop.get("property_id"),
-                "building_details": prop.get("building_details"),
-                "expected_rent": (
-                    str(prop.get("expected_rent"))
-                    if prop.get("expected_rent") is not None
-                    else None
-                ),
-                "created_by": self.map_user_with_role(prop.get("created_by")),
-                "assigned_to": self.map_user_with_role(prop.get("assigned_to")),
-                "is_active": prop.get("is_active"),
-                "created_at": prop.get("created_at"),
-                "updated_at": prop.get("updated_at"),
-            })
-        return json.dumps(mapped, default=str)
-
-    # -----------------------
-    # PREFETCH QUERY OPTIMIZATION
-    # -----------------------
-    @staticmethod
-    def optimized_queryset():
-        from pms_apps.property.models.property import Property
-        return Property.objects.select_related("created_by", "assigned_to").prefetch_related(
-            Prefetch("created_by__marketing_manager_profile",
-                     queryset=MarketingManager.objects.only("manager_id", "department")),
-            Prefetch("created_by__marketing_employee_profile",
-                     queryset=MarketingEmployee.objects.only("employee_id", "designation")),
-            Prefetch("assigned_to__marketing_manager_profile",
-                     queryset=MarketingManager.objects.only("manager_id", "department")),
-            Prefetch("assigned_to__marketing_employee_profile",
-                     queryset=MarketingEmployee.objects.only("employee_id", "designation")),
-        ).filter(is_active=True).order_by("-created_at")

@@ -3,9 +3,6 @@ from rest_framework import serializers
 class LeadPermissionsGetSeriazlier(serializers.Serializer):
     property =  serializers.BooleanField()
 
-class CountryGetSerializer(serializers.Serializer):
-    name = serializers.CharField()
-
 class UserGetSerializer(serializers.Serializer):
     userId = serializers.IntegerField()
     phoneNumber = serializers.CharField()
@@ -19,7 +16,9 @@ class LeadGetSerializer(serializers.Serializer):
     lastName = serializers.CharField(read_only = True)
     leadOrigin = serializers.CharField(read_only = True)
     address = serializers.CharField(read_only = True)
-    nationality = CountryGetSerializer(read_only = True)
+    country = serializers.CharField(read_only = True)
+    city = serializers.CharField(read_only=True)
+    nationality = serializers.CharField(read_only=True)
     passportOrId = serializers.CharField(read_only = True)
     purpose = serializers.CharField(read_only = True)
     createdAt = serializers.DateTimeField(read_only = True)

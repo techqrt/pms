@@ -12,7 +12,9 @@ class LeadUpdateRequest:
     last_name : str | None = None
     lead_origin : str | None = None
     address : str | None = None
-    nationality : int | None = None
+    country_id : int | None = None
+    city_id : int | None = None
+    nationality_id : int | None = None
     passport_or_id : str | None = None
     purpose : str | None = None
     property_permission : PropertyPermissionUpdateRequest | None = None 
