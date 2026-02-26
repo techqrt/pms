@@ -21,7 +21,7 @@ from pms_apps.property.serializers.response.get import PropertyResponseGetSerial
 from pms_apps.property.serializers.response.get_all import PropertyResponseGetAllSerializer
 
 from pms_apps.authentication.models import User
-
+from pms_apps.property.models.property_details import PropertyDetail
 
 class PropertyView:
     def __init__(self) -> None:
@@ -37,37 +37,180 @@ class PropertyView:
     @Common().exception_handler
     def create_extract(self, params: PropertyCreateRequest):
         PropertyUtils.check_constraints(params=params)
+        
+        # Mirror nested data to root Property fields for cleaner visibility
+        block = params.block or params.property_details.address_line_2
+        building_details = params.building_details or params.property_details.building_name
+        
+        floor = params.floor
+        if not floor:
+            if params.rental_type == 'Flat' and params.flat_data:
+                floor = str(params.flat_data.floor_number) if params.flat_data.floor_number else None
+            elif params.rental_type == 'Commercial' and params.commercial_data:
+                floor = str(params.commercial_data.floor_number) if params.commercial_data.floor_number else None
+
+        flat_number = params.flat_number
+        if not flat_number and params.rental_type == 'Flat' and params.flat_data:
+            # Try to convert flat string to int safely if possible
+            try:
+                import re
+                nums = re.findall(r'\d+', params.flat_data.flat_number)
+                if nums:
+                    flat_number = int(nums[0])
+            except (ValueError, TypeError):
+                pass
+
         with transaction.atomic():
             property = Property()
             property_id = property.create(
-                block = params.block,
-                building_details=params.building_details,
-                floor = params.floor,
-                flat_number = params.flat_number,
-                dimension_length_ft = params.dimension_length_ft,
-                dimension_breadth_ft = params.dimension_breadth_ft,
-                dimension_area_sqft = params.dimension_area_sqft,
-                rental_type = params.rental_type,
-                hall = params.hall,
-                bedroom_count = params.bedroom_count,
-                kitchen = params.kitchen,
-                attached_bathroom_count = params.attached_bathroom_count,
-                single_bathroom_count = params.single_bathroom_count,
-                balcony  = params.balcony,
-                store_room = params.store_room,
-                rental_for = params.rental_for,
-                advance_amount_rent = params.advance_amount_rent,
-                expected_rent = params.expected_rent,
-                agreement_id = params.agreement_id,
-                photos = params.photos,
-                videos = params.videos,
-                created_by = params.user_id,
+                block=block,
+                building_details=building_details,
+                floor=floor,
+                flat_number=flat_number,
+                dimension_length_ft=params.dimension_length_ft,
+                dimension_breadth_ft=params.dimension_breadth_ft,
+                dimension_area_sqft=params.dimension_area_sqft,
+                rental_type=params.rental_type,
+                rental_for=params.rental_for,
+                advance_amount_rent=params.advance_amount_rent,
+                expected_rent=params.expected_rent,
+                agreement_id=params.agreement_id,
+                created_by=params.user_id or params.property_details.created_by_id,
             )
+
+            from pms_apps.property.models.property_details import PropertyDetail
+            
+            property_detail_kwargs = {
+                'property_id': property_id,
+                'building_name': params.property_details.building_name,
+                'total_floors': params.property_details.total_floors,
+                'carpet_area_sqft': params.property_details.carpet_area_sqft,
+                'builtup_area_sqft': params.property_details.builtup_area_sqft,
+                'monthly_rent': params.property_details.monthly_rent,
+                'security_deposit_amount': params.property_details.security_deposit_amount,
+                'electricity_charge_type': params.property_details.electricity_charge_type,
+                'water_charge_type': params.property_details.water_charge_type,
+                'late_fee_type': params.property_details.late_fee_type,
+                'late_fee_value': params.property_details.late_fee_value,
+                'current_status': params.property_details.current_status,
+                'landlord_id': params.property_details.landlord_id,
+                'created_by_id': params.property_details.created_by_id,
+                'address_line_1': params.property_details.address_line_1,
+                'area_zone': params.property_details.area_zone,
+                'city': params.property_details.city,
+                'state': params.property_details.state,
+                'country': params.property_details.country,
+                'pincode': params.property_details.pincode,
+                'google_map_location': params.property_details.google_map_location,
+                'year_of_construction': params.property_details.year_of_construction,
+                'other_charges': params.property_details.other_charges,
+                'available_from': params.property_details.available_from,
+                'current_tenant_id': params.property_details.current_tenant_id,
+                'address_line_2': params.property_details.address_line_2,
+                'internal_notes': params.property_details.internal_notes,
+            }
+
+            # Add rental type-specific data
+            if params.rental_type == 'Flat' and params.flat_data:
+                property_detail_kwargs.update({
+                    'flat_number': params.flat_data.flat_number,
+                    'floor_number': params.flat_data.floor_number,
+                    'building_block': params.flat_data.building_block,
+                    'flat_configuration': params.flat_data.flat_configuration,
+                    'no_of_bathrooms': params.flat_data.no_of_bathrooms,
+                    'kitchen_type': params.flat_data.kitchen_type,
+                    'facing': params.flat_data.facing,
+                    'balcony': params.flat_data.balcony,
+                    'parking': params.flat_data.parking,
+                    'lift': params.flat_data.lift,
+                    'security': params.flat_data.security,
+                    'gas_pipeline': params.flat_data.gas_pipeline,
+                    'water_supply': params.flat_data.water_supply,
+                    'intercom': params.flat_data.intercom,
+                    'fire_safety': params.flat_data.fire_safety,
+                    'power_backup': params.flat_data.power_backup,
+                    'cctv': params.flat_data.cctv,
+                    'allowed_tenant_types': params.flat_data.allowed_tenant_types,
+                    'store_room': params.flat_data.store_room,
+                    'maintenance_charge_amount': params.flat_data.maintenance_charge_amount,
+                })
+            elif params.rental_type == 'Commercial' and params.commercial_data:
+                property_detail_kwargs.update({
+                    'commercial_category': params.commercial_data.commercial_category,
+                    'floor_number': params.commercial_data.floor_number,
+                    'frontage_width_ft': params.commercial_data.frontage_width_ft,
+                    'ceiling_height_ft': params.commercial_data.ceiling_height_ft,
+                    'no_of_cabins': params.commercial_data.no_of_cabins,
+                    'no_of_washrooms': params.commercial_data.no_of_washrooms,
+                    'loading_area': params.commercial_data.loading_area,
+                    'power_load_kw': params.commercial_data.power_load_kw,
+                    'has_dg_backup': params.commercial_data.has_dg_backup,
+                    'lift_type': params.commercial_data.lift_type,
+                    'fire_safety_compliant': params.commercial_data.fire_safety_compliant,
+                    'emergency_exit': params.commercial_data.emergency_exit,
+                    'parking_availability': params.commercial_data.parking_availability,
+                    'commercial_maintenance_charge_type': params.commercial_data.commercial_maintenance_charge_type,
+                    'gst_applicable': params.commercial_data.gst_applicable,
+                    'gst_percentage': params.commercial_data.gst_percentage,
+                    'security_deposit_months': params.commercial_data.security_deposit_months,
+                    'lease_type': params.commercial_data.lease_type,
+                    'lease_tenure_years': params.commercial_data.lease_tenure_years,
+                    'lock_in_period_months': params.commercial_data.lock_in_period_months,
+                    'allowed_business': params.commercial_data.allowed_business,
+                    'prohibited_business': params.commercial_data.prohibited_business,
+                    'maintenance_charge_amount': params.commercial_data.maintenance_charge_amount,
+                })
+            elif params.rental_type == 'Villa' and params.villa_data:
+                property_detail_kwargs.update({
+                    'villa_name': params.villa_data.villa_name,
+                    'villa_type': params.villa_data.villa_type,
+                    'villa_configuration': params.villa_data.villa_configuration,
+                    'project_name': params.villa_data.project_name,
+                    'plot_area_sqft': params.villa_data.plot_area_sqft,
+                    'number_of_bedrooms': params.villa_data.number_of_bedrooms,
+                    'number_of_bathrooms': params.villa_data.number_of_bathrooms,
+                    'living_rooms_count': params.villa_data.living_rooms_count,
+                    'servant_room': params.villa_data.servant_room,
+                    'balcony_or_sitout': params.villa_data.balcony_or_sitout,
+                    'private_garden': params.villa_data.private_garden,
+                    'terrace_access': params.villa_data.terrace_access,
+                    'boundary_wall': params.villa_data.boundary_wall,
+                    'driveway': params.villa_data.driveway,
+                    'private_parking': params.villa_data.private_parking,
+                    'villa_maintenance_charge_type': params.villa_data.villa_maintenance_charge_type,
+                    'gardening_charges': params.villa_data.gardening_charges,
+                    'water_supply_24x7': params.villa_data.water_supply_24x7,
+                    'security_guard': params.villa_data.security_guard,
+                    'clubhouse_access': params.villa_data.clubhouse_access,
+                    'gym': params.villa_data.gym,
+                    'childrens_play_area': params.villa_data.childrens_play_area,
+                    'internal_roads': params.villa_data.internal_roads,
+                    'street_lights': params.villa_data.street_lights,
+                    'gated_community': params.villa_data.gated_community,
+                    'bachelor_allowed': params.villa_data.bachelor_allowed,
+                    'pets_allowed': params.villa_data.pets_allowed,
+                    'power_backup': params.villa_data.power_backup,
+                    'cctv': params.villa_data.cctv,
+                    'allowed_tenant_types': params.villa_data.allowed_tenant_types,
+                    'store_room': params.villa_data.store_room,
+                    'maintenance_charge_amount': params.villa_data.maintenance_charge_amount,
+                })
+
+            PropertyDetail.create(**property_detail_kwargs)
+
+            if params.photos:
+                from pms_apps.property.models.property_photos import PropertyPhotos
+                for photo_url in params.photos:
+                    PropertyPhotos.objects.create(
+                        property_id=property_id,
+                        photo=photo_url
+                    )
 
         return Response(
             status=status.HTTP_201_CREATED,
-            data=Utils.success_response_data(message=self.data_create,data={'property_id' : property_id})
+            data=Utils.success_response_data(message=self.data_create, data={'property_id': property_id})
         )
+
 
     @Common().exception_handler
     def update_extract(self, params: PropertyUpdateRequest):
@@ -85,33 +228,100 @@ class PropertyView:
         with transaction.atomic():
             Property.update(
                 property_id=params.property_id,
-                block = params.block,
+                block=params.block,
                 building_details=params.building_details,
-                floor = params.floor,
-                flat_number = params.flat_number,
-                dimension_length_ft = params.dimension_length_ft,
-                dimension_breadth_ft = params.dimension_breadth_ft,
-                dimension_area_sqft = params.dimension_area_sqft,
-                rental_type = params.rental_type,
-                hall = params.hall,
-                bedroom_count = params.bedroom_count,
-                kitchen = params.kitchen,
-                attached_bathroom_count = params.attached_bathroom_count,
-                single_bathroom_count = params.single_bathroom_count,
-                balcony  = params.balcony,
-                store_room = params.store_room,
-                rental_for = params.rental_for,
-                advance_amount_rent = params.advance_amount_rent,
-                expected_rent = params.expected_rent,
-                agreement_id = params.agreement_id,
-                photos = params.photos,
-                videos = params.videos,
-                assigned_to = assigned_to_user.get('user_id') if assigned_to_user else None,
+                floor=params.floor,
+                flat_number=params.flat_number,
+                dimension_length_ft=params.dimension_length_ft,
+                dimension_breadth_ft=params.dimension_breadth_ft,
+                dimension_area_sqft=params.dimension_area_sqft,
+                rental_type=params.rental_type,
+                rental_for=params.rental_for,
+                advance_amount_rent=params.advance_amount_rent,
+                expected_rent=params.expected_rent,
+                agreement_id=params.agreement_id,
+                assigned_to=assigned_to_user.get('user_id') if assigned_to_user else None,
             )
+
+           
+            
+            detail_update_kwargs = {}
+            if params.property_details:
+                detail_update_kwargs.update({k: v for k, v in params.property_details.__dict__.items() if v is not None})
+            
+            rental_type = params.rental_type or property_obj.get('rental_type')
+            
+            if rental_type == 'Flat' and params.flat_data:
+                detail_update_kwargs.update({k: v for k, v in params.flat_data.__dict__.items() if v is not None})
+            elif rental_type == 'Commercial' and params.commercial_data:
+                detail_update_kwargs.update({k: v for k, v in params.commercial_data.__dict__.items() if v is not None})
+            elif rental_type == 'Villa' and params.villa_data:
+                detail_update_kwargs.update({k: v for k, v in params.villa_data.__dict__.items() if v is not None})
+            
+            if detail_update_kwargs:
+                PropertyDetail.update(property_id=params.property_id, **detail_update_kwargs)
+
+            if params.photos:
+                from pms_apps.property.models.property_photos import PropertyPhotos
+                PropertyPhotos.objects.filter(property_id=params.property_id).delete()
+                for photo_url in params.photos:
+                    PropertyPhotos.objects.create(
+                        property_id=params.property_id,
+                        photo=photo_url
+                    )
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_update)
         )
+
+
+    def _categorize_property_details(self, property_dict, detail_dict, rental_type):
+        """Helper to structure detail_dict into categorized fields within property_dict."""
+        # Common details
+        common_fields = [
+            'property_code', 'building_name', 'total_floors', 'carpet_area_sqft', 'builtup_area_sqft',
+            'monthly_rent', 'security_deposit_amount', 'electricity_charge_type',
+            'water_charge_type', 'late_fee_type', 'late_fee_value', 'current_status',
+            'landlord_id', 'address_line_1', 'address_line_2', 'area_zone', 'city',
+            'state', 'country', 'pincode', 'google_map_location', 'year_of_construction',
+            'other_charges', 'available_from', 'current_tenant_id', 'internal_notes'
+        ]
+        property_dict['propertyDetails'] = {k: detail_dict.get(k) for k in common_fields if k in detail_dict}
+        
+        # Type specific details
+        if rental_type == 'Flat':
+            flat_fields = [
+                'flat_number', 'floor_number', 'building_block', 'flat_configuration',
+                'no_of_bathrooms', 'kitchen_type', 'facing', 'balcony', 'parking',
+                'lift', 'security', 'gas_pipeline', 'water_supply', 'intercom',
+                'fire_safety', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
+                'maintenance_charge_amount'
+            ]
+            property_dict['flatData'] = {k: detail_dict.get(k) for k in flat_fields if k in detail_dict}
+        elif rental_type == 'Commercial':
+            commercial_fields = [
+                'commercial_category', 'floor_number', 'frontage_width_ft', 'ceiling_height_ft',
+                'no_of_cabins', 'no_of_washrooms', 'loading_area', 'power_load_kw',
+                'has_dg_backup', 'lift_type', 'fire_safety_compliant', 'emergency_exit',
+                'parking_availability', 'commercial_maintenance_charge_type',
+                'maintenance_charge_amount', 'gst_applicable', 'gst_percentage',
+                'security_deposit_months', 'lease_type', 'lease_tenure_years',
+                'lock_in_period_months', 'allowed_business', 'prohibited_business'
+            ]
+            property_dict['commercialData'] = {k: detail_dict.get(k) for k in commercial_fields if k in detail_dict}
+        elif rental_type == 'Villa':
+            villa_fields = [
+                'villa_name', 'villa_type', 'villa_configuration', 'project_name',
+                'plot_area_sqft', 'number_of_bedrooms', 'number_of_bathrooms',
+                'living_rooms_count', 'servant_room', 'balcony_or_sitout', 'private_garden',
+                'terrace_access', 'boundary_wall', 'driveway', 'private_parking',
+                'villa_maintenance_charge_type', 'gardening_charges', 'water_supply_24x7',
+                'security_guard', 'clubhouse_access', 'gym', 'childrens_play_area',
+                'internal_roads', 'street_lights', 'gated_community', 'bachelor_allowed',
+                'pets_allowed', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
+                'maintenance_charge_amount'
+            ]
+            property_dict['villaData'] = {k: detail_dict.get(k) for k in villa_fields if k in detail_dict}
 
     @Common(response_handler=PropertyResponseGetSerializer).exception_handler
     def get_extract(self, params: PropertyGetRequest):
@@ -119,8 +329,21 @@ class PropertyView:
         if not property_data:
             raise ValueError(self.data_no_match)
 
+        from pms_apps.property.models.property_details import PropertyDetail
+        from django.forms.models import model_to_dict
+        
+        detail_obj = PropertyDetail.get_by_property(property_id=params.property_id)
+        detail_dict = model_to_dict(detail_obj) if detail_obj else {}
+
         utils = PropertyUtils(columns_required=[column for column in params.values.split(',') if column])
         property_dict = json.loads(utils.mapper([property_data]))[0]
+        
+        self._categorize_property_details(property_dict, detail_dict, property_data.get('rental_type'))
+
+        # Add photos
+        from pms_apps.property.models.property_photos import PropertyPhotos
+        photos = PropertyPhotos.objects.filter(property_id=params.property_id).values_list('photo', flat=True)
+        property_dict['photos'] = list(photos)
 
         return Response(
             status=status.HTTP_200_OK,
@@ -134,24 +357,47 @@ class PropertyView:
             params.filter_key
         ])
 
-        
-        pages = Paginator(Property.get_all(
+        property_list = Property.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
             search_key=params.search_key
-        ),per_page=params.limit)
+        )
+        
+        pages = Paginator(property_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
             raise ValueError(Constants.page_num_exceeded)
 
-        data = pages.page(params.page_num)
+        page_data = pages.page(params.page_num)
         utils = PropertyUtils(columns_required=[column for column in params.values.split(',') if column])
-        data = json.loads(utils.mapper(data=data))
+        serialized_properties = json.loads(utils.mapper(data=page_data))
 
-        data = Utils.add_page_parameter(
-            final_data=data,
+        # Fetch all details and photos for properties in the current page
+        property_ids = [p['property_id'] for p in page_data]
+        
+        from pms_apps.property.models.property_details import PropertyDetail
+        from pms_apps.property.models.property_photos import PropertyPhotos
+        from django.forms.models import model_to_dict
+        
+        details_map = {d.property_id: model_to_dict(d) for d in PropertyDetail.get_by_properties(property_ids)}
+        
+        from collections import defaultdict
+        photos_map = defaultdict(list)
+        for photo in PropertyPhotos.objects.filter(property_id__in=property_ids):
+            photos_map[photo.property_id].append(photo.photo)
+
+        for property_dict in serialized_properties:
+            pid = property_dict.get('propertyId')
+            # Categorize details
+            detail_dict = details_map.get(pid, {})
+            self._categorize_property_details(property_dict, detail_dict, property_dict.get('rentalType'))
+            # Add photos
+            property_dict['photos'] = photos_map.get(pid, [])
+
+        final_data = Utils.add_page_parameter(
+            final_data=serialized_properties,
             page_num=params.page_num,
             total_page=pages.num_pages,
             present_url=params.present_url,
@@ -160,7 +406,7 @@ class PropertyView:
 
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message=self.data_get, data=data)
+            data=Utils.success_response_data(message=self.data_get, data=final_data)
         )
 
     @Common().exception_handler

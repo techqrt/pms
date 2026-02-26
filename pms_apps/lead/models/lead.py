@@ -37,6 +37,7 @@ class Lead(models.Model):
         to=User,
         verbose_name='Lead User',
         on_delete=models.DO_NOTHING,
+        primary_key=True,
     )
     lead_assign_to = models.ForeignKey(
         verbose_name='Lead Assigned',
@@ -77,7 +78,18 @@ class Lead(models.Model):
         verbose_name='Country',
         to=Country,
         on_delete=models.DO_NOTHING,
+        null=True
+    )
+    po_box = models.CharField(
+        verbose_name="PO Box",
+        max_length=20,
+    )
+    profile_image = models.ImageField(
+        verbose_name="Profile Image",
+        max_length=500,
+        upload_to='lead_profiles',
         null=True,
+        blank=True
     )
     city = models.ForeignKey(
         verbose_name='City',
@@ -90,6 +102,17 @@ class Lead(models.Model):
         to=Nationality,
         on_delete=models.DO_NOTHING,
         null=True
+    )
+    po_box = models.CharField(
+        verbose_name="PO Box",
+        max_length=20,
+    )
+    profile_image = models.ImageField(
+        verbose_name="Profile Image",
+        max_length=500,
+        upload_to='lead_profiles',
+        null=True,
+        blank=True
     )
     passport_or_id = models.CharField(
         verbose_name="Passport/ID",
@@ -131,9 +154,11 @@ class Lead(models.Model):
         permissions = {}
         if lead and lead.property_permissions:
             permissions["property"] = lead.property_permissions.property
+        print(permissions)
         return {
             "permissions" : permissions
         }
+        
 
     def create(
         self,
@@ -181,7 +206,7 @@ class Lead(models.Model):
         is_active: bool = None,
         property_permission_id : int = None,
     ) -> int:
-        lead = Lead.objects.get(lead_id_id=lead_id)
+        lead = Lead.objects.get(lead_id=lead_id)
         if lead_assign_to is not None:
             lead.lead_assign_to_id = lead_assign_to
         if first_name is not None:
@@ -217,11 +242,11 @@ class Lead(models.Model):
 
     @staticmethod
     def get(lead_id: int) -> dict:
-        return Lead.objects.filter(lead_id__user_id=lead_id).values(
+        return Lead.objects.filter(lead_id=lead_id).values(
             "lead_id",  "first_name", "last_name", "lead_origin",
-            "address","country_name","cityname","nationality_name","passport_or_id", "purpose",
+            "address","country__name","city__name","nationality__name","passport_or_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name",
-            "lead_assign_to_user_id","lead_assign_tophone_number", "lead_assign_toemail","property_permissionspermission_id","property_permissions_property"
+            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
         ).first()
 
     @staticmethod
@@ -245,7 +270,7 @@ class Lead(models.Model):
         return list(
             data.values(
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
-                "address","country_name","cityname","nationality_name", "passport_or_id", "purpose",
+                "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active",
                 "lead_assign_to_phone_number", "lead_assign_toemail","property_permissionspermission_id","property_permissions_property"
             )

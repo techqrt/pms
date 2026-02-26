@@ -5,6 +5,7 @@ from pms_apps.common.common import Common
 from rest_framework.response import Response
 from rest_framework import status
 from pms_apps.common.utils import Utils
+from pms_apps.helper_apis.models.city import City
 from pms_apps.helper_apis.models.country import Country
 from pms_apps.common.dataclasses.request.get_all import GetAll
 from pms_apps.authentication.models import User
@@ -29,19 +30,17 @@ class LeadView:
         self.error = "Something went wrong"
 
     @Common().exception_handler
+    @Common().country_city_validation
     def create_extract(self, params: LeadCreateRequest):
         
         with transaction.atomic():
-            country_data = Country.get(country_id=params.nationality)
             user_data = User.get(user_id=params.lead_assign_to)
-            if not country_data:
-                raise ValueError(f'Invalid Country Id : {params.nationality}')
+
             if not user_data:
                 raise ValueError(f'Invalid User id : {params.lead_assign_to}')
 
             lead_permission = PropertyPermission()
-            if params.permissions.property:
-                lead_permission.property = params.permissions.property
+            lead_permission.property = True
             lead_permission.save()
             lead = Lead()
             lead_id = lead.create(
@@ -51,7 +50,9 @@ class LeadView:
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,
                 address=params.address,
-                nationality=country_data.get('country_id'),
+                country_id=params.country_id,
+                city_id=params.city_id,
+                nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
                 property_permissions_id=lead_permission.permission_id
@@ -63,9 +64,11 @@ class LeadView:
         )
 
     @Common().exception_handler
+    @Common().country_city_validation
     def update_extract(self, params: LeadUpdateRequest):
         with transaction.atomic():
-            country_data = Country.get(country_id=params.nationality)
+            if params.user_id != params.lead_id:
+                raise ValueError("Not allowed to access this resource")
             user_data = User.get(user_id=params.lead_assign_to)
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
@@ -92,8 +95,9 @@ class LeadView:
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,
                 address=params.address,
-                nationality=country_data.get(
-                    'country_id') if country_data else None,
+                country_id=params.country_id,
+                city_id=params.city_id,
+                nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
                 property_permission_id=property_permission_id
@@ -106,6 +110,8 @@ class LeadView:
     @Common().exception_handler
     def delete_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.lead_id:
+                raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
@@ -119,6 +125,8 @@ class LeadView:
     @Common(response_handler=LeadResponseGetSerializer).exception_handler
     def get_extract(self, params):
         with transaction.atomic():
+            if params.user_id != params.lead_id:
+                raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)

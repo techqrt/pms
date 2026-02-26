@@ -5,9 +5,14 @@ from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
 class PropertyPermissionRequestSerilizer(serializers.Serializer):
     property = serializers.BooleanField(required = False)
 
+class CityRequestSerializer(serializers.Serializer):
+    city_id = serializers.IntegerField()
 
-class CountryRequestSerilizer(serializers.Serializer):
+class CountryRequestSerializer(serializers.Serializer):
     country_id = serializers.IntegerField()
+
+class NationalityRequestSerializer(serializers.Serializer):
+    nationality_id = serializers.IntegerField()
 
 class UserRequestSerilizer(serializers.Serializer):
     user_id = serializers.IntegerField()
@@ -28,7 +33,9 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
         max_length = 20
     )
     address = serializers.CharField()
-    nationality = CountryRequestSerilizer()
+    country = CountryRequestSerializer()
+    city = CityRequestSerializer()
+    nationality = NationalityRequestSerializer()
     passport_or_id = serializers.CharField(
         max_length = 50
     )
@@ -45,16 +52,23 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
 
     def create(self,validated_data) -> LeadCreateRequest:
         user_data = validated_data.pop('lead_assign_to')
-        country_data = validated_data.pop('nationality')
+        country_data = validated_data.pop('country')
+        city_data = validated_data.pop('city')
+        nationality_data = validated_data.pop('nationality')
         permission_data = validated_data.pop('permissions')
 
         lead_assign_to = user_data['user_id']
-        nationality = country_data['country_id']
+        country_id = country_data['country_id']
+        city_id = city_data['city_id']
+        nationality_id = nationality_data['nationality_id']
+
         permissions = Permissions(**permission_data)
 
         return LeadCreateRequest(
             lead_assign_to=lead_assign_to,
-            nationality=nationality,
+            country_id=country_id,
+            city_id=city_id,
+            nationality_id=nationality_id,
             permissions = permissions,
             **validated_data
         )
