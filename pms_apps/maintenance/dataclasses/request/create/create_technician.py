@@ -1,4 +1,5 @@
 import dataclasses
+from pms_apps.common.dataclasses.request.permission import Permissions
 
 @dataclasses.dataclass
 class MaintenanceTechnicianCreateRequest:
@@ -8,3 +9,4 @@ class MaintenanceTechnicianCreateRequest:
     skill_type: str
     years_of_experience: int
     assigned_jobs: int
+    permissions: Permissions

@@ -78,7 +78,18 @@ class Lead(models.Model):
         verbose_name='Country',
         to=Country,
         on_delete=models.DO_NOTHING,
+        null=True
+    )
+    po_box = models.CharField(
+        verbose_name="PO Box",
+        max_length=20,
+    )
+    profile_image = models.ImageField(
+        verbose_name="Profile Image",
+        max_length=500,
+        upload_to='lead_profiles',
         null=True,
+        blank=True
     )
     city = models.ForeignKey(
         verbose_name='City',
@@ -133,7 +144,7 @@ class Lead(models.Model):
     class Meta:
         db_table = "lead"
 
-    def __str__(self):
+    def _str_(self):
         return f"{self.first_name} {self.last_name} ({self.lead_origin})"
     
     @staticmethod
@@ -225,7 +236,7 @@ class Lead(models.Model):
 
     @staticmethod
     def remove(lead_id: int) -> None:
-        lead = Lead.objects.get(lead_id=lead_id)
+        lead = Lead.objects.get(lead_id_id=lead_id)
         lead.delete()
         return lead.lead_id
 
@@ -261,6 +272,6 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+                "lead_assign_to_phone_number", "lead_assign_toemail","property_permissionspermission_id","property_permissions_property"
             )
             )

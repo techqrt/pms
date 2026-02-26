@@ -24,11 +24,17 @@ from pms_apps.property.models.property_manager import PropertyManager
 from pms_apps.maintenance.models.maintenance_employee import MaintenanceEmployee
 from pms_apps.maintenance.models.maintenance_manager import MaintenanceManager
 from pms_apps.maintenance.models.maintenance_technician import MaintenanceTechnician
-from pms_apps.reception.models import ReceptionManager, ReceptionEmployee
-from pms_apps.finance.models import FinanceManager, FinanceEmployee
-from pms_apps.collection.models import CollectionManager, CollectionEmployee
-from pms_apps.legal.models import LegalManager, LegalEmployee
-from pms_apps.IT.models import ITManager, ITEmployee, ITTechnician
+from pms_apps.reception.models.reception_employee import ReceptionEmployee
+from pms_apps.reception.models.reception_manager import ReceptionManager
+from pms_apps.finance.models.finance_employee import FinanceEmployee
+from pms_apps.finance.models.finance_manager import FinanceManager
+from pms_apps.collection.models.collection_employee import CollectionEmployee
+from pms_apps.collection.models.collection_manager import CollectionManager
+from pms_apps.legal.models.legal_employee import LegalEmployee
+from pms_apps.legal.models.legal_manager import LegalManager
+from pms_apps.IT.models.IT_employee import ITEmployee
+from pms_apps.IT.models.IT_manager import ITManager
+from pms_apps.IT.models.IT_technician import ITTechnician
 from pms_apps.hr.models import HREmployee
 
 class UserAuthView(APIView):
@@ -154,7 +160,7 @@ class UserAuthView(APIView):
             Owner.objects.create(owner_id=user)
             return
         elif role == "General Manager":
-            GeneralManager.objects.create(generalmanager_id=user)
+            GeneralManager.objects.create(general_manager_id=user)
             return
 
         # Module-based role mapping

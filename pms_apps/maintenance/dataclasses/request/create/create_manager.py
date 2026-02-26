@@ -1,4 +1,5 @@
 import dataclasses
+from pms_apps.common.dataclasses.request.permission import Permissions
 
 @dataclasses.dataclass
 class MaintenanceManagerCreateRequest:
@@ -8,3 +9,4 @@ class MaintenanceManagerCreateRequest:
     specialization: str
     team_size: int
     years_of_experience: int
+    permissions: Permissions

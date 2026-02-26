@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.db.models import Q
 from pms_apps.authentication.models import User
 from pms_apps.maintenance.models.maintenance_manager import MaintenanceManager
+from pms_apps.common.models.permissions import PropertyPermission
 
 
 class MaintenanceEmployee(models.Model):
@@ -16,6 +17,8 @@ class MaintenanceEmployee(models.Model):
     assigned_tasks = models.IntegerField(default=0)
     manager_ref = models.ForeignKey(
         MaintenanceManager, on_delete=models.SET_NULL, null=True, blank=True, related_name="employees")
+    property_permission = models.ForeignKey(
+        PropertyPermission, on_delete=models.DO_NOTHING, null=True)
     created_date_time = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -24,9 +27,15 @@ class MaintenanceEmployee(models.Model):
     def __str__(self):
         return f"{self.name} ({self.employee_id.phone_number})"
 
-    # ----------------------
-    # CRUD Operations
-    # ----------------------
+    @staticmethod
+    def get_permissions(user_id: int) -> dict:
+        employee = MaintenanceEmployee.objects.filter(employee_id=user_id).first()
+
+        permissions = {}
+        if employee and employee.property_permission:
+            permissions["property"] = employee.property_permission.property
+        
+        return {"permissions": permissions}
 
     def create(
         self,
@@ -37,6 +46,7 @@ class MaintenanceEmployee(models.Model):
         specialization: str,
         assigned_tasks: int,
         manager_ref: int,
+        property_permission_id: int,
     ) -> int:
         self.employee_id_id = employee_id
         self.name = name
@@ -46,6 +56,7 @@ class MaintenanceEmployee(models.Model):
         self.assigned_tasks = assigned_tasks
         if manager_ref:
             self.manager_ref_id = manager_ref
+        self.property_permission = PropertyPermission(property_permission_id)
         self.created_date_time = timezone.now()
         self.save()
         return self.employee_id_id
@@ -59,15 +70,23 @@ class MaintenanceEmployee(models.Model):
         specialization: str,
         assigned_tasks: int,
         manager_ref: int,
+        property_permission_id: int,
     ) -> int:
         employee = MaintenanceEmployee.objects.get(employee_id=employee_id)
-        employee.name = name
-        employee.dob = dob
-        employee.designation = designation
-        employee.specialization = specialization
-        employee.assigned_tasks = assigned_tasks
+        if name is not None:
+            employee.name = name
+        if dob is not None:
+            employee.dob = dob
+        if designation is not None:
+            employee.designation = designation
+        if specialization is not None:
+            employee.specialization = specialization
+        if assigned_tasks is not None:
+            employee.assigned_tasks = assigned_tasks
         if manager_ref is not None:
             employee.manager_ref_id = manager_ref
+        if property_permission_id is not None:
+            employee.property_permission_id = property_permission_id
         employee.save()
         return employee.employee_id_id
 
@@ -78,8 +97,9 @@ class MaintenanceEmployee(models.Model):
     @staticmethod
     def get(employee_id: int) -> dict:
         return MaintenanceEmployee.objects.filter(employee_id=employee_id).values(
-            "employee_id", "name", "dob", "designation", "specialization", "assigned_tasks", "manager_ref_id",
-            "created_date_time", "employee_id__phone_number", "employee_id__email"
+            "employee_id", "name", "dob", "designation", "specialization", "assigned_tasks",
+            "property_permission__permission_id", "property_permission__property",
+            "manager_ref_id", "created_date_time", "employee_id__phone_number", "employee_id__email"
         ).first()
 
     @staticmethod
@@ -90,7 +110,6 @@ class MaintenanceEmployee(models.Model):
         filter_value: str = '',
         search_key: str = '',
     ) -> list:
-        """Fetch all marketing employees"""
         data = MaintenanceEmployee.objects.all()
         if filter_key and filter_value:
             data = MaintenanceEmployee.objects.filter(
@@ -106,7 +125,8 @@ class MaintenanceEmployee(models.Model):
                 ('-' if sort_order == 'desc' else '') + sort_by)
         return list(
             data.values(
-                "employee_id", "name", "dob", "designation", "specialization", "assigned_tasks", "manager_ref_id",
-                "created_date_time", "employee_id__phone_number", "employee_id__email"
+                "employee_id", "name", "dob", "designation", "specialization", "assigned_tasks",
+                "property_permission__permission_id", "property_permission__property",
+                "manager_ref_id", "created_date_time", "employee_id__phone_number", "employee_id__email"
             )
         )
