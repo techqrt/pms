@@ -194,3 +194,52 @@ class Property(models.Model):
     def delete_many(ids: list):
         """Soft delete multiple properties by IDs."""
         return Property.objects.filter(property_id__in=ids).update(is_active=False)
+
+    @staticmethod
+    def get_all_by_user(
+        user_id: int,
+        sort_by: str = '',
+        sort_order: str = '',
+        filter_key: str = '',
+        filter_value: str = '',
+        search_key: str = '',
+    ) -> list:
+        data = Property.objects.filter(
+            is_active=True
+        ).filter(
+            Q(created_by__user_id=user_id) | 
+            Q(assigned_to__user_id=user_id) |
+            Q(propertydetail__landlord__lead_id__user_id=user_id)
+        ).distinct()
+
+        if filter_key and filter_value:
+            data = data.filter(**{filter_key+"__icontains": filter_value})
+
+        if search_key:
+            data = data.filter(
+                Q(building_details__icontains=search_key) |
+                Q(block__icontains=search_key)
+            )
+        if sort_by:
+            data = data.order_by(f"{'-' if sort_order == 'desc' else ''}{sort_by}")
+        else:
+            data = data.order_by("-created_at")
+
+        data = data.values(
+            'property_id','block','building_details','floor','flat_number',
+            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','assigned_to__user_id','assigned_to__name','assigned_to__phone_number','assigned_to__email','created_at','updated_at','is_active'
+        )
+
+        return list(data)
+
+class CommercialProperty(models.Model):
+    property = models.OneToOneField(Property, on_delete=models.CASCADE, primary_key=True)
+    commercial_type = models.CharField(max_length=100, null=True, blank=True) 
+    
+     # e.g., Office, Retail, Industrial
+
+    class Meta:
+        db_table = "commercial_property"
+
+    def __str__(self):
+        return f"Commercial Property {self.property.property_id} - {self.commercial_type or 'N/A'}" 

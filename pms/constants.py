@@ -17,3 +17,6 @@ class Constants:
     supplier_not_found = 'Supplier not found in the related table'
     bill_number_not_found = 'BillNumber not found in the related table'
     forbidden_access = 'Forbidden access'
+
+
+    

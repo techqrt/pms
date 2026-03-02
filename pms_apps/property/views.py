@@ -22,6 +22,7 @@ from pms_apps.property.serializers.response.get_all import PropertyResponseGetAl
 
 from pms_apps.authentication.models import User
 from pms_apps.property.models.property_details import PropertyDetail
+from pms_apps.marketing.models.marketing_manager import MarketingManager
 
 class PropertyView:
     def __init__(self) -> None:
@@ -328,6 +329,24 @@ class PropertyView:
         property_data = Property.get(property_id=params.property_id)
         if not property_data:
             raise ValueError(self.data_no_match)
+        
+        # Check if user has access to this property
+        has_access = (
+            property_data.get('created_by__user_id') == params.user_id or 
+            property_data.get('assigned_to__user_id') == params.user_id
+        )
+        
+        # Check if user is the landlord through PropertyDetail
+        if not has_access:
+            from pms_apps.property.models.property_details import PropertyDetail
+            landlord_check = PropertyDetail.objects.filter(
+                property_id=params.property_id,
+                landlord__lead_id__user_id=params.user_id
+            ).exists()
+            has_access = landlord_check
+        
+        if not has_access:
+            raise ValueError("Not allowed to access this resource")
 
         from pms_apps.property.models.property_details import PropertyDetail
         from django.forms.models import model_to_dict
@@ -357,7 +376,8 @@ class PropertyView:
             params.filter_key
         ])
 
-        property_list = Property.get_all(
+        property_list = Property.get_all_by_user(
+            user_id=params.user_id,
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             filter_key=reversed_mapped.get(params.filter_key),
