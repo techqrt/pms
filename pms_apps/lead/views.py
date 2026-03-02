@@ -14,6 +14,7 @@ from pms_apps.lead.dataclasses.request.update import LeadUpdateRequest
 from pms_apps.lead.serilizers.response.get import LeadResponseGetSerializer
 from pms_apps.lead.serilizers.response.get_all import LeadResponseGetAllSerilizer
 from .utils import LeadUtils
+from pms_apps.marketing.models.marketing_manager import MarketingManager
 from django.core.paginator import Paginator
 
 import json
@@ -34,18 +35,20 @@ class LeadView:
     def create_extract(self, params: LeadCreateRequest):
         
         with transaction.atomic():
-            user_data = User.get(user_id=params.lead_assign_to)
-
-            if not user_data:
-                raise ValueError(f'Invalid User id : {params.lead_assign_to}')
-
+            # Create a new user for the lead
+            new_user = User()
+            new_user.phone_number = params.phone_number
+            new_user.name = f"{params.first_name} {params.last_name}"
+            new_user.department = params.purpose
+            new_user.save()
+            
             lead_permission = PropertyPermission()
             lead_permission.property = True
             lead_permission.save()
             lead = Lead()
             lead_id = lead.create(
-                lead_id=params.user_id,
-                lead_assign_to=user_data.get('user_id'),
+                lead_id=new_user.user_id,
+                lead_assign_to=params.lead_assign_to,
                 first_name=params.first_name,
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,
@@ -67,12 +70,19 @@ class LeadView:
     @Common().country_city_validation
     def update_extract(self, params: LeadUpdateRequest):
         with transaction.atomic():
-            if params.user_id != params.lead_id:
+            manager_id = MarketingManager.get_id(params.user_id)
+
+            
+            if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
             user_data = User.get(user_id=params.lead_assign_to)
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
+            # If marketing manager, verify lead is assigned to them
+            if manager_id and params.user_id == manager_id:
+                if lead_data.get('lead_assign_to__user_id') != params.user_id:
+                    raise ValueError("Not allowed to access this resource")
 
             property_permission_id = None
             if params.property_permission:
@@ -110,11 +120,17 @@ class LeadView:
     @Common().exception_handler
     def delete_extract(self, params):
         with transaction.atomic():
-            if params.user_id != params.lead_id:
+            manager_id = MarketingManager.get_id(params.user_id)
+            
+            if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
+            # If marketing manager, verify lead is assigned to them
+            if manager_id and params.user_id == manager_id:
+                if lead_data.get('lead_assign_to__user_id') != params.user_id:
+                    raise ValueError("Not allowed to access this resource")
             Lead.remove(lead_id=lead_data.get('lead_id'))
 
         return Response(
@@ -125,11 +141,16 @@ class LeadView:
     @Common(response_handler=LeadResponseGetSerializer).exception_handler
     def get_extract(self, params):
         with transaction.atomic():
-            if params.user_id != params.lead_id:
+            manager_id = MarketingManager.get_id(params.user_id)
+            if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
+            # If marketing manager, verify lead is assigned to them
+            if manager_id and params.user_id == manager_id:
+                if lead_data.get('lead_assign_to__user_id') != params.user_id:
+                    raise ValueError("Not allowed to access this resource")
 
             lead_utils = LeadUtils(
                 columns_required=[column for column in params.values.split(',') if column])
@@ -144,18 +165,32 @@ class LeadView:
     @Common(response_handler=LeadResponseGetAllSerilizer).exception_handler
     def get_all_extract(self,params : GetAll):
         with transaction.atomic():
+            manager_id = MarketingManager.get_id(params.user_id)
             reversed_mapped = LeadUtils.reverse_mapper([
                 params.sort_by,
                 params.filter_key
             ])
 
-            pages = Paginator(Lead.get_all(
-                sort_by=reversed_mapped.get(params.sort_by),
-                sort_order=params.sort_order,
-                filter_key=reversed_mapped.get(params.filter_key),
-                filter_value=params.filter_value,
-                search_key=params.search_key
-            ),per_page=params.limit)
+            # If marketing manager, get only leads assigned to them
+            if manager_id:
+                lead_list = Lead.get_all_by_assigned_user(
+                    manager_user_id=params.user_id,
+                    sort_by=reversed_mapped.get(params.sort_by),
+                    sort_order=params.sort_order,
+                    filter_key=reversed_mapped.get(params.filter_key),
+                    filter_value=params.filter_value,
+                    search_key=params.search_key
+                )
+            else:
+                lead_list = Lead.get_all(
+                    sort_by=reversed_mapped.get(params.sort_by),
+                    sort_order=params.sort_order,
+                    filter_key=reversed_mapped.get(params.filter_key),
+                    filter_value=params.filter_value,
+                    search_key=params.search_key
+                )
+            
+            pages = Paginator(lead_list, per_page=params.limit)
 
             if pages.num_pages < params.page_num:
                 raise ValueError('Page limit exceed!')
@@ -163,6 +198,11 @@ class LeadView:
             data = pages.page(params.page_num)
             lead_utils = LeadUtils(columns_required=[column for column in params.values.split(',') if column])
             data = json.loads(lead_utils.mapper(data=data))
+            
+            # Check if no leads assigned to marketing manager
+            message = self.data_get
+            if manager_id and not data:
+                message = "You don't have any leads assigned to you"
 
             data = Utils.add_page_parameter(
                 final_data=data,
@@ -173,5 +213,5 @@ class LeadView:
             
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message=self.data_get, data=data)
+            data=Utils.success_response_data(message=message, data=data)
         )

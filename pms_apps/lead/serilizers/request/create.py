@@ -29,6 +29,9 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
     last_name = serializers.CharField(
         max_length = 15
     )
+    phone_number = serializers.CharField(
+        max_length = 20
+    )
     lead_origin = serializers.CharField(
         max_length = 20
     )
@@ -69,7 +72,7 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
             country_id=country_id,
             city_id=city_id,
             nationality_id=nationality_id,
-            permissions = permissions,
+            permissions=permissions,
             **validated_data
         )
     

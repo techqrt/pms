@@ -51,6 +51,13 @@ class MarketingManager(models.Model):
 
         return {"permissions": permissions}
 
+    @staticmethod
+    def get_id(user_id: int) -> int:
+        manager = MarketingManager.objects.filter(manager_id__user_id=user_id).first()
+        if manager:
+            return manager.manager_id_id
+        return None
+
  
     def create(
         self,
@@ -129,6 +136,7 @@ class MarketingManager(models.Model):
             "campaigns_led",
             "team_size",
             "created_date_time",
+            
             "property_permission__permission_id",
             "property_permission__property",
             "lead_permission__permission_id",

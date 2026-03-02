@@ -272,6 +272,35 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active",
-                "lead_assign_to_phone_number", "lead_assign_toemail","property_permissionspermission_id","property_permissions_property"
+                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+            )
+            )
+
+    @staticmethod
+    def get_all_by_assigned_user(
+        manager_user_id : int,
+        sort_by : str = '',
+        sort_order : str = '',
+        filter_key : str = '',
+        filter_value : str = '',
+        search_key : str = '',
+        ) -> list:
+        data = Lead.objects.filter(is_active=True, lead_assign_to__user_id=manager_user_id)
+        if filter_key and filter_value:
+            data = Lead.objects.filter(is_active=True, lead_assign_to__user_id=manager_user_id, **{filter_key:filter_value})
+        if search_key:
+            data = Lead.objects.filter(
+                Q(first_name__icontains = search_key) |
+                Q(last_name__icontains = search_key),
+                lead_assign_to__user_id=manager_user_id
+            )
+        if sort_by:
+            data = data.order_by(('-' if sort_order == 'desc' else '') + sort_by)
+        return list(
+            data.values(
+                "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
+                "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
+                "created_at", "updated_at", "is_active",
+                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
             )
             )
