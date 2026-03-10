@@ -176,3 +176,15 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://app.timelytots.com",
+    "https://www.timelytots.com",
+    "https://timelytots.com",
+
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
