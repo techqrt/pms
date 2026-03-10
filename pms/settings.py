@@ -179,9 +179,9 @@ SIMPLE_JWT = {
 
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://app.timelytots.com",
-    "https://www.timelytots.com",
-    "https://timelytots.com",
+    "https://alw.checkour.work",
+    "https://www.checkour.work",
+    "https://checkour.work",
 
 ]
 
