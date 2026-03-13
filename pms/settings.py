@@ -195,3 +195,5 @@ CORS_ALLOWED_ORIGINS = [
     "http://falw.checkour.work",
     "https://falw.checkour.work"
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
