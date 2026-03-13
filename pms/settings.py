@@ -184,6 +184,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://alw.checkour.work",
     "https://www.checkour.work",
     "https://checkour.work",
+    "http://falw.checkour.work",
+    "https://falw.checkour.work",
 
 ]
 
