@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'pms_apps.hr',
     'pms_apps.activity_log',
     'pms_apps.helper_apis',
+    "corsheaders",
     
 ]
 AUTH_USER_MODEL = 'auth.User'
@@ -74,6 +75,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 EXTERNAL_MIDDLEWARE = [
@@ -188,3 +190,8 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
+
+CORS_ALLOWED_ORIGINS = [
+    "http://falw.checkour.work",
+    "https://falw.checkour.work"
+]
