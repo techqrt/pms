@@ -13,6 +13,7 @@ class PropertyPhotos(models.Model):
     photo = models.ImageField(
         verbose_name='Property Photo',
         upload_to='property_photos/',
+        max_length=500,
         null=True,
         blank=True
     )
