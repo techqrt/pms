@@ -6,6 +6,7 @@ from pms_apps.property.dataclasses.requests.update import (
     FlatPropertyUpdateData,
     VillaPropertyUpdateData
 )
+from pms_apps.property.serializers.fields import Base64ImageField
 
 
 class UserRequestSerilizer(serializers.Serializer):
@@ -209,7 +210,7 @@ class PropertyUpdateSerializer(serializers.Serializer):
     advance_amount_rent = serializers.IntegerField(required=False, allow_null=True)
     expected_rent = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     agreement_id = serializers.IntegerField(required=False, allow_null=True)
-    photos = serializers.ListField(child=serializers.ImageField(), required=False, allow_null=True)
+    photos = serializers.ListField(child=Base64ImageField(), required=False, allow_null=True)
     videos = serializers.ListField(child=serializers.URLField(), required=False, allow_null=True)
     assigned_to = UserRequestSerilizer(required=False, allow_null=True)
 

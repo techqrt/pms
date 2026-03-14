@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from pms_apps.property.dataclasses.requests.create import PropertyCreateRequest as PropertyCreateRequest
 from pms_apps.authentication.serializers.request.create import PropertyUserSerializer
+from pms_apps.property.serializers.fields import Base64ImageField
 
 
 class UserRequestSerilizer(serializers.Serializer):
@@ -212,7 +213,7 @@ class PropertyCreateSerializer(serializers.Serializer):
     )
     agreement_id = serializers.IntegerField(required=False, allow_null=True)
     photos = serializers.ListField(
-        child=serializers.ImageField(), required=False, allow_null=True
+        child=Base64ImageField(), required=False, allow_null=True
     )
     videos = serializers.ListField(
         child=serializers.URLField(), required=False, allow_null=True
