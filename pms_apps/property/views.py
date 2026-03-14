@@ -361,8 +361,9 @@ class PropertyView:
 
         # Add photos
         from pms_apps.property.models.property_photos import PropertyPhotos
-        photos = PropertyPhotos.objects.filter(property_id=params.property_id).values_list('photo', flat=True)
-        property_dict['photos'] = list(photos)
+        photos = PropertyPhotos.objects.filter(property_id=params.property_id)
+        photos_urls = [photo.photo.url for photo in photos if photo.photo]
+        property_dict['photos'] = photos_urls
 
         return Response(
             status=status.HTTP_200_OK,
@@ -406,7 +407,10 @@ class PropertyView:
         from collections import defaultdict
         photos_map = defaultdict(list)
         for photo in PropertyPhotos.objects.filter(property_id__in=property_ids):
-            photos_map[photo.property_id].append(photo.photo)
+            # Return photo URL path, not the file object
+            photo_url = photo.photo.url if photo.photo else None
+            if photo_url:
+                photos_map[photo.property_id].append(photo_url)
 
         for property_dict in serialized_properties:
             pid = property_dict.get('propertyId')
