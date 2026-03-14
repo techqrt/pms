@@ -10,9 +10,11 @@ class PropertyPhotos(models.Model):
         on_delete=models.CASCADE,
         related_name='photos'
     )
-    photo = models.URLField(
-        verbose_name='Property Photo URL',
-        max_length=500
+    photo = models.ImageField(
+        verbose_name='Property Photo',
+        upload_to='property_photos/',
+        null=True,
+        blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
