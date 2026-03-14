@@ -201,10 +201,10 @@ class PropertyView:
 
             if params.photos:
                 from pms_apps.property.models.property_photos import PropertyPhotos
-                for photo_url in params.photos:
+                for photo_file in params.photos:
                     PropertyPhotos.objects.create(
                         property_id=property_id,
-                        photo=photo_url
+                        photo=photo_file
                     )
 
         return Response(
@@ -265,10 +265,10 @@ class PropertyView:
             if params.photos:
                 from pms_apps.property.models.property_photos import PropertyPhotos
                 PropertyPhotos.objects.filter(property_id=params.property_id).delete()
-                for photo_url in params.photos:
+                for photo_file in params.photos:
                     PropertyPhotos.objects.create(
                         property_id=params.property_id,
-                        photo=photo_url
+                        photo=photo_file
                     )
         return Response(
             status=status.HTTP_200_OK,

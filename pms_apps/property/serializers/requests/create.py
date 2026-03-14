@@ -212,7 +212,7 @@ class PropertyCreateSerializer(serializers.Serializer):
     )
     agreement_id = serializers.IntegerField(required=False, allow_null=True)
     photos = serializers.ListField(
-        child=serializers.URLField(), required=False, allow_null=True
+        child=serializers.ImageField(), required=False, allow_null=True
     )
     videos = serializers.ListField(
         child=serializers.URLField(), required=False, allow_null=True
