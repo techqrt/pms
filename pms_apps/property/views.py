@@ -201,11 +201,29 @@ class PropertyView:
 
             if params.photos:
                 from pms_apps.property.models.property_photos import PropertyPhotos
-                for photo_file in params.photos:
-                    PropertyPhotos.objects.create(
-                        property_id=property_id,
-                        photo=photo_file
-                    )
+                from pms_apps.property.image_utils import ImageUtils
+                
+                for photo_data in params.photos:
+                    # Process the photo (convert base64 to file or use URL as-is)
+                    processed_photo = ImageUtils.process_photo(photo_data)
+                    if processed_photo:
+                        if isinstance(processed_photo, tuple) and processed_photo[0] == 'url':
+                            # It's a URL, store the URL string directly
+                            photo_obj = PropertyPhotos.objects.create(
+                                property_id=property_id
+                            )
+                            photo_obj.photo = processed_photo[1]
+                            photo_obj.save()
+                        else:
+                            # It's a ContentFile object, save it
+                            photo_obj = PropertyPhotos.objects.create(
+                                property_id=property_id
+                            )
+                            photo_obj.photo.save(
+                                processed_photo.name,
+                                processed_photo,
+                                save=True
+                            )
 
         return Response(
             status=status.HTTP_201_CREATED,
@@ -264,12 +282,33 @@ class PropertyView:
 
             if params.photos:
                 from pms_apps.property.models.property_photos import PropertyPhotos
+                from pms_apps.property.image_utils import ImageUtils
+                
+                # Delete existing photos
                 PropertyPhotos.objects.filter(property_id=params.property_id).delete()
-                for photo_file in params.photos:
-                    PropertyPhotos.objects.create(
-                        property_id=params.property_id,
-                        photo=photo_file
-                    )
+                
+                # Add new photos
+                for photo_data in params.photos:
+                    # Process the photo (convert base64 to file or use URL as-is)
+                    processed_photo = ImageUtils.process_photo(photo_data)
+                    if processed_photo:
+                        if isinstance(processed_photo, tuple) and processed_photo[0] == 'url':
+                            # It's a URL, store the URL string directly
+                            photo_obj = PropertyPhotos.objects.create(
+                                property_id=params.property_id
+                            )
+                            photo_obj.photo = processed_photo[1]
+                            photo_obj.save()
+                        else:
+                            # It's a ContentFile object, save it
+                            photo_obj = PropertyPhotos.objects.create(
+                                property_id=params.property_id
+                            )
+                            photo_obj.photo.save(
+                                processed_photo.name,
+                                processed_photo,
+                                save=True
+                            )
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_update)
@@ -361,8 +400,18 @@ class PropertyView:
 
         # Add photos
         from pms_apps.property.models.property_photos import PropertyPhotos
+        from pms_apps.property.image_utils import ImageUtils
+        
         photos = PropertyPhotos.objects.filter(property_id=params.property_id)
-        photos_urls = [photo.photo.url for photo in photos if photo.photo]
+        photos_urls = []
+        for photo in photos:
+            if photo.photo:
+                # Try to get URL - works for files. For external URLs stored as strings, return as-is
+                if str(photo.photo).startswith('http://') or str(photo.photo).startswith('https://'):
+                    photos_urls.append(str(photo.photo))
+                else:
+                    # It's a file path managed by Django
+                    photos_urls.append(ImageUtils.get_photo_url(str(photo.photo)))
         property_dict['photos'] = photos_urls
 
         return Response(
@@ -400,6 +449,7 @@ class PropertyView:
         
         from pms_apps.property.models.property_details import PropertyDetail
         from pms_apps.property.models.property_photos import PropertyPhotos
+        from pms_apps.property.image_utils import ImageUtils
         from django.forms.models import model_to_dict
         
         details_map = {d.property_id: model_to_dict(d) for d in PropertyDetail.get_by_properties(property_ids)}
@@ -408,9 +458,16 @@ class PropertyView:
         photos_map = defaultdict(list)
         for photo in PropertyPhotos.objects.filter(property_id__in=property_ids):
             # Return photo URL path, not the file object
-            photo_url = photo.photo.url if photo.photo else None
-            if photo_url:
-                photos_map[photo.property_id].append(photo_url)
+            if photo.photo:
+                photo_value = str(photo.photo)
+                # Check if it's already a URL
+                if photo_value.startswith('http://') or photo_value.startswith('https://'):
+                    photos_map[photo.property_id].append(photo_value)
+                else:
+                    # It's a file path managed by Django
+                    photo_url = ImageUtils.get_photo_url(photo_value)
+                    if photo_url:
+                        photos_map[photo.property_id].append(photo_url)
 
         for property_dict in serialized_properties:
             pid = property_dict.get('propertyId')
