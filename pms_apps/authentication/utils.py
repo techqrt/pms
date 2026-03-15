@@ -15,7 +15,7 @@ def generate_jwt_token(user : User):
         'user_id': user.user_id,
         'role': user.role,
         'department': user.department,
-        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1),
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7),
         'iat': datetime.datetime.now(datetime.timezone.utc),
         'token': None,
     }
