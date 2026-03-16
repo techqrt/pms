@@ -72,6 +72,26 @@ class OTPVerifySerializer(serializers.Serializer):
         return data
 
 
+class UserLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True, help_text="Email or phone number")
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, data):
+        username = data.get("username")
+        password = data.get("password")
+
+        if not username:
+            raise serializers.ValidationError(
+                {"username": "Username (email or phone number) is required."}
+            )
+        if not password:
+            raise serializers.ValidationError(
+                {"password": "Password is required."}
+            )
+
+        return data
+
+
 class UserAuthResponseSerializer(serializers.ModelSerializer):
     token = serializers.CharField(required=False, help_text="JWT token (generated at runtime).")
 

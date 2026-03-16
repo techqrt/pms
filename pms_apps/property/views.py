@@ -520,3 +520,25 @@ class PropertyView:
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_delete)
         )
+
+    @Common().exception_handler
+    def count_extract(self, params: GetAll):
+        reversed_mapped = PropertyUtils.reverse_mapper([
+            params.filter_key
+        ])
+
+        property_list = Property.get_all_by_user(
+            user_id=params.user_id,
+            sort_by=reversed_mapped.get(params.sort_by),
+            sort_order=params.sort_order,
+            filter_key=reversed_mapped.get(params.filter_key),
+            filter_value=params.filter_value,
+            search_key=params.search_key
+        )
+
+        property_count = len(property_list)
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message="Total properties count", data={"count": property_count})
+        )
