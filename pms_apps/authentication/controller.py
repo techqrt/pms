@@ -12,6 +12,7 @@ from pms_apps.authentication.serializers_auth import (
     UserAuthSerializer,
     OTPVerifySerializer,
     UserAuthResponseSerializer,
+    UserLoginSerializer,
 )
 from pms_apps.authentication.views import UserAuthView
 from pms_apps.common.swagger import SwaggerPage
@@ -44,6 +45,18 @@ class AuthController:
     @permission_classes([AllowAny])
     def login(request: Request) -> Response:
         return UserAuthView().login(params=request.data)
+
+    @extend_schema(
+        description="Login with username and password, return JWT token.",
+        request=UserLoginSerializer,
+        responses=SwaggerPage.response(response=UserAuthResponseSerializer),
+        tags=["Authentication"],
+    )
+    @csrf_exempt
+    @api_view(["POST"])
+    @permission_classes([AllowAny])
+    def login_with_username(request: Request) -> Response:
+        return UserAuthView().login_with_username(params=request.data)
 
     @extend_schema(
         description="Verify OTP and return JWT token.",

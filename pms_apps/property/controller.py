@@ -90,3 +90,13 @@ class PropertyViewController:
                            exec_func="PropertyView().delete_many_extract(request)").validate
     def delete_many(request: Request) -> Response:
         return PropertyView().delete_many_extract(params=request.params)
+
+    @extend_schema(
+        description="Get total count of Properties",
+        parameters=SwaggerPage.get_all_parameters(),
+        responses=SwaggerPage.response(description="Total properties count")
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=GetAllSerializer).validate
+    def count(request: Request) -> Response:
+        return PropertyView().count_extract(params=request.params)

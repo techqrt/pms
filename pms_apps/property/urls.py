@@ -9,4 +9,5 @@ urlpatterns = [
     path("delete_many/", PropertyViewController.delete_many, name="delete_many_properties"),
     path("get/", PropertyViewController.get, name="get_property"),
     path("get_all/", PropertyViewController.get_all, name="get_all_properties"),
+    path("count/", PropertyViewController.count, name="count_properties"),
 ]

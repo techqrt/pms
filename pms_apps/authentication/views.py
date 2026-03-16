@@ -114,6 +114,58 @@ class UserAuthView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    # ----------------------------
+    # LOGIN WITH USERNAME AND PASSWORD
+    # ----------------------------
+    def login_with_username(self, params):
+        from pms_apps.authentication.serializers_auth import UserLoginSerializer
+        from django.contrib.auth.hashers import make_password
+        
+        serializer = UserLoginSerializer(data=params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        username = serializer.validated_data.get("username")
+        password = serializer.validated_data.get("password")
+
+        try:
+            # Try to find user by email or phone number
+            user = User.objects.get(email=username) if "@" in username else User.objects.get(phone_number=username)
+
+            # Check password - try Django's built-in hashing first
+            password_matches = user.check_password(password)
+            
+            # Fallback: if password is stored as plain text (for backwards compatibility)
+            if not password_matches and user.password == password:
+                password_matches = True
+                # Auto-hash the password for security
+                user.set_password(password)
+                user.save()
+            
+            if not password_matches:
+                return Response(
+                    {"error": "Invalid credentials."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            # Generate token
+            token = generate_jwt_token(user)
+
+            # Save token in db
+            user.access_token = token
+            user.save()
+
+            response_data = UserAuthResponseSerializer(user).data
+            response_data["token"] = token
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Invalid credentials."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
     # ----------------------------------------------------
     # OTP Verification (same as before)
     # ----------------------------------------------------

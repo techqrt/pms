@@ -152,8 +152,12 @@ class LeadView:
                 if lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
 
-            lead_utils = LeadUtils(
-                columns_required=[column for column in params.values.split(',') if column])
+            columns = [column for column in params.values.split(',') if column]
+            # Auto-include lead_assign_to__name when lead_assign_to__user_id is requested
+            if 'lead_assign_to__user_id' in columns and 'lead_assign_to__name' not in columns:
+                columns.append('lead_assign_to__name')
+            
+            lead_utils = LeadUtils(columns_required=columns)
             lead_data = [lead_data]
             data = json.loads(lead_utils.mapper(lead_data))[0]
 
@@ -196,7 +200,12 @@ class LeadView:
                 raise ValueError('Page limit exceed!')
                 
             data = pages.page(params.page_num)
-            lead_utils = LeadUtils(columns_required=[column for column in params.values.split(',') if column])
+            columns = [column for column in params.values.split(',') if column]
+            # Auto-include lead_assign_to__name when lead_assign_to__user_id is requested
+            if 'lead_assign_to__user_id' in columns and 'lead_assign_to__name' not in columns:
+                columns.append('lead_assign_to__name')
+            
+            lead_utils = LeadUtils(columns_required=columns)
             data = json.loads(lead_utils.mapper(data=data))
             
             # Check if no leads assigned to marketing manager
@@ -214,4 +223,38 @@ class LeadView:
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=message, data=data)
+        )
+
+    @Common().exception_handler
+    def count_extract(self, params: GetAll):
+        with transaction.atomic():
+            manager_id = MarketingManager.get_id(params.user_id)
+            reversed_mapped = LeadUtils.reverse_mapper([
+                params.filter_key
+            ])
+
+            # If marketing manager, get only leads assigned to them
+            if manager_id:
+                lead_list = Lead.get_all_by_assigned_user(
+                    manager_user_id=params.user_id,
+                    sort_by=reversed_mapped.get(params.sort_by),
+                    sort_order=params.sort_order,
+                    filter_key=reversed_mapped.get(params.filter_key),
+                    filter_value=params.filter_value,
+                    search_key=params.search_key
+                )
+            else:
+                lead_list = Lead.get_all(
+                    sort_by=reversed_mapped.get(params.sort_by),
+                    sort_order=params.sort_order,
+                    filter_key=reversed_mapped.get(params.filter_key),
+                    filter_value=params.filter_value,
+                    search_key=params.search_key
+                )
+            
+            lead_count = len(lead_list)
+            
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message="Total leads count", data={"count": lead_count})
         )
