@@ -22,6 +22,7 @@ class MarketingManagerCreateRequestSerializer(serializers.Serializer):
     )
     campaigns_led = serializers.IntegerField(required=False, default=0)
     team_size = serializers.IntegerField(required=False, default=0)
+    profile_picture = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     permissions = MarketingPermissionRequestSerializer()
 
     def create(self, validated_data) -> MarketingManagerCreateRequest:

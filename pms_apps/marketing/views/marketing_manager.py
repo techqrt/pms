@@ -16,6 +16,8 @@ from pms_apps.marketing.serializers.response.get_all.get_all_manager import Mark
 
 from pms_apps.marketing.utils import MarketingUtils
 from pms_apps.common.models.permissions import LeadPermission,PropertyPermission
+from pms_apps.authentication.models import User
+from pms_apps.property.image_utils import ImageUtils
 
 
 class MarketingManagerView:
@@ -38,7 +40,11 @@ class MarketingManagerView:
             property_permission_id = PropertyPermission().create(
                 property=params.permissions.property
             )
-            
+
+            # Process profile picture if provided
+            profile_picture_obj = None
+            if params.profile_picture:
+                profile_picture_obj = ImageUtils.process_photo(params.profile_picture, upload_path="marketing_manager_profiles/")
 
             obj = MarketingManager()
             manager_id = obj.create(
@@ -49,7 +55,8 @@ class MarketingManagerView:
                 campaigns_led=params.campaigns_led,
                 team_size=params.team_size,
                 lead_permission_id=lead_permission_id,
-                property_permission_id=property_permission_id
+                property_permission_id=property_permission_id,
+                profile_picture=profile_picture_obj
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -67,6 +74,21 @@ class MarketingManagerView:
             manager_data = MarketingManager.get(manager_id=params.manager_id)
             if manager_data is None:
                 raise ValueError(self.data_no_match)
+
+            # Update User table with phone_number and email
+            if params.phone_number is not None or params.email is not None:
+                user_update_data = {}
+                if params.phone_number is not None:
+                    user_update_data['phone_number'] = params.phone_number
+                if params.email is not None:
+                    user_update_data['email'] = params.email
+                if user_update_data:
+                    User.objects.filter(user_id=params.manager_id).update(**user_update_data)
+
+            # Process profile picture if provided
+            profile_picture_obj = None
+            if params.profile_picture is not None:
+                profile_picture_obj = ImageUtils.process_photo(params.profile_picture, upload_path="marketing_manager_profiles/")
 
             lead_permission_id = None
             propery_permission_id = None
@@ -102,7 +124,8 @@ class MarketingManagerView:
                 campaigns_led=params.campaigns_led,
                 team_size=params.team_size,
                 property_permission_id=propery_permission_id,
-                lead_permission_id=lead_permission_id
+                lead_permission_id=lead_permission_id,
+                profile_picture=profile_picture_obj
             )
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.manager_update))
 
@@ -130,6 +153,16 @@ class MarketingManagerView:
             marketing_utils = MarketingUtils(entity='manager', columns_required=[
                                              column for column in params.values.split(',') if column])
             data = json.loads(marketing_utils.mapper([manager_data]))[0]
+            
+            # Process profile picture URL
+            if manager_data.get('profile_picture'):
+                profile_picture_path = str(manager_data.get('profile_picture'))
+                if profile_picture_path.startswith('http://') or profile_picture_path.startswith('https://'):
+                    data['profilePicture'] = profile_picture_path
+                else:
+                    photo_url = ImageUtils.get_photo_url(profile_picture_path)
+                    if photo_url:
+                        data['profilePicture'] = photo_url
         return Response(status=status.HTTP_200_OK, data=Utils.success_response_data(message=self.data_get, data=data))
 
     @Common(response_handler=MarketingManagerResponseGetAllSerializer).exception_handler
@@ -139,13 +172,15 @@ class MarketingManagerView:
             params.filter_key
         ])
 
-        pages = Paginator(MarketingManager.get_all(
+        manager_list = MarketingManager.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
             search_key=params.search_key
-        ), per_page=params.limit)
+        )
+        
+        pages = Paginator(manager_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
             raise ValueError('Page limit exceed!')
@@ -154,6 +189,22 @@ class MarketingManagerView:
         utils = MarketingUtils(entity='manager', columns_required=[
                                column for column in params.values.split(',') if column])
         data = json.loads(utils.mapper(list(page_data)))
+
+        # Process profile picture URLs for each manager
+        page_managers_dict = {m['manager_id']: m for m in page_data if m}
+        
+        for item in data:
+            manager_id = item.get('managerId')
+            if manager_id in page_managers_dict:
+                manager_data = page_managers_dict[manager_id]
+                if manager_data.get('profile_picture'):
+                    profile_picture_path = str(manager_data.get('profile_picture'))
+                    if profile_picture_path.startswith('http://') or profile_picture_path.startswith('https://'):
+                        item['profilePicture'] = profile_picture_path
+                    else:
+                        photo_url = ImageUtils.get_photo_url(profile_picture_path)
+                        if photo_url:
+                            item['profilePicture'] = photo_url
 
         data = Utils.add_page_parameter(final_data=data, page_num=params.page_num, total_page=pages.num_pages,
                                         present_url=params.present_url,

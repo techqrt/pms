@@ -17,6 +17,13 @@ class MarketingManager(models.Model):
     department = models.CharField(max_length=100, blank=True, null=True)
     campaigns_led = models.IntegerField(default=0)
     team_size = models.IntegerField(default=0)
+    profile_picture = models.ImageField(
+        verbose_name='Profile Picture',
+        upload_to='marketing_manager_profiles/',
+        max_length=500,
+        null=True,
+        blank=True
+    )
 
     lead_permission = models.ForeignKey(
         LeadPermission,
@@ -69,6 +76,7 @@ class MarketingManager(models.Model):
         team_size: int,
         lead_permission_id: int = None,
         property_permission_id: int = None,
+        profile_picture = None,
     ) -> int:
         self.manager_id_id = manager_id
         self.name = name
@@ -78,6 +86,8 @@ class MarketingManager(models.Model):
         self.team_size = team_size
         self.lead_permission = LeadPermission(lead_permission_id)
         self.property_permission = PropertyPermission(property_permission_id)
+        if profile_picture is not None:
+            self.profile_picture = profile_picture
 
         self.created_date_time = timezone.now()
         self.save()
@@ -93,6 +103,7 @@ class MarketingManager(models.Model):
         team_size: int = None,
         lead_permission_id: int = None,
         property_permission_id: int = None,
+        profile_picture = None,
     ) -> int:
         manager = MarketingManager.objects.get(manager_id=manager_id)
 
@@ -117,6 +128,9 @@ class MarketingManager(models.Model):
         if property_permission_id is not None:
             manager.property_permission_id = property_permission_id
 
+        if profile_picture is not None:
+            manager.profile_picture = profile_picture
+
         manager.save()
         return manager.manager_id_id
 
@@ -135,6 +149,7 @@ class MarketingManager(models.Model):
             "department",
             "campaigns_led",
             "team_size",
+            "profile_picture",
             "created_date_time",
             
             "property_permission__permission_id",
@@ -177,6 +192,7 @@ class MarketingManager(models.Model):
                     "department",
                     "campaigns_led",
                     "team_size",
+                    "profile_picture",
                     "created_date_time",
                     "property_permission__permission_id",
                     "property_permission__property",

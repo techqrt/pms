@@ -11,3 +11,4 @@ class MarketingManagerCreateRequest:
     campaigns_led: int
     team_size: int
     permissions: Permissions
+    profile_picture: str | None = None

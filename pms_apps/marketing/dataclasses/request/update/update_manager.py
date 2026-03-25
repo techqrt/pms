@@ -13,4 +13,7 @@ class MarketingManagerUpdateRequest:
     department: str
     campaigns_led: int
     team_size: int
-    permissions: MarketingPermissionUpdateRequest
+    phone_number: str | None = None
+    email: str | None = None
+    profile_picture: str | None = None
+    permissions: MarketingPermissionUpdateRequest | None = None

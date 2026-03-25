@@ -12,6 +12,9 @@ class MarketingManagerUpdateRequestSerializer(serializers.Serializer):
         max_length=100, required=False, allow_blank=True, allow_null=True)
     campaigns_led = serializers.IntegerField(required=False, default=0)
     team_size = serializers.IntegerField(required=False, default=0)
+    phone_number = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    profile_picture = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     permissions = MarketingPermissionRequestSerializer(required=False)
 
     def create(self, validated_data) -> MarketingManagerUpdateRequest:

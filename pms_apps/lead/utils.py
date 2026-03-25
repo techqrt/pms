@@ -58,16 +58,19 @@ class LeadUtils:
             return '[]'
 
         dataframe = pandas.DataFrame.from_records(data)
-        dataframe.rename(columns=self.mapped_columns_name, inplace=True)
 
         if self.columns_required:
             Common.mapper_value_error(
                 mapped_column_names=self.mapped_columns_name,
                 columns_required=self.columns_required
             )
+            # Map required columns back to DB names for filtering before rename
+            reverse_map = {v: k for k, v in self.mapped_columns_name.items()}
+            db_columns = [reverse_map.get(col, col) for col in self.columns_required]
+            # Filter dataframe using DB column names
+            dataframe = dataframe[db_columns]
 
-
-            dataframe = dataframe[self.columns_required]
+        dataframe.rename(columns=self.mapped_columns_name, inplace=True)
 
         flatten_data, cleaned_df = self.flatten_to_nested_dict(dataframe)
         return json.dumps(flatten_data, default=str)
