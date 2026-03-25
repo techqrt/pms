@@ -20,6 +20,7 @@ class MarketingManagerGetSerializer(serializers.Serializer):
     department = serializers.CharField(read_only=True)
     campaignsLed = serializers.IntegerField(read_only=True)
     teamSize = serializers.IntegerField(read_only=True)
+    profilePicture = serializers.CharField(read_only=True, required=False, allow_blank=True, allow_null=True)
     permission = PermissionGetSerializer(read_only=True)
     createdAt = serializers.DateTimeField(read_only=True)
 

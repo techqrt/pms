@@ -17,6 +17,7 @@ class MarketingUtils:
             'department': 'department',
             'campaigns_led': 'campaignsLed',
             'team_size': 'teamSize',
+            'profile_picture': 'profilePicture',
             'lead_permission__lead': 'permissions.lead',
             'property_permission__property': 'permissions.property',
             'created_date_time': 'createdAt',
