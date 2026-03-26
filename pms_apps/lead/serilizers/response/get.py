@@ -24,6 +24,7 @@ class LeadGetSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField(read_only = True)
     updatedAt = serializers.DateTimeField(read_only = True)
     isActive = serializers.BooleanField(read_only = True)
+    phoneNumber = serializers.CharField(read_only = True)
     permissions = LeadPermissionsGetSeriazlier(read_only = True)
 
 class LeadResponseGetSerializer(serializers.Serializer):

@@ -156,6 +156,9 @@ class LeadView:
             # Auto-include lead_assign_to__name when lead_assign_to__user_id is requested
             if 'lead_assign_to__user_id' in columns and 'lead_assign_to__name' not in columns:
                 columns.append('lead_assign_to__name')
+            # Auto-include lead_id__phone_number when lead_id is requested
+            if 'lead_id' in columns and 'lead_id__phone_number' not in columns:
+                columns.append('lead_id__phone_number')
             
             lead_utils = LeadUtils(columns_required=columns)
             lead_data = [lead_data]
@@ -204,6 +207,9 @@ class LeadView:
             # Auto-include lead_assign_to__name when lead_assign_to__user_id is requested
             if 'lead_assign_to__user_id' in columns and 'lead_assign_to__name' not in columns:
                 columns.append('lead_assign_to__name')
+            # Auto-include lead_id__phone_number when lead_id is requested
+            if 'lead_id' in columns and 'lead_id__phone_number' not in columns:
+                columns.append('lead_id__phone_number')
             
             lead_utils = LeadUtils(columns_required=columns)
             data = json.loads(lead_utils.mapper(data=data))

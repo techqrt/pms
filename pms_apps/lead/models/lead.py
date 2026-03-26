@@ -246,7 +246,7 @@ class Lead(models.Model):
             "lead_id",  "first_name", "last_name", "lead_origin",
             "address","country__name","city__name","nationality__name","passport_or_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name",
-            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
         ).first()
 
     @staticmethod
@@ -272,7 +272,7 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
             )
             )
 
@@ -301,6 +301,6 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property"
+                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
             )
             )
