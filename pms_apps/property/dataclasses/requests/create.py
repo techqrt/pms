@@ -53,6 +53,8 @@ class CommercialPropertyData:
     parking_availability: str | None = None
     commercial_maintenance_charge_type: str | None = None
     maintenance_charge_amount: Decimal | None = None
+    electricity_charge_amount: Decimal | None = None
+    water_charge_amount: Decimal | None = None
     gst_applicable: bool | None = None
     gst_percentage: Decimal | None = None
     security_deposit_months: int | None = None

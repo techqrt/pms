@@ -87,6 +87,12 @@ class CommercialPropertySerializer(serializers.Serializer):
     maintenance_charge_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    electricity_charge_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    water_charge_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
     gst_applicable = serializers.BooleanField(required=False, allow_null=True, default=False)
     gst_percentage = serializers.DecimalField(
         max_digits=5, decimal_places=2, required=False, allow_null=True

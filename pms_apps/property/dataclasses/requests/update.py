@@ -48,6 +48,8 @@ class CommercialPropertyUpdateData:
     parking_availability: Optional[str] = None
     commercial_maintenance_charge_type: Optional[str] = None
     maintenance_charge_amount: Optional[Decimal] = None
+    electricity_charge_amount: Optional[Decimal] = None
+    water_charge_amount: Optional[Decimal] = None
     gst_applicable: Optional[bool] = None
     gst_percentage: Optional[Decimal] = None
     security_deposit_months: Optional[int] = None

@@ -160,6 +160,8 @@ class PropertyView:
                     'allowed_business': params.commercial_data.allowed_business,
                     'prohibited_business': params.commercial_data.prohibited_business,
                     'maintenance_charge_amount': params.commercial_data.maintenance_charge_amount,
+                    'electricity_charge_amount': params.commercial_data.electricity_charge_amount,
+                    'water_charge_amount': params.commercial_data.water_charge_amount,
                 })
             elif params.rental_type == 'Villa' and params.villa_data:
                 property_detail_kwargs.update({
@@ -344,9 +346,9 @@ class PropertyView:
                 'no_of_cabins', 'no_of_washrooms', 'loading_area', 'power_load_kw',
                 'has_dg_backup', 'lift_type', 'fire_safety_compliant', 'emergency_exit',
                 'parking_availability', 'commercial_maintenance_charge_type',
-                'maintenance_charge_amount', 'gst_applicable', 'gst_percentage',
-                'security_deposit_months', 'lease_type', 'lease_tenure_years',
-                'lock_in_period_months', 'allowed_business', 'prohibited_business'
+                'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount',
+                'gst_applicable', 'gst_percentage', 'security_deposit_months', 'lease_type',
+                'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business'
             ]
             property_dict['commercialData'] = {k: detail_dict.get(k) for k in commercial_fields if k in detail_dict}
         elif rental_type == 'Villa':
@@ -452,7 +454,7 @@ class PropertyView:
         from pms_apps.property.image_utils import ImageUtils
         from django.forms.models import model_to_dict
         
-        details_map = {d.property_id: model_to_dict(d) for d in PropertyDetail.get_by_properties(property_ids)}
+        details_map = {d.property_id: {**model_to_dict(d), 'landlord_id': d.landlord_id, 'current_tenant_id': d.current_tenant_id} for d in PropertyDetail.get_by_properties(property_ids)}
         
         from collections import defaultdict
         photos_map = defaultdict(list)
