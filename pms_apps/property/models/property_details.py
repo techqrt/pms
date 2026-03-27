@@ -417,6 +417,21 @@ class PropertyDetail(models.Model):
         decimal_places=2,
         null=True
     )
+    
+    # Commercial charge amounts
+    electricity_charge_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    water_charge_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = "property_detail"
@@ -526,6 +541,8 @@ class PropertyDetail(models.Model):
         pets_allowed: bool = None,
         # Shared fields
         maintenance_charge_amount: float = None,
+        electricity_charge_amount: float = None,
+        water_charge_amount: float = None,
     ) -> int:
         """Create a new PropertyDetail record."""
         # Validate foreign keys
@@ -655,6 +672,8 @@ class PropertyDetail(models.Model):
             pets_allowed=pets_allowed,
             # Shared fields
             maintenance_charge_amount=maintenance_charge_amount,
+            electricity_charge_amount=electricity_charge_amount,
+            water_charge_amount=water_charge_amount,
         )
         property_detail.save()
         return property_detail.property_detail_id
