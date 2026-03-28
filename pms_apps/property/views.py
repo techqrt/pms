@@ -134,6 +134,8 @@ class PropertyView:
                     'allowed_tenant_types': params.flat_data.allowed_tenant_types,
                     'store_room': params.flat_data.store_room,
                     'maintenance_charge_amount': params.flat_data.maintenance_charge_amount,
+                    'electricity_charge_amount': params.flat_data.electricity_charge_amount,
+                    'water_charge_amount': params.flat_data.water_charge_amount,
                 })
             elif params.rental_type == 'Commercial' and params.commercial_data:
                 property_detail_kwargs.update({
@@ -197,6 +199,8 @@ class PropertyView:
                     'allowed_tenant_types': params.villa_data.allowed_tenant_types,
                     'store_room': params.villa_data.store_room,
                     'maintenance_charge_amount': params.villa_data.maintenance_charge_amount,
+                    'electricity_charge_amount': params.villa_data.electricity_charge_amount,
+                    'water_charge_amount': params.villa_data.water_charge_amount,
                 })
 
             PropertyDetail.create(**property_detail_kwargs)
@@ -337,7 +341,7 @@ class PropertyView:
                 'no_of_bathrooms', 'kitchen_type', 'facing', 'balcony', 'parking',
                 'lift', 'security', 'gas_pipeline', 'water_supply', 'intercom',
                 'fire_safety', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
-                'maintenance_charge_amount'
+                'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount'
             ]
             property_dict['flatData'] = {k: detail_dict.get(k) for k in flat_fields if k in detail_dict}
         elif rental_type == 'Commercial':
@@ -361,7 +365,7 @@ class PropertyView:
                 'security_guard', 'clubhouse_access', 'gym', 'childrens_play_area',
                 'internal_roads', 'street_lights', 'gated_community', 'bachelor_allowed',
                 'pets_allowed', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
-                'maintenance_charge_amount'
+                'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount'
             ]
             property_dict['villaData'] = {k: detail_dict.get(k) for k in villa_fields if k in detail_dict}
 
@@ -526,6 +530,7 @@ class PropertyView:
     @Common().exception_handler
     def count_extract(self, params: GetAll):
         reversed_mapped = PropertyUtils.reverse_mapper([
+            params.sort_by,
             params.filter_key
         ])
 

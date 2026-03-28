@@ -173,7 +173,8 @@ class Lead(models.Model):
         nationality_id : int,
         passport_or_id: str,
         purpose: str,
-        property_permissions_id : int
+        property_permissions_id : int,
+        profile_image = None
     ) -> int:
         self.lead_id_id = lead_id
         self.lead_assign_to_id = lead_assign_to
@@ -187,6 +188,8 @@ class Lead(models.Model):
         self.passport_or_id = passport_or_id
         self.purpose = purpose
         self.property_permissions_id = property_permissions_id
+        if profile_image is not None:
+            self.profile_image = profile_image
         self.save()
         return self.lead_id
 
@@ -205,6 +208,7 @@ class Lead(models.Model):
         purpose: str = None,
         is_active: bool = None,
         property_permission_id : int = None,
+        profile_image = None,
     ) -> int:
         lead = Lead.objects.get(lead_id=lead_id)
         if lead_assign_to is not None:
@@ -231,6 +235,8 @@ class Lead(models.Model):
             lead.is_active = is_active
         if property_permission_id is not None: 
             lead.property_permissions_id = property_permission_id
+        if profile_image is not None:
+            lead.profile_image = profile_image
         lead.save()
         return lead.lead_id
 
@@ -246,7 +252,7 @@ class Lead(models.Model):
             "lead_id",  "first_name", "last_name", "lead_origin",
             "address","country__name","city__name","nationality__name","passport_or_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name",
-            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
+            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
         ).first()
 
     @staticmethod
@@ -272,7 +278,7 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
+                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
             )
             )
 
@@ -301,6 +307,6 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
+                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
             )
             )

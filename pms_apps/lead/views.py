@@ -15,6 +15,7 @@ from pms_apps.lead.serilizers.response.get import LeadResponseGetSerializer
 from pms_apps.lead.serilizers.response.get_all import LeadResponseGetAllSerilizer
 from .utils import LeadUtils
 from pms_apps.marketing.models.marketing_manager import MarketingManager
+from pms_apps.property.image_utils import ImageUtils
 from django.core.paginator import Paginator
 
 import json
@@ -45,6 +46,12 @@ class LeadView:
             lead_permission = PropertyPermission()
             lead_permission.property = True
             lead_permission.save()
+            
+            # Process profile picture if provided
+            profile_image_obj = None
+            if params.profile_picture:
+                profile_image_obj = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
+            
             lead = Lead()
             lead_id = lead.create(
                 lead_id=new_user.user_id,
@@ -58,7 +65,8 @@ class LeadView:
                 nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
-                property_permissions_id=lead_permission.permission_id
+                property_permissions_id=lead_permission.permission_id,
+                profile_image=profile_image_obj
             )
         return Response(
             status=status.HTTP_201_CREATED,
@@ -98,6 +106,11 @@ class LeadView:
                     )
                     property_permission_id = property_permission_id
 
+            # Process profile picture if provided
+            profile_image_obj = None
+            if params.profile_picture is not None:
+                profile_image_obj = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
+
             Lead.update(
                 lead_id=lead_data.get('lead_id'),
                 lead_assign_to=user_data.get('user_id') if user_data else None,
@@ -110,7 +123,8 @@ class LeadView:
                 nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
-                property_permission_id=property_permission_id
+                property_permission_id=property_permission_id,
+                profile_image=profile_image_obj
             )
         return Response(
             status=status.HTTP_200_OK,
@@ -163,6 +177,20 @@ class LeadView:
             lead_utils = LeadUtils(columns_required=columns)
             lead_data = [lead_data]
             data = json.loads(lead_utils.mapper(lead_data))[0]
+
+            # Add profile picture URL if available
+            from pms_apps.lead.models.lead import Lead as LeadModel
+            lead_obj = LeadModel.objects.filter(lead_id=params.lead_id).first()
+            if lead_obj and lead_obj.profile_image:
+                profile_image_value = str(lead_obj.profile_image)
+                # Check if it's already a URL
+                if profile_image_value.startswith('http://') or profile_image_value.startswith('https://'):
+                    data['profileImage'] = profile_image_value
+                else:
+                    # It's a file path managed by Django
+                    profile_image_url = ImageUtils.get_photo_url(profile_image_value)
+                    if profile_image_url:
+                        data['profileImage'] = profile_image_url
 
         return Response(
             status=status.HTTP_200_OK,
@@ -236,6 +264,7 @@ class LeadView:
         with transaction.atomic():
             manager_id = MarketingManager.get_id(params.user_id)
             reversed_mapped = LeadUtils.reverse_mapper([
+                params.sort_by,
                 params.filter_key
             ])
 

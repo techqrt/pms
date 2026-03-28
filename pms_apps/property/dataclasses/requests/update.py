@@ -81,6 +81,8 @@ class FlatPropertyUpdateData:
     allowed_tenant_types: Optional[List[str]] = None
     store_room: Optional[bool] = None
     maintenance_charge_amount: Optional[Decimal] = None
+    electricity_charge_amount: Optional[Decimal] = None
+    water_charge_amount: Optional[Decimal] = None
 
 @dataclass
 class VillaPropertyUpdateData:
@@ -116,6 +118,8 @@ class VillaPropertyUpdateData:
     cctv: Optional[bool] = None
     allowed_tenant_types: Optional[List[str]] = None
     maintenance_charge_amount: Optional[Decimal] = None
+    electricity_charge_amount: Optional[Decimal] = None
+    water_charge_amount: Optional[Decimal] = None
 
 @dataclass
 class PropertyUpdateRequest:

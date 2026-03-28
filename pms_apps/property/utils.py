@@ -34,7 +34,9 @@ class PropertyUtils:
             'assigned_to__email': 'assignedTo.email',
             'created_at': 'createdAt',
             'updated_at': 'updatedAt',
-            'is_active': 'isActive'
+            'is_active': 'isActive',
+            'landlord_id': 'landlordId',
+            'current_tenant_id': 'currentTenantId'
         }
 
     @staticmethod
@@ -94,7 +96,22 @@ class PropertyUtils:
     @staticmethod
     def reverse_mapper(fields: list[str]) -> dict[str, str]:
         reverse_map = {v: k for k, v in PropertyUtils().mapped_columns_name.items()}
-        return {field: reverse_map.get(field, '') for field in fields}
+        
+        # Handle common aliases for property_type and rental_for
+        aliases = {
+            'property_type': 'rental_type',
+            'propertyType': 'rental_type',
+            'purpose': 'rental_for',
+            'rentalFor': 'rental_for',
+        }
+        
+        result = {}
+        for field in fields:
+            if field in aliases:
+                result[field] = aliases[field]
+            else:
+                result[field] = reverse_map.get(field, '')
+        return result
 
     @staticmethod
     def check_constraints(params):

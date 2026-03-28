@@ -140,6 +140,12 @@ class FlatPropertySerializer(serializers.Serializer):
     maintenance_charge_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    electricity_charge_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    water_charge_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
 
 
 class VillaPropertySerializer(serializers.Serializer):
@@ -191,6 +197,12 @@ class VillaPropertySerializer(serializers.Serializer):
     )
     store_room = serializers.BooleanField(required=False, allow_null=True, default=False)
     maintenance_charge_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    electricity_charge_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    water_charge_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
 

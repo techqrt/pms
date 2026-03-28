@@ -87,6 +87,8 @@ class FlatPropertyData:
     allowed_tenant_types: List[str] | None = None
     store_room: bool | None = None
     maintenance_charge_amount: Decimal | None = None
+    electricity_charge_amount: Decimal | None = None
+    water_charge_amount: Decimal | None = None
 
 
 @dataclass
@@ -123,6 +125,8 @@ class VillaPropertyData:
     cctv: bool | None = None
     allowed_tenant_types: List[str] | None = None
     maintenance_charge_amount: Decimal | None = None
+    electricity_charge_amount: Decimal | None = None
+    water_charge_amount: Decimal | None = None
 
 
 @dataclass
