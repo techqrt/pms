@@ -17,4 +17,5 @@ class LeadUpdateRequest:
     nationality_id : int | None = None
     passport_or_id : str | None = None
     purpose : str | None = None
-    property_permission : PropertyPermissionUpdateRequest | None = None 
+    property_permission : PropertyPermissionUpdateRequest | None = None
+    profile_picture : str | None = None 

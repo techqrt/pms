@@ -25,7 +25,8 @@ class LeadUtils:
             'lead_assign_to__email': 'leadAssignTo.email',
             'lead_id__phone_number': 'phoneNumber',
             'property_permissions__permission_id' : 'propertyPermission.permissionId',
-            'property_permissions__property' : 'propertyPermission.property'
+            'property_permissions__property' : 'propertyPermission.property',
+            'profile_image': 'profileImage'
         }
 
 
