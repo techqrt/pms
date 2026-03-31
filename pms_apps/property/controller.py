@@ -12,6 +12,8 @@ from pms_apps.property.serializers.requests.update import PropertyUpdateSerializ
 from pms_apps.property.serializers.requests.delete import PropertyDeleteSerializer
 from pms_apps.property.serializers.requests.delete_many import PropertyDeleteManySerializer
 from pms_apps.property.serializers.requests.get import PropertyGetSerializer
+from pms_apps.property.serializers.requests.property_assignment_create import PropertyAssignmentCreateSerializer
+from pms_apps.property.serializers.requests.property_assignment_get import PropertyAssignmentGetSerializer
 
 from pms_apps.property.serializers.response.get import PropertyResponseGetSerializer
 from pms_apps.property.serializers.response.get_all import PropertyResponseGetAllSerializer
@@ -100,3 +102,33 @@ class PropertyViewController:
     @SerializerValidations(serializer=GetAllSerializer).validate
     def count(request: Request) -> Response:
         return PropertyView().count_extract(params=request.params)
+
+    @extend_schema(
+        description="Assign Property to Tenant with Full Details",
+        request=PropertyAssignmentCreateSerializer,
+        responses=SwaggerPage.response(description=PropertyView().data_assign)
+    )
+    @api_view(["POST"])
+    @SerializerValidations(serializer=PropertyAssignmentCreateSerializer).validate
+    def assign(request: Request) -> Response:
+        return PropertyView().assign_extract(params=request.params)
+
+    @extend_schema(
+        description="Get Single Property Assignment",
+        parameters=PropertyAssignmentGetSerializer.get_parameters(),
+        responses=SwaggerPage.response(description=PropertyView().data_get)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=PropertyAssignmentGetSerializer).validate
+    def get_assignment(request: Request) -> Response:
+        return PropertyView().get_extract_assignment(params=request.params)
+
+    @extend_schema(
+        description="Get All Property Assignments",
+        parameters=SwaggerPage.get_all_parameters(),
+        responses=SwaggerPage.response(description=PropertyView().data_get)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=GetAllSerializer).validate
+    def get_all_assignments(request: Request) -> Response:
+        return PropertyView().get_all_extract_assignment(params=request.params)
