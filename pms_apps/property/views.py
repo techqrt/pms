@@ -1,5 +1,6 @@
 import json
 from django.db import transaction
+from django.db.models import Q
 from django.core.paginator import Paginator
 from rest_framework import status
 from rest_framework.response import Response
@@ -14,15 +15,18 @@ from pms_apps.property.dataclasses.requests.update import PropertyUpdateRequest
 from pms_apps.property.dataclasses.requests.delete import PropertyDeleteRequest
 from pms_apps.property.dataclasses.requests.delete_many import PropertyDeleteManyRequest
 from pms_apps.property.dataclasses.requests.get import PropertyGetRequest
-from pms_apps.property.dataclasses.requests.assign import PropertyAssignRequest
+from pms_apps.property.dataclasses.requests.property_assignment_create import PropertyAssignmentCreateRequest
 from pms_apps.property.utils import PropertyUtils
 
 from pms_apps.property.models.property import Property
 from pms_apps.property.serializers.response.get import PropertyResponseGetSerializer
 from pms_apps.property.serializers.response.get_all import PropertyResponseGetAllSerializer
+from pms_apps.property.serializers.response.assignment_get import PropertyAssignmentResponseGetSerializer
+from pms_apps.property.serializers.response.assignment_get_all import PropertyAssignmentResponseGetAllSerializer
 
 from pms_apps.authentication.models import User
 from pms_apps.property.models.property_details import PropertyDetail
+from pms_apps.property.models.property_assignment import PropertyAssignment
 from pms_apps.marketing.models.marketing_manager import MarketingManager
 
 class PropertyView:
@@ -33,6 +37,7 @@ class PropertyView:
         self.data_delete = "Property deleted successfully"
         self.data_get = "Property fetched successfully"
         self.data_no_match = "No matching property found"
+        self.data_assign = "Property assigned to tenant successfully"
         self.db_error = "Database Error"
         self.error = "Something went wrong"
 
@@ -552,12 +557,12 @@ class PropertyView:
         )
 
     @Common().exception_handler
-    def assign_extract(self, params: PropertyAssignRequest):
+    def assign_extract(self, params: PropertyAssignmentCreateRequest):
         from pms_apps.lead.models.lead import Lead
         
-        # Validate property exists
-        property_obj = Property.get(property_id=params.property_id)
-        if not property_obj:
+        # Validate property detail exists
+        property_detail = PropertyDetail.objects.filter(property_detail_id=params.property_id).first()
+        if not property_detail:
             raise ValueError(self.data_no_match)
         
         # Validate tenant exists
@@ -566,18 +571,210 @@ class PropertyView:
         except Lead.DoesNotExist:
             raise ValueError(f"Invalid Tenant ID: {params.tenant_id}")
         
-        # Get property detail
-        property_detail = PropertyDetail.objects.filter(property_id=params.property_id).first()
-        if not property_detail:
-            raise ValueError("Property details not found")
-        
         with transaction.atomic():
-            # Update current tenant and status
+            # Create PropertyAssignment record
+            assignment_id = PropertyAssignment.create(
+                property_id=property_detail.property_id,
+                tenant_id=params.tenant_id,
+                assigned_by_id=params.assigned_by_id,
+                assignment_status=params.assignment_status,
+                tenant_type=params.tenant_type,
+                company_name=params.company_name,
+                rental_start_date=params.rental_start_date,
+                rental_end_date=params.rental_end_date,
+                agreement_duration_months=params.agreement_duration_months,
+                maintenance_charges=params.maintenance_charges,
+                advance_rent_paid=params.advance_rent_paid,
+                payment_mode=params.payment_mode,
+                agreement_type=params.agreement_type,
+                agreement_status=params.agreement_status,
+                agreement_prepared_by_id=params.agreement_prepared_by_id,
+                key_available_in_office=params.key_available_in_office,
+                key_code=params.key_code,
+                key_handover_date=params.key_handover_date,
+                key_handover_status=params.key_handover_status,
+                electricity_meter_number=params.electricity_meter_number,
+                electricity_meter_reading_start=params.electricity_meter_reading_start,
+                water_meter_reading_start=params.water_meter_reading_start,
+                gas_meter_reading_start=params.gas_meter_reading_start,
+                finance_approval_status=params.finance_approval_status,
+                rent_entry_created=params.rent_entry_created,
+                invoice_generated=params.invoice_generated,
+                maintenance_required=params.maintenance_required,
+                maintenance_ticket_id=params.maintenance_ticket_id,
+                maintenance_status=params.maintenance_status,
+                internal_notes=params.internal_notes,
+                tenant_special_requirements=params.tenant_special_requirements,
+            )
+            
+            # Update PropertyDetail with current tenant and status
             property_detail.current_tenant_id = params.tenant_id
             property_detail.current_status = "Occupied"
             property_detail.save()
         
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message="Property assigned to tenant successfully")
+            data=Utils.success_response_data(
+                message=self.data_assign,
+                data={"property_assignment_id": assignment_id}
+            )
+        )
+
+    @Common().exception_handler
+    def get_extract_assignment(self, params):
+        """Fetch a single property assignment by ID"""
+        assignment = PropertyAssignment.objects.filter(
+            property_assignment_id=params.property_assignment_id,
+            is_active=True
+        ).first()
+        
+        if not assignment:
+            raise ValueError(self.data_no_match)
+        
+        # Build response data with camelCase field names
+        assignment_data = {
+            "assignmentId": assignment.property_assignment_id,
+            "property": {
+                "propertyId": assignment.property.property_id,
+                "block": assignment.property.block,
+                "buildingDetails": assignment.property.building_details,
+                "floor": assignment.property.floor,
+                "flatNumber": assignment.property.flat_number,
+            },
+            "tenant": {
+                "tenantId": assignment.tenant.lead_id if assignment.tenant else None,
+                "firstName": assignment.tenant.lead_id.user_id.first_name if assignment.tenant and assignment.tenant.lead_id else None,
+                "lastName": assignment.tenant.lead_id.user_id.last_name if assignment.tenant and assignment.tenant.lead_id else None,
+                "phoneNumber": assignment.tenant.lead_id.user_id.phone_number if assignment.tenant and assignment.tenant.lead_id else None,
+                "email": assignment.tenant.lead_id.user_id.email if assignment.tenant and assignment.tenant.lead_id else None,
+            } if assignment.tenant else None,
+            "assignedBy": {
+                "userId": assignment.assigned_by.user_id if assignment.assigned_by else None,
+                "phoneNumber": assignment.assigned_by.phone_number if assignment.assigned_by else None,
+                "name": assignment.assigned_by.get_full_name() if assignment.assigned_by else None,
+                "email": assignment.assigned_by.email if assignment.assigned_by else None,
+            } if assignment.assigned_by else None,
+            "assignmentStatus": assignment.assignment_status,
+            "tenantType": assignment.tenant_type,
+            "companyName": assignment.company_name,
+            "rentalStartDate": assignment.rental_start_date,
+            "rentalEndDate": assignment.rental_end_date,
+            "agreementDurationMonths": assignment.agreement_duration_months,
+            "maintenanceCharges": str(assignment.maintenance_charges) if assignment.maintenance_charges else None,
+            "advanceRentPaid": assignment.advance_rent_paid,
+            "paymentMode": assignment.payment_mode,
+            "agreementType": assignment.agreement_type,
+            "agreementStatus": assignment.agreement_status,
+            "keyAvailableInOffice": assignment.key_available_in_office,
+            "keyCode": assignment.key_code,
+            "keyHandoverDate": assignment.key_handover_date,
+            "keyHandoverStatus": assignment.key_handover_status,
+            "electricityMeterNumber": assignment.electricity_meter_number,
+            "electricityMeterReadingStart": str(assignment.electricity_meter_reading_start) if assignment.electricity_meter_reading_start else None,
+            "waterMeterReadingStart": str(assignment.water_meter_reading_start) if assignment.water_meter_reading_start else None,
+            "gasMeterReadingStart": str(assignment.gas_meter_reading_start) if assignment.gas_meter_reading_start else None,
+            "financeApprovalStatus": assignment.finance_approval_status,
+            "rentEntryCreated": assignment.rent_entry_created,
+            "invoiceGenerated": assignment.invoice_generated,
+            "maintenanceRequired": assignment.maintenance_required,
+            "maintenanceTicketId": assignment.maintenance_ticket_id,
+            "maintenanceStatus": assignment.maintenance_status,
+            "internalNotes": assignment.internal_notes,
+            "tenantSpecialRequirements": assignment.tenant_special_requirements,
+            "assignedOn": assignment.assigned_on,
+            "unassignedOn": assignment.unassigned_on,
+            "createdAt": assignment.created_at,
+            "updatedAt": assignment.updated_at,
+        }
+        
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message=self.data_get,
+                data=assignment_data
+            )
+        )
+
+    @Common().exception_handler
+    def get_all_extract_assignment(self, params: GetAll):
+        """Fetch all property assignments with filtering and pagination"""
+        # Base queryset
+        query = PropertyAssignment.objects.filter(is_active=True).select_related(
+            'property', 'tenant', 'assigned_by', 'agreement_prepared_by'
+        )
+        
+        # Apply filters if provided
+        if hasattr(params, 'filters') and params.filters:
+            filters = params.filters
+            if 'property_id' in filters:
+                query = query.filter(property_id=filters['property_id'])
+            if 'tenant_id' in filters:
+                query = query.filter(tenant_id=filters['tenant_id'])
+            if 'assignment_status' in filters:
+                query = query.filter(assignment_status=filters['assignment_status'])
+            if 'assigned_by_id' in filters:
+                query = query.filter(assigned_by_id=filters['assigned_by_id'])
+        
+        # Apply search if provided
+        if hasattr(params, 'search') and params.search:
+            query = query.filter(
+                Q(property__block__icontains=params.search) |
+                Q(property__building_details__icontains=params.search) |
+                Q(tenant__lead_id__user_id__first_name__icontains=params.search) |
+                Q(tenant__lead_id__user_id__last_name__icontains=params.search)
+            )
+        
+        # Get total count before pagination
+        total_items = query.count()
+        paginator = Paginator(query, Constants.PAGINATE_BY)
+        
+        # Validate page number
+        page_num = getattr(params, 'page_num', 1)
+        if page_num < 1:
+            page_num = 1
+        
+        try:
+            assignments = paginator.page(page_num).object_list
+        except Exception:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data=Utils.error_response_data(message="Invalid page number")
+            )
+        
+        # Build response data
+        assignments_data = []
+        for assignment in assignments:
+            assignment_item = {
+                "assignmentId": assignment.property_assignment_id,
+                "property": {
+                    "propertyId": assignment.property.property_id,
+                    "block": assignment.property.block,
+                    "buildingDetails": assignment.property.building_details,
+                    "floor": assignment.property.floor,
+                    "flatNumber": assignment.property.flat_number,
+                },
+                "tenant": {
+                    "tenantId": assignment.tenant.lead_id if assignment.tenant else None,
+                    "firstName": assignment.tenant.lead_id.user_id.first_name if assignment.tenant and assignment.tenant.lead_id else None,
+                    "lastName": assignment.tenant.lead_id.user_id.last_name if assignment.tenant and assignment.tenant.lead_id else None,
+                    "phoneNumber": assignment.tenant.lead_id.user_id.phone_number if assignment.tenant and assignment.tenant.lead_id else None,
+                    "email": assignment.tenant.lead_id.user_id.email if assignment.tenant and assignment.tenant.lead_id else None,
+                } if assignment.tenant else None,
+                "assignementStatus": assignment.assignment_status,
+                "rentalStartDate": assignment.rental_start_date,
+                "rentalEndDate": assignment.rental_end_date,
+                "assignedOn": assignment.assigned_on,
+            }
+            assignments_data.append(assignment_item)
+        
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message=self.data_get,
+                data={
+                    "data": assignments_data,
+                    "presentPage": page_num,
+                    "totalPage": paginator.num_pages,
+                }
+            )
         )
