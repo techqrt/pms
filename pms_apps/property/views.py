@@ -14,6 +14,7 @@ from pms_apps.property.dataclasses.requests.update import PropertyUpdateRequest
 from pms_apps.property.dataclasses.requests.delete import PropertyDeleteRequest
 from pms_apps.property.dataclasses.requests.delete_many import PropertyDeleteManyRequest
 from pms_apps.property.dataclasses.requests.get import PropertyGetRequest
+from pms_apps.property.dataclasses.requests.assign import PropertyAssignRequest
 from pms_apps.property.utils import PropertyUtils
 
 from pms_apps.property.models.property import Property
@@ -548,4 +549,35 @@ class PropertyView:
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message="Total properties count", data={"count": property_count})
+        )
+
+    @Common().exception_handler
+    def assign_extract(self, params: PropertyAssignRequest):
+        from pms_apps.lead.models.lead import Lead
+        
+        # Validate property exists
+        property_obj = Property.get(property_id=params.property_id)
+        if not property_obj:
+            raise ValueError(self.data_no_match)
+        
+        # Validate tenant exists
+        try:
+            tenant = Lead.objects.get(lead_id=params.tenant_id)
+        except Lead.DoesNotExist:
+            raise ValueError(f"Invalid Tenant ID: {params.tenant_id}")
+        
+        # Get property detail
+        property_detail = PropertyDetail.objects.filter(property_id=params.property_id).first()
+        if not property_detail:
+            raise ValueError("Property details not found")
+        
+        with transaction.atomic():
+            # Update current tenant and status
+            property_detail.current_tenant_id = params.tenant_id
+            property_detail.current_status = "Occupied"
+            property_detail.save()
+        
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message="Property assigned to tenant successfully")
         )
