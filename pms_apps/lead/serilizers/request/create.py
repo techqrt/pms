@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from pms_apps.common.dataclasses.request.permission import Permissions
 from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
+from pms_apps.property.serializers.fields import Base64ImageField
 
 class PropertyPermissionRequestSerilizer(serializers.Serializer):
     property = serializers.BooleanField(required = False)
@@ -44,6 +45,9 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
     )
     purpose = serializers.CharField(
         max_length = 10
+    )
+    profile_picture = Base64ImageField(
+        required=False, allow_null=True
     )
     created_at = serializers.DateTimeField(
         read_only = True

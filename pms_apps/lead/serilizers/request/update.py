@@ -3,6 +3,7 @@ from pms_apps.lead.serilizers.request.create import UserRequestSerilizer,Country
 from pms_apps.lead.dataclasses.request.update import LeadUpdateRequest
 from pms_apps.lead.serilizers.request.create import PropertyPermissionRequestSerilizer
 from pms_apps.lead.dataclasses.request.update import PropertyPermissionUpdateRequest
+from pms_apps.property.serializers.fields import Base64ImageField
 
 class LeadUpdateRequestSerilizer(serializers.Serializer):
     lead_id = serializers.IntegerField()
@@ -25,6 +26,9 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     )
     purpose = serializers.CharField(
         max_length = 10,required=False
+    )
+    profile_picture = Base64ImageField(
+        required=False, allow_null=True
     )
     created_at = serializers.DateTimeField(
         read_only = True,required=False
