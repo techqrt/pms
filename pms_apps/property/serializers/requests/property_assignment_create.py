@@ -77,12 +77,9 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
     internal_notes = serializers.CharField(required=False, default="", allow_blank=True)
     tenant_special_requirements = serializers.CharField(required=False, default="", allow_blank=True)
 
-    def to_internal_value(self, data):
-        validated_data = super().to_internal_value(data)
-        
-        # Create dataclass instance
+    def create(self, validated_data) -> PropertyAssignmentCreateRequest:
         return PropertyAssignmentCreateRequest(
-            property_detail_id=validated_data['property_detail_id'],
+            property_id=validated_data['property_id'],
             tenant_id=validated_data['tenant_id'],
             assigned_by_id=validated_data['assigned_by_id'],
             assignment_status=validated_data.get('assignment_status', 'Pending'),
