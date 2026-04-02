@@ -26,17 +26,24 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
     )
     advance_rent_paid = serializers.BooleanField(default=False)
     payment_mode = serializers.ChoiceField(
-        choices=["Cash", "Cheque", "UPI", "Bank Transfer", "Card"],
+        choices=["Cash", "Bank Transfer", "Online", "Cheque"],
         required=False,
         allow_null=True
     )
-    agreement_type = serializers.CharField(max_length=100, required=False, allow_null=True)
+    agreement_type = serializers.ChoiceField(
+        choices=["Government Agreement", "Internal Agreement"],
+        required=False,
+        allow_null=True
+    )
     agreement_status = serializers.ChoiceField(
         choices=["Pending", "Prepared", "Signed", "Executed", "Terminated"],
         default="Pending"
     )
     agreement_prepared_by_id = serializers.IntegerField(required=False, allow_null=True)
-    key_available_in_office = serializers.BooleanField(default=False)
+    key_available_in_office = serializers.ChoiceField(
+        choices=["Yes", "No"],
+        default="No"
+    )
     key_code = serializers.CharField(max_length=100, required=False, allow_null=True)
     key_handover_date = serializers.DateField(required=False, allow_null=True)
     key_handover_status = serializers.ChoiceField(
@@ -66,9 +73,18 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
         choices=["Pending", "Approved", "On Hold", "Rejected"],
         default="Pending"
     )
-    rent_entry_created = serializers.BooleanField(default=False)
-    invoice_generated = serializers.BooleanField(default=False)
-    maintenance_required = serializers.BooleanField(default=False)
+    rent_entry_created = serializers.ChoiceField(
+        choices=["No", "Yes"],
+        default="No"
+    )
+    invoice_generated = serializers.ChoiceField(
+        choices=["No", "Yes"],
+        default="No"
+    )
+    maintenance_required = serializers.ChoiceField(
+        choices=["No", "Yes"],
+        default="No"
+    )
     maintenance_ticket_id = serializers.CharField(max_length=100, required=False, allow_null=True)
     maintenance_status = serializers.ChoiceField(
         choices=["Pending", "In Progress", "Completed", "Not Required"],
@@ -94,7 +110,7 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
             agreement_type=validated_data.get('agreement_type'),
             agreement_status=validated_data.get('agreement_status', 'Pending'),
             agreement_prepared_by_id=validated_data.get('agreement_prepared_by_id'),
-            key_available_in_office=validated_data.get('key_available_in_office', False),
+            key_available_in_office=validated_data.get('key_available_in_office', 'No'),
             key_code=validated_data.get('key_code'),
             key_handover_date=validated_data.get('key_handover_date'),
             key_handover_status=validated_data.get('key_handover_status', 'Pending'),
@@ -103,9 +119,9 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
             water_meter_reading_start=validated_data.get('water_meter_reading_start'),
             gas_meter_reading_start=validated_data.get('gas_meter_reading_start'),
             finance_approval_status=validated_data.get('finance_approval_status', 'Pending'),
-            rent_entry_created=validated_data.get('rent_entry_created', False),
-            invoice_generated=validated_data.get('invoice_generated', False),
-            maintenance_required=validated_data.get('maintenance_required', False),
+            rent_entry_created=validated_data.get('rent_entry_created', 'No'),
+            invoice_generated=validated_data.get('invoice_generated', 'No'),
+            maintenance_required=validated_data.get('maintenance_required', 'No'),
             maintenance_ticket_id=validated_data.get('maintenance_ticket_id'),
             maintenance_status=validated_data.get('maintenance_status', 'Pending'),
             internal_notes=validated_data.get('internal_notes', ''),

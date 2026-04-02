@@ -21,7 +21,7 @@ class PropertyAssignmentCreateRequest:
     agreement_type: Optional[str] = None
     agreement_status: str = "Pending"
     agreement_prepared_by_id: Optional[int] = None
-    key_available_in_office: bool = False
+    key_available_in_office: str = "No"
     key_code: Optional[str] = None
     key_handover_date: Optional[date] = None
     key_handover_status: str = "Pending"
@@ -30,9 +30,9 @@ class PropertyAssignmentCreateRequest:
     water_meter_reading_start: Optional[Decimal] = None
     gas_meter_reading_start: Optional[Decimal] = None
     finance_approval_status: str = "Pending"
-    rent_entry_created: bool = False
-    invoice_generated: bool = False
-    maintenance_required: bool = False
+    rent_entry_created: str = "No"
+    invoice_generated: str = "No"
+    maintenance_required: str = "No"
     maintenance_ticket_id: Optional[str] = None
     maintenance_status: str = "Pending"
     internal_notes: str = ""
