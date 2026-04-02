@@ -46,10 +46,9 @@ class PropertyAssignment(models.Model):
 
     PAYMENT_MODE_CHOICES = [
         ("Cash", "Cash"),
-        ("Cheque", "Cheque"),
-        ("UPI", "UPI"),
         ("Bank Transfer", "Bank Transfer"),
-        ("Card", "Card"),
+        ("Online", "Online"),
+        ("Cheque", "Cheque"),
     ]
 
     property_assignment_id = models.AutoField(primary_key=True)
@@ -110,9 +109,35 @@ class PropertyAssignment(models.Model):
         blank=True
     )
 
+    AGREEMENT_TYPE_CHOICES = [
+        ("Government Agreement", "Government Agreement"),
+        ("Internal Agreement", "Internal Agreement"),
+    ]
+
+    KEY_AVAILABLE_IN_OFFICE_CHOICES = [
+        ("Yes", "Yes"),
+        ("No", "No"),
+    ]
+
+    RENT_ENTRY_CREATED_CHOICES = [
+        ("No", "No"),
+        ("Yes", "Yes"),
+    ]
+
+    INVOICE_GENERATED_CHOICES = [
+        ("No", "No"),
+        ("Yes", "Yes"),
+    ]
+
+    MAINTENANCE_REQUIRED_CHOICES = [
+        ("No", "No"),
+        ("Yes", "Yes"),
+    ]
+
     # Agreement Details
     agreement_type = models.CharField(
         max_length=100,
+        choices=AGREEMENT_TYPE_CHOICES,
         null=True,
         blank=True
     )
@@ -135,7 +160,11 @@ class PropertyAssignment(models.Model):
     )
 
     # Key Management
-    key_available_in_office = models.BooleanField(default=False)
+    key_available_in_office = models.CharField(
+        max_length=10,
+        choices=KEY_AVAILABLE_IN_OFFICE_CHOICES,
+        default="No"
+    )
     key_code = models.CharField(
         max_length=100,
         null=True,
@@ -179,11 +208,23 @@ class PropertyAssignment(models.Model):
         choices=FINANCE_APPROVAL_STATUS_CHOICES,
         default="Pending"
     )
-    rent_entry_created = models.BooleanField(default=False)
-    invoice_generated = models.BooleanField(default=False)
+    rent_entry_created = models.CharField(
+        max_length=10,
+        choices=RENT_ENTRY_CREATED_CHOICES,
+        default="No"
+    )
+    invoice_generated = models.CharField(
+        max_length=10,
+        choices=INVOICE_GENERATED_CHOICES,
+        default="No"
+    )
 
     # Maintenance Check
-    maintenance_required = models.BooleanField(default=False)
+    maintenance_required = models.CharField(
+        max_length=10,
+        choices=MAINTENANCE_REQUIRED_CHOICES,
+        default="No"
+    )
     maintenance_ticket_id = models.CharField(
         max_length=100,
         null=True,
