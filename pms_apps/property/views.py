@@ -647,11 +647,11 @@ class PropertyView:
                 "flatNumber": assignment.property.flat_number,
             },
             "tenant": {
-                "tenantId": assignment.tenant.lead_id if assignment.tenant else None,
-                "firstName": assignment.tenant.lead_id.user_id.first_name if assignment.tenant and assignment.tenant.lead_id else None,
-                "lastName": assignment.tenant.lead_id.user_id.last_name if assignment.tenant and assignment.tenant.lead_id else None,
-                "phoneNumber": assignment.tenant.lead_id.user_id.phone_number if assignment.tenant and assignment.tenant.lead_id else None,
-                "email": assignment.tenant.lead_id.user_id.email if assignment.tenant and assignment.tenant.lead_id else None,
+                "tenantId": assignment.tenant_id if assignment.tenant else None,
+                "firstName": assignment.tenant.first_name if assignment.tenant else None,
+                "lastName": assignment.tenant.last_name if assignment.tenant else None,
+                "phoneNumber": assignment.tenant.lead_id.phone_number if assignment.tenant and assignment.tenant.lead_id else None,
+                "email": assignment.tenant.lead_id.email if assignment.tenant and assignment.tenant.lead_id else None,
             } if assignment.tenant else None,
             "assignedBy": {
                 "userId": assignment.assigned_by.user_id if assignment.assigned_by else None,
@@ -705,7 +705,7 @@ class PropertyView:
         """Fetch all property assignments with filtering and pagination"""
         # Base queryset
         query = PropertyAssignment.objects.filter(is_active=True).select_related(
-            'property', 'tenant', 'assigned_by', 'agreement_prepared_by'
+            'property', 'tenant', 'tenant__lead_id', 'assigned_by', 'agreement_prepared_by'
         )
         
         # Apply filters if provided
@@ -731,7 +731,7 @@ class PropertyView:
         
         # Get total count before pagination
         total_items = query.count()
-        paginator = Paginator(query, Constants.PAGINATE_BY)
+        paginator = Paginator(query, per_page=params.limit)
         
         # Validate page number
         page_num = getattr(params, 'page_num', 1)
@@ -759,11 +759,11 @@ class PropertyView:
                     "flatNumber": assignment.property.flat_number,
                 },
                 "tenant": {
-                    "tenantId": assignment.tenant.lead_id if assignment.tenant else None,
-                    "firstName": assignment.tenant.lead_id.user_id.first_name if assignment.tenant and assignment.tenant.lead_id else None,
-                    "lastName": assignment.tenant.lead_id.user_id.last_name if assignment.tenant and assignment.tenant.lead_id else None,
-                    "phoneNumber": assignment.tenant.lead_id.user_id.phone_number if assignment.tenant and assignment.tenant.lead_id else None,
-                    "email": assignment.tenant.lead_id.user_id.email if assignment.tenant and assignment.tenant.lead_id else None,
+                    "tenantId": assignment.tenant_id if assignment.tenant else None,
+                    "firstName": assignment.tenant.first_name if assignment.tenant else None,
+                    "lastName": assignment.tenant.last_name if assignment.tenant else None,
+                    "phoneNumber": assignment.tenant.lead_id.phone_number if assignment.tenant and assignment.tenant.lead_id else None,
+                    "email": assignment.tenant.lead_id.email if assignment.tenant and assignment.tenant.lead_id else None,
                 } if assignment.tenant else None,
                 "assignementStatus": assignment.assignment_status,
                 "rentalStartDate": assignment.rental_start_date,
