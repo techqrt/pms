@@ -561,9 +561,14 @@ class PropertyView:
         from pms_apps.lead.models.lead import Lead
         
         # Validate property detail exists
-        property_detail = PropertyDetail.objects.filter(property_detail_id=params.property_id).first()
+        property_detail = PropertyDetail.objects.filter(property_id=params.property_id).first()
         if not property_detail:
-            raise ValueError(self.data_no_match)
+            # Debug: Check if Property exists but PropertyDetail doesn't
+            property_exists = Property.objects.filter(property_id=params.property_id).exists()
+            if property_exists:
+                raise ValueError(f"Property {params.property_id} exists but no PropertyDetail found. Please create property details first.")
+            else:
+                raise ValueError(f"Invalid Property ID: {params.property_id}. Property does not exist.")
         
         # Validate tenant exists
         try:
