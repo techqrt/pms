@@ -13,4 +13,5 @@ urlpatterns = [
     path("assign/", PropertyViewController.assign, name="assign_property"),
     path("assignment/get/", PropertyViewController.get_assignment, name="get_assignment"),
     path("assignment/get_all/", PropertyViewController.get_all_assignments, name="get_all_assignments"),
+    path("assignment/count/", PropertyViewController.assignment_count, name="assignment_count"),
 ]
