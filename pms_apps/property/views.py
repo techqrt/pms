@@ -38,6 +38,7 @@ class PropertyView:
         self.data_get = "Property fetched successfully"
         self.data_no_match = "No matching property found"
         self.data_assign = "Property assigned to tenant successfully"
+        self.data_assignment_count = "Assignment count fetched successfully"
         self.db_error = "Database Error"
         self.error = "Something went wrong"
 
