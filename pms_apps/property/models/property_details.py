@@ -13,8 +13,8 @@ class PropertyDetail(models.Model):
     ]
 
     LATE_FEE_TYPE_CHOICES = [
-        ("Percentage", "Percentage"),
-        ("Fixed", "Fixed"),
+        ("Day wise", "Day wise"),
+        ("Month wise", "Month wise"),
     ]
 
     STATUS_CHOICES = [

@@ -783,3 +783,35 @@ class PropertyView:
                 }
             )
         )
+
+    @Common().exception_handler
+    def assignment_count_extract(self, params: GetAll):
+        from django.db.models import Count
+        
+        # Total properties assigned to this user
+        total_properties = Property.objects.filter(
+            assigned_to_id=params.user_id,
+            is_active=True
+        ).count()
+        
+        # Properties with at least one assignment (tenant not null)
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+        assigned_properties = Property.objects.filter(
+            assigned_to_id=params.user_id,
+            is_active=True,
+            assignments__tenant__isnull=False
+        ).distinct().count()
+        
+        # Unassigned properties
+        unassigned_properties = total_properties - assigned_properties
+        
+        data = {
+            'total_properties': total_properties,
+            'assigned_properties': assigned_properties,
+            'unassigned_properties': unassigned_properties
+        }
+        
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message=self.data_assignment_count, data=data)
+        )

@@ -30,7 +30,7 @@ class PropertyDetailUpdateSerializer(serializers.Serializer):
     )
 
     late_fee_type = serializers.ChoiceField(
-        choices=["Percentage", "Fixed"], required=False, allow_null=True
+        choices=["Day wise", "Month wise"], required=False, allow_null=True
     )
     late_fee_value = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
 

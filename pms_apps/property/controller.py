@@ -132,3 +132,13 @@ class PropertyViewController:
     @SerializerValidations(serializer=GetAllSerializer).validate
     def get_all_assignments(request: Request) -> Response:
         return PropertyView().get_all_extract_assignment(params=request.params)
+
+    @extend_schema(
+        description="Get Assignment Count - Total, Assigned, and Unassigned Properties",
+        parameters=SwaggerPage.get_all_parameters(),
+        responses=SwaggerPage.response(description=PropertyView().data_assignment_count)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=GetAllSerializer).validate
+    def assignment_count(request: Request) -> Response:
+        return PropertyView().assignment_count_extract(params=request.params)

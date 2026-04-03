@@ -17,14 +17,14 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     security_deposit_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
 
     electricity_charge_type = serializers.ChoiceField(
-        choices=["Meter", "Fixed"]
+        choices=["Meter", "Fixed"], required=False, allow_null=True
     )
     water_charge_type = serializers.ChoiceField(
-        choices=["Meter", "Fixed"]
+        choices=["Meter", "Fixed"], required=False, allow_null=True
     )
 
     late_fee_type = serializers.ChoiceField(
-        choices=["Percentage", "Fixed"]
+        choices=["Day wise", "Month wise"]
     )
     late_fee_value = serializers.DecimalField(max_digits=8, decimal_places=2)
 
