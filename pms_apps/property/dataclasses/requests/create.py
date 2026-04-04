@@ -14,8 +14,6 @@ class PropertyCommonData:
     builtup_area_sqft: Decimal
     monthly_rent: Decimal
     security_deposit_amount: Decimal
-    electricity_charge_type: str
-    water_charge_type: str
     late_fee_type: str
     late_fee_value: Decimal
     current_status: str
@@ -31,6 +29,8 @@ class PropertyCommonData:
     year_of_construction: int
     address_line_2: str
     internal_notes: str
+    electricity_charge_type: str | None = None
+    water_charge_type: str | None = None
     other_charges: dict | None = None
     available_from: date | None = None
     current_tenant_id: int | None = None

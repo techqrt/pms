@@ -56,12 +56,16 @@ class PropertyDetail(models.Model):
 
     electricity_charge_type = models.CharField(
         max_length=20,
-        choices=ELECTRICITY_CHARGE_TYPE_CHOICES
+        choices=ELECTRICITY_CHARGE_TYPE_CHOICES,
+        null=True,
+        blank=True
     )
 
     water_charge_type = models.CharField(
         max_length=20,
-        choices=WATER_CHARGE_TYPE_CHOICES
+        choices=WATER_CHARGE_TYPE_CHOICES,
+        null=True,
+        blank=True
     )
 
     other_charges = models.JSONField(
@@ -449,8 +453,6 @@ class PropertyDetail(models.Model):
         builtup_area_sqft: float,
         monthly_rent: float,
         security_deposit_amount: float,
-        electricity_charge_type: str,
-        water_charge_type: str,
         late_fee_type: str,
         late_fee_value: float,
         current_status: str,
@@ -466,6 +468,8 @@ class PropertyDetail(models.Model):
         year_of_construction: int,
         address_line_2: str,
         internal_notes: str,
+        electricity_charge_type: str = None,
+        water_charge_type: str = None,
         other_charges: dict = None,
         available_from = None,
         current_tenant_id: int = None,
