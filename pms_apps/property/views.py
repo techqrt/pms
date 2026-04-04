@@ -49,7 +49,6 @@ class PropertyView:
         # Mirror nested data to root Property fields for cleaner visibility
         block = params.block or params.property_details.address_line_2
         building_details = params.building_details or params.property_details.building_name
-        
         floor = params.floor
         if not floor:
             if params.rental_type == 'Flat' and params.flat_data:
@@ -96,8 +95,8 @@ class PropertyView:
                 'builtup_area_sqft': params.property_details.builtup_area_sqft,
                 'monthly_rent': params.property_details.monthly_rent,
                 'security_deposit_amount': params.property_details.security_deposit_amount,
-                'electricity_charge_type': params.property_details.electricity_charge_type,
-                'water_charge_type': params.property_details.water_charge_type,
+                'electricity_charge_type': params.property_details.electricity_charge_type or None,
+                'water_charge_type': params.property_details.water_charge_type or None,
                 'late_fee_type': params.property_details.late_fee_type,
                 'late_fee_value': params.property_details.late_fee_value,
                 'current_status': params.property_details.current_status,
@@ -328,6 +327,11 @@ class PropertyView:
         )
 
 
+    def _to_camel_case(self, snake_str: str) -> str:
+        """Convert snake_case to camelCase"""
+        components = snake_str.split('_')
+        return components[0] + ''.join(x.title() for x in components[1:])
+
     def _categorize_property_details(self, property_dict, detail_dict, rental_type):
         """Helper to structure detail_dict into categorized fields within property_dict."""
         # Common details
@@ -339,7 +343,10 @@ class PropertyView:
             'state', 'country', 'pincode', 'google_map_location', 'year_of_construction',
             'other_charges', 'available_from', 'current_tenant_id', 'internal_notes'
         ]
-        property_dict['propertyDetails'] = {k: detail_dict.get(k) for k in common_fields if k in detail_dict}
+        property_dict['propertyDetails'] = {
+            self._to_camel_case(k): detail_dict.get(k) 
+            for k in common_fields if k in detail_dict
+        }
         
         # Type specific details
         if rental_type == 'Flat':
@@ -350,7 +357,7 @@ class PropertyView:
                 'fire_safety', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
                 'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount'
             ]
-            property_dict['flatData'] = {k: detail_dict.get(k) for k in flat_fields if k in detail_dict}
+            property_dict['flatData'] = {self._to_camel_case(k): detail_dict.get(k) for k in flat_fields if k in detail_dict}
         elif rental_type == 'Commercial':
             commercial_fields = [
                 'commercial_category', 'floor_number', 'frontage_width_ft', 'ceiling_height_ft',
@@ -361,7 +368,7 @@ class PropertyView:
                 'gst_applicable', 'gst_percentage', 'security_deposit_months', 'lease_type',
                 'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business'
             ]
-            property_dict['commercialData'] = {k: detail_dict.get(k) for k in commercial_fields if k in detail_dict}
+            property_dict['commercialData'] = {self._to_camel_case(k): detail_dict.get(k) for k in commercial_fields if k in detail_dict}
         elif rental_type == 'Villa':
             villa_fields = [
                 'villa_name', 'villa_type', 'villa_configuration', 'project_name',
@@ -374,7 +381,7 @@ class PropertyView:
                 'pets_allowed', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
                 'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount'
             ]
-            property_dict['villaData'] = {k: detail_dict.get(k) for k in villa_fields if k in detail_dict}
+            property_dict['villaData'] = {self._to_camel_case(k): detail_dict.get(k) for k in villa_fields if k in detail_dict}
 
     @Common(response_handler=PropertyResponseGetSerializer).exception_handler
     def get_extract(self, params: PropertyGetRequest):
