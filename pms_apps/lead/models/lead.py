@@ -263,9 +263,9 @@ class Lead(models.Model):
         filter_value : str = '',
         search_key : str = '',
         ) -> list:
-        data = Lead.objects.filter(is_active=True)
+        data = Lead.objects.all()
         if filter_key and filter_value:
-            data = Lead.objects.filter(is_active=True,**{filter_key:filter_value})
+            data = Lead.objects.filter(**{filter_key:filter_value})
         if search_key:
             data = Lead.objects.filter(
                 Q(first_name__icontains = search_key) |
@@ -291,9 +291,9 @@ class Lead(models.Model):
         filter_value : str = '',
         search_key : str = '',
         ) -> list:
-        data = Lead.objects.filter(is_active=True, lead_assign_to__user_id=manager_user_id)
+        data = Lead.objects.filter(lead_assign_to__user_id=manager_user_id)
         if filter_key and filter_value:
-            data = Lead.objects.filter(is_active=True, lead_assign_to__user_id=manager_user_id, **{filter_key:filter_value})
+            data = Lead.objects.filter(lead_assign_to__user_id=manager_user_id, **{filter_key:filter_value})
         if search_key:
             data = Lead.objects.filter(
                 Q(first_name__icontains = search_key) |
