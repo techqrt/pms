@@ -138,7 +138,7 @@ class Lead(models.Model):
     )
     is_active = models.BooleanField(
         verbose_name="Is Active",
-        default=True
+        default=False
     )
 
     class Meta:
