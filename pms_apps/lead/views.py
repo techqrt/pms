@@ -123,6 +123,7 @@ class LeadView:
                 nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
+                is_active=params.is_active,
                 property_permission_id=property_permission_id,
                 profile_image=profile_image_obj
             )
