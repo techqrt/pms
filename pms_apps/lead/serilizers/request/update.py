@@ -27,6 +27,9 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     purpose = serializers.CharField(
         max_length = 10,required=False
     )
+    is_active = serializers.BooleanField(
+        required=False
+    )
     profile_picture = Base64ImageField(
         required=False, allow_null=True
     )
