@@ -50,7 +50,11 @@ class LeadView:
             # Process profile picture if provided
             profile_image_obj = None
             if params.profile_picture:
-                profile_image_obj = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
+                processed_image = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
+                # Only set profile_image_obj if it's a valid ContentFile (not a tuple for URLs)
+                # Tuples indicate external URLs which shouldn't be stored in ImageField
+                if processed_image is not None and not isinstance(processed_image, tuple):
+                    profile_image_obj = processed_image
             
             lead = Lead()
             lead_id = lead.create(
@@ -109,7 +113,11 @@ class LeadView:
             # Process profile picture if provided
             profile_image_obj = None
             if params.profile_picture is not None:
-                profile_image_obj = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
+                processed_image = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
+                # Only set profile_image_obj if it's a valid ContentFile (not a tuple for URLs)
+                # Tuples indicate external URLs which shouldn't be stored in ImageField
+                if processed_image is not None and not isinstance(processed_image, tuple):
+                    profile_image_obj = processed_image
 
             Lead.update(
                 lead_id=lead_data.get('lead_id'),
