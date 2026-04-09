@@ -6,6 +6,7 @@ EXCLUDE_FIELDS = ("created_at", "updated_at")
 def capture_pre_update_data(sender, instance, include_fields=None, **kwargs):
     from pms_apps.activity_log.models.activity_log import ActivityLog
     from pms_apps.activity_log.models.archive_log import ArchiveLog
+    from django.db.models import FileField
 
     if sender in (ActivityLog, ArchiveLog):
         return
@@ -20,15 +21,18 @@ def capture_pre_update_data(sender, instance, include_fields=None, **kwargs):
         instance._old_data = None
         return
 
-    instance._old_data = {
-        field.name: (
-            getattr(old_instance, f"{field.name}_id")
-            if field.is_relation
-            else getattr(old_instance, field.name)
-        )
-        for field in instance._meta.fields
-        if field.name not in EXCLUDE_FIELDS
-    }
+    instance._old_data = {}
+    for field in instance._meta.fields:
+        if field.name not in EXCLUDE_FIELDS:
+            if field.is_relation:
+                value = getattr(old_instance, f"{field.name}_id")
+            elif isinstance(field, FileField):
+                # Convert FileField/ImageField objects to strings
+                file_obj = getattr(old_instance, field.name)
+                value = str(file_obj) if file_obj else None
+            else:
+                value = getattr(old_instance, field.name)
+            instance._old_data[field.name] = value
 
 
 
@@ -44,6 +48,7 @@ def create_log_on_save_delete(
     from pms_apps.activity_log.utils import ActivityLogUtils
     from pms_apps.activity_log.models.activity_log import ActivityLog
     from pms_apps.activity_log.models.archive_log import ArchiveLog
+    from django.db.models import FileField
 
     if sender in (ActivityLog, ArchiveLog):
         return
@@ -64,11 +69,15 @@ def create_log_on_save_delete(
             name = field.name
 
             old_val = old_data.get(name)
-            new_val = (
-                getattr(instance, f"{name}_id")
-                if field.is_relation
-                else getattr(instance, name)
-            )
+            
+            if field.is_relation:
+                new_val = getattr(instance, f"{name}_id")
+            elif isinstance(field, FileField):
+                # Convert FileField/ImageField objects to strings for JSON serialization
+                file_obj = getattr(instance, name)
+                new_val = str(file_obj) if file_obj else None
+            else:
+                new_val = getattr(instance, name)
 
             if old_val != new_val:
                 changed_fields.append(name)
@@ -87,15 +96,18 @@ def create_log_on_save_delete(
         }
 
     else:
-        snapshot = {
-            field.name: (
-                getattr(instance, f"{field.name}_id")
-                if field.is_relation
-                else getattr(instance, field.name)
-            )
-            for field in instance._meta.fields
-            if not include_fields or field.name in include_fields
-        }
+        snapshot = {}
+        for field in instance._meta.fields:
+            if not include_fields or field.name in include_fields:
+                if field.is_relation:
+                    value = getattr(instance, f"{field.name}_id")
+                elif isinstance(field, FileField):
+                    # Convert FileField/ImageField objects to strings for JSON serialization
+                    file_obj = getattr(instance, field.name)
+                    value = str(file_obj) if file_obj else None
+                else:
+                    value = getattr(instance, field.name)
+                snapshot[field.name] = value
 
         details = {"snapshot": snapshot}
 
