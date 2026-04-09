@@ -296,10 +296,7 @@ class PropertyView:
                 from pms_apps.property.models.property_photos import PropertyPhotos
                 from pms_apps.property.image_utils import ImageUtils
                 
-                # Delete existing photos
-                PropertyPhotos.objects.filter(property_id=params.property_id).delete()
-                
-                # Add new photos
+                # Add new photos (append to existing, don't delete old ones)
                 for photo_data in params.photos:
                     # Process the photo (convert base64 to file or use URL as-is)
                     processed_photo = ImageUtils.process_photo(photo_data)

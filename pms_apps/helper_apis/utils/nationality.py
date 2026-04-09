@@ -6,7 +6,7 @@ class NationalityUtils:
     def __init__(self, columns_required: list = []) -> None:
         self.columns_required = columns_required
         self.mapped_columns_name = {
-            'nationality_id': 'countryId',
+            'nationality_id': 'nationalityId',
             'name': 'name',
         }
 

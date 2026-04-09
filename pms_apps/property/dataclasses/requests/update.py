@@ -27,7 +27,7 @@ class PropertyDetailUpdateData:
     year_of_construction: Optional[int] = None
     other_charges: Optional[Dict] = None
     available_from: Optional[date] = None
-    current_tenant_id: Optional[int] = None
+    current_tenant_id: Optional[str] = None
     address_line_2: Optional[str] = None
     internal_notes: Optional[str] = None
 

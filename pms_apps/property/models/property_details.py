@@ -99,12 +99,10 @@ class PropertyDetail(models.Model):
         related_name="properties_as_landlord"
     )
 
-    current_tenant = models.ForeignKey(
-        "lead.Lead", 
-        on_delete=models.SET_NULL,
+    current_tenant = models.CharField(
+        max_length=250,
         null=True,
-        blank=True,
-        related_name="properties_as_tenant"
+        blank=True
     )
 
     address_line_1 = models.TextField()
