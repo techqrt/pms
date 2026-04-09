@@ -112,7 +112,7 @@ class PropertyView:
                 'year_of_construction': params.property_details.year_of_construction,
                 'other_charges': params.property_details.other_charges,
                 'available_from': params.property_details.available_from,
-                'current_tenant_id': params.property_details.current_tenant_id,
+                'current_tenant_id': params.property_details.current_tenant,
                 'address_line_2': params.property_details.address_line_2,
                 'internal_notes': params.property_details.internal_notes,
             }
@@ -469,7 +469,7 @@ class PropertyView:
         from pms_apps.property.image_utils import ImageUtils
         from django.forms.models import model_to_dict
         
-        details_map = {d.property_id: {**model_to_dict(d), 'landlord_id': d.landlord_id, 'current_tenant_id': d.current_tenant_id} for d in PropertyDetail.get_by_properties(property_ids)}
+        details_map = {d.property_id: {**model_to_dict(d), 'landlord_id': d.landlord_id, 'current_tenant_id': d.current_tenant} for d in PropertyDetail.get_by_properties(property_ids)}
         
         from collections import defaultdict
         photos_map = defaultdict(list)
@@ -618,7 +618,7 @@ class PropertyView:
             )
             
             # Update PropertyDetail with current tenant and status
-            property_detail.current_tenant_id = params.tenant_id
+            property_detail.current_tenant = params.tenant_id
             property_detail.current_status = "Occupied"
             property_detail.save()
         

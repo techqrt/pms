@@ -591,7 +591,7 @@ class PropertyDetail(models.Model):
             current_status=current_status,
             available_from=available_from,
             landlord_id=landlord_id,
-            current_tenant_id=current_tenant_id,
+            current_tenant=current_tenant_id,
             address_line_1=address_line_1,
             address_line_2=address_line_2,
             area_zone=area_zone,
