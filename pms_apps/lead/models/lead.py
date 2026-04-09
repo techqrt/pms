@@ -247,13 +247,17 @@ class Lead(models.Model):
         return lead.lead_id
 
     @staticmethod
-    def get(lead_id: int) -> dict:
-        return Lead.objects.filter(lead_id=lead_id).values(
+    @staticmethod
+    def get(lead_id: int, include_profile_image: bool = False) -> dict:
+        fields = [
             "lead_id",  "first_name", "last_name", "lead_origin",
             "address","country__name","city__name","nationality__name","passport_or_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name",
-            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
-        ).first()
+            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
+        ]
+        if include_profile_image:
+            fields.append("profile_image")
+        return Lead.objects.filter(lead_id=lead_id).values(*fields).first()
 
     @staticmethod
     def get_all(
