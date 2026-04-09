@@ -88,7 +88,7 @@ class LeadView:
             if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
             user_data = User.get(user_id=params.lead_assign_to)
-            lead_data = Lead.get(lead_id=params.lead_id)
+            lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
             # If marketing manager, verify lead is assigned to them
@@ -147,7 +147,7 @@ class LeadView:
             
             if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
-            lead_data = Lead.get(lead_id=params.lead_id)
+            lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
             # If marketing manager, verify lead is assigned to them
@@ -167,7 +167,7 @@ class LeadView:
             manager_id = MarketingManager.get_id(params.user_id)
             if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
-            lead_data = Lead.get(lead_id=params.lead_id)
+            lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=True)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
             # If marketing manager, verify lead is assigned to them
@@ -250,6 +250,25 @@ class LeadView:
             
             lead_utils = LeadUtils(columns_required=columns)
             data = json.loads(lead_utils.mapper(data=data))
+            
+            # Convert profile_image to URLs if present and if 'profile_image' was in columns
+            if 'profile_image' in columns and data:
+                from pms_apps.lead.models.lead import Lead as LeadModel
+                lead_ids = [item.get('leadId') for item in data if item.get('leadId')]
+                if lead_ids:
+                    lead_objects = LeadModel.objects.filter(lead_id__in=lead_ids)
+                    profile_image_map = {
+                        lead.lead_id: (
+                            ImageUtils.get_photo_url(str(lead.profile_image))
+                            if lead.profile_image and not str(lead.profile_image).startswith(('http://', 'https://'))
+                            else str(lead.profile_image) if lead.profile_image else None
+                        )
+                        for lead in lead_objects
+                    }
+                    for item in data:
+                        lead_id = item.get('leadId')
+                        if lead_id in profile_image_map:
+                            item['profileImage'] = profile_image_map[lead_id]
             
             # Check if no leads assigned to marketing manager
             message = self.data_get
