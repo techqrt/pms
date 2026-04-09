@@ -33,7 +33,7 @@ class PropertyCommonData:
     water_charge_type: str | None = None
     other_charges: dict | None = None
     available_from: date | None = None
-    current_tenant_id: int | None = None
+    current_tenant_id: str | None = None
 
 
 @dataclass

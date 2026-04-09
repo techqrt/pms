@@ -49,7 +49,7 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     year_of_construction = serializers.IntegerField()
     other_charges = serializers.JSONField(required=False, allow_null=True, default=dict)
     available_from = serializers.DateField(required=False, allow_null=True)
-    current_tenant_id = serializers.IntegerField(required=False, allow_null=True)
+    current_tenant_id = serializers.CharField(max_length=250, required=False, allow_null=True)
     internal_notes = serializers.CharField()
 
 

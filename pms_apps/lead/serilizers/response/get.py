@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from pms_apps.property.image_utils import ImageUtils
 
 class LeadPermissionsGetSeriazlier(serializers.Serializer):
     property =  serializers.BooleanField()
@@ -25,7 +26,30 @@ class LeadGetSerializer(serializers.Serializer):
     updatedAt = serializers.DateTimeField(read_only = True)
     isActive = serializers.BooleanField(read_only = True)
     phoneNumber = serializers.CharField(read_only = True)
+    profileImage = serializers.SerializerMethodField(read_only = True)
     permissions = LeadPermissionsGetSeriazlier(read_only = True)
+
+    def get_profileImage(self, obj):
+        """Convert profile_image file path to URL"""
+        try:
+            profile_image = obj.get('profile_image') if isinstance(obj, dict) else getattr(obj, 'profile_image', None)
+            
+            if not profile_image:
+                return None
+            
+            # If it's already a full URL, return as-is
+            profile_image_str = str(profile_image)
+            if profile_image_str.startswith('http://') or profile_image_str.startswith('https://'):
+                return profile_image_str
+            
+            # Convert file path to URL
+            if profile_image_str:
+                return ImageUtils.get_photo_url(profile_image_str)
+            
+            return None
+        except Exception:
+            # If any error occurs during URL conversion, return None safely
+            return None
 
 class LeadResponseGetSerializer(serializers.Serializer):
     data = LeadGetSerializer()
