@@ -28,7 +28,7 @@ class Lead(models.Model):
         ("Landlord", "Landlord"),
         ]
     
-    TENANT_TYPE = [
+    LEAD_CATEGORY_CHOICES = [
         ("Bachelor", "Bachelor"),
         ("Married", "Married")
     ]
@@ -39,6 +39,7 @@ class Lead(models.Model):
         on_delete=models.DO_NOTHING,
         primary_key=True,
     )
+
     lead_assign_to = models.ForeignKey(
         verbose_name='Lead Assigned',
         to=User,
@@ -56,9 +57,9 @@ class Lead(models.Model):
         verbose_name="Lastname",
         max_length=15
     )
-    type_of_tenant = models.CharField(
-        verbose_name='Type of Tenant',
-        choices=TENANT_TYPE,
+    lead_category = models.CharField(
+        verbose_name='Lead Category',
+        choices=LEAD_CATEGORY_CHOICES,
         max_length=15,
         null=True
     )
@@ -174,6 +175,7 @@ class Lead(models.Model):
         passport_or_id: str,
         purpose: str,
         property_permissions_id : int,
+        lead_category: str = None,
         profile_image = None
     ) -> int:
         self.lead_id_id = lead_id
@@ -187,6 +189,7 @@ class Lead(models.Model):
         self.nationality_id = nationality_id
         self.passport_or_id = passport_or_id
         self.purpose = purpose
+        self.lead_category = lead_category
         self.property_permissions_id = property_permissions_id
         if profile_image is not None:
             self.profile_image = profile_image
@@ -206,6 +209,7 @@ class Lead(models.Model):
         nationality_id : int = None,
         passport_or_id: str = None,
         purpose: str = None,
+        lead_category: str = None,
         is_active: bool = None,
         property_permission_id : int = None,
         profile_image = None,
@@ -231,6 +235,8 @@ class Lead(models.Model):
             lead.passport_or_id = passport_or_id
         if purpose is not None:
             lead.purpose = purpose
+        if lead_category is not None:
+            lead.lead_category = lead_category
         if is_active is not None:
             lead.is_active = is_active
         if property_permission_id is not None: 
@@ -250,7 +256,7 @@ class Lead(models.Model):
     @staticmethod
     def get(lead_id: int, include_profile_image: bool = False) -> dict:
         fields = [
-            "lead_id",  "first_name", "last_name", "lead_origin",
+            "lead_id",  "first_name", "last_name", "lead_category", "lead_origin",
             "address","country__name","city__name","nationality__name","passport_or_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name",
             "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
@@ -279,7 +285,7 @@ class Lead(models.Model):
             data = data.order_by(('-' if sort_order == 'desc' else '') + sort_by)
         return list(
             data.values(
-                "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
+                "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
                 "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
@@ -308,7 +314,7 @@ class Lead(models.Model):
             data = data.order_by(('-' if sort_order == 'desc' else '') + sort_by)
         return list(
             data.values(
-                "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_origin",
+                "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
                 "address","country__name","city__name","nationality__name", "passport_or_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
                 "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
