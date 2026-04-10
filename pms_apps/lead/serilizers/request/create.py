@@ -46,6 +46,11 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
     purpose = serializers.CharField(
         max_length = 10
     )
+    lead_category = serializers.CharField(
+        max_length = 15,
+        required = False,
+        allow_null = True
+    )
     profile_picture = Base64ImageField(
         required=False, allow_null=True
     )

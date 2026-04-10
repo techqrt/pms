@@ -22,6 +22,7 @@ class LeadGetSerializer(serializers.Serializer):
     nationality = serializers.CharField(read_only=True)
     passportOrId = serializers.CharField(read_only = True)
     purpose = serializers.CharField(read_only = True)
+    leadCategory = serializers.CharField(read_only = True, required=False)
     createdAt = serializers.DateTimeField(read_only = True)
     updatedAt = serializers.DateTimeField(read_only = True)
     isActive = serializers.BooleanField(read_only = True)

@@ -27,6 +27,11 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     purpose = serializers.CharField(
         max_length = 10,required=False
     )
+    lead_category = serializers.CharField(
+        max_length = 15,
+        required = False,
+        allow_null = True
+    )
     is_active = serializers.BooleanField(
         required=False
     )

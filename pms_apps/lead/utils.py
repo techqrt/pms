@@ -9,6 +9,7 @@ class LeadUtils:
             'lead_id': 'leadId',
             'first_name': 'firstName',
             'last_name': 'lastName',
+            'lead_category': 'leadCategory',
             'lead_origin': 'leadOrigin',
             'address': 'address',
             'country__name' : 'country',
