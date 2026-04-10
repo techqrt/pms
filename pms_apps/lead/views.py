@@ -69,6 +69,8 @@ class LeadView:
                 nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
+                po_box=params.po_box,
+                feedback=params.feedback,
                 lead_category=params.lead_category,
                 property_permissions_id=lead_permission.permission_id,
                 profile_image=profile_image_obj
@@ -132,6 +134,8 @@ class LeadView:
                 nationality_id=params.nationality_id,
                 passport_or_id=params.passport_or_id,
                 purpose=params.purpose,
+                po_box=params.po_box,
+                feedback=params.feedback,
                 lead_category=params.lead_category,
                 is_active=params.is_active,
                 property_permission_id=property_permission_id,

@@ -16,5 +16,7 @@ class LeadCreateRequest:
     passport_or_id : str
     purpose : str
     permissions : Permissions
+    po_box : str | None = None
+    feedback : str | None = None
     lead_category : str | None = None
     profile_picture : str | None = None
