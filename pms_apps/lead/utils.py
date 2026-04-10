@@ -12,6 +12,8 @@ class LeadUtils:
             'lead_category': 'leadCategory',
             'lead_origin': 'leadOrigin',
             'address': 'address',
+            'po_box': 'poBox',
+            'feedback': 'feedback',
             'country__name' : 'country',
             'city__name' : 'city',
             'nationality__name' : 'nationality',
