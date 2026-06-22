@@ -51,6 +51,11 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     available_from = serializers.DateField(required=False, allow_null=True)
     current_tenant_id = serializers.CharField(max_length=250, required=False, allow_null=True)
     internal_notes = serializers.CharField()
+    furnishing_status = serializers.ChoiceField(
+        choices=["Unfurnished", "Semi-Furnished", "Fully Furnished"], required=False, allow_null=True
+    )
+    payment_due_date = serializers.DateField(required=False, allow_null=True)
+    rent_increase_date = serializers.DateField(required=False, allow_null=True)
 
 
 class CommercialPropertySerializer(serializers.Serializer):
@@ -105,6 +110,10 @@ class CommercialPropertySerializer(serializers.Serializer):
     lock_in_period_months = serializers.IntegerField(required=False, allow_null=True)
     allowed_business = serializers.CharField(required=False, allow_null=True)
     prohibited_business = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    cctv = serializers.BooleanField(required=False, allow_null=True, default=False)
+    super_builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
 
 
 class FlatPropertySerializer(serializers.Serializer):
@@ -205,6 +214,84 @@ class VillaPropertySerializer(serializers.Serializer):
     water_charge_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    facing = serializers.ChoiceField(
+        choices=["East", "West", "North", "South"], required=False, allow_null=True
+    )
+    kitchen_type = serializers.ChoiceField(
+        choices=["Open", "Closed"], required=False, allow_null=True
+    )
+    swimming_pool = serializers.ChoiceField(
+        choices=["No", "Private", "Common"], required=False, allow_null=True, default="No"
+    )
+    unit = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
+    super_builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    pantry = serializers.BooleanField(required=False, allow_null=True, default=False)
+
+
+class WarehousePropertySerializer(serializers.Serializer):
+    warehouse_category = serializers.ChoiceField(
+        choices=["Industrial Warehouse", "Logistics Warehouse", "Cold Storage", "Godown"]
+    )
+    warehouse_name = serializers.CharField(max_length=150)
+    plot_area_sqft = serializers.DecimalField(max_digits=10, decimal_places=2)
+    clear_height_ft = serializers.DecimalField(max_digits=8, decimal_places=2)
+    no_of_bays = serializers.IntegerField()
+    no_of_loading_docks = serializers.IntegerField()
+    dock_height_ft = serializers.DecimalField(max_digits=8, decimal_places=2)
+    floor_load_capacity_mt_sqft = serializers.CharField(max_length=50)
+    column_spacing_ft = serializers.DecimalField(max_digits=8, decimal_places=2)
+    has_mezzanine_floor = serializers.BooleanField(required=False, allow_null=True, default=False)
+    power_load_kw = serializers.DecimalField(max_digits=8, decimal_places=2)
+    has_transformer = serializers.BooleanField(required=False, allow_null=True, default=False)
+    has_dg_backup = serializers.BooleanField(required=False, allow_null=True, default=False)
+    water_supply_source = serializers.ChoiceField(
+        choices=["Borewell", "Municipal", "Tanker"]
+    )
+    has_drainage_system = serializers.BooleanField(required=False, allow_null=True, default=False)
+    has_internet_fiber = serializers.BooleanField(required=False, allow_null=True, default=False)
+    entry_gate_width_ft = serializers.DecimalField(max_digits=8, decimal_places=2)
+    road_width_ft = serializers.DecimalField(max_digits=8, decimal_places=2)
+    truck_parking_capacity = serializers.IntegerField()
+    container_access = serializers.ChoiceField(
+        choices=["20 ft", "40 ft", "Both"]
+    )
+    turning_radius = serializers.ChoiceField(
+        choices=["Adequate", "Limited"]
+    )
+    has_weighbridge_nearby = serializers.BooleanField(required=False, allow_null=True, default=False)
+    monthly_rent_type = serializers.ChoiceField(
+        choices=["Per Sq. Ft.", "Lump Sum"]
+    )
+    rent_escalation_percentage = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, allow_null=True
+    )
+    lock_in_period_months = serializers.IntegerField(required=False, allow_null=True)
+    allowed_industry_types = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True
+    )
+    industrial_estate_name = serializers.CharField(max_length=150, required=False, allow_null=True)
+    plot_shed_number = serializers.CharField(max_length=100, required=False, allow_null=True)
+    ownership_type = serializers.ChoiceField(
+        choices=["Owned", "Leased"], required=False, allow_null=True
+    )
+    office_space_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    maintenance_charges = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True
+    )
+    cam_charges = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True
+    )
+    security_deposit_months = serializers.IntegerField(required=False, allow_null=True)
+    security_deposit_amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True
+    )
+    security_deposit_type = serializers.ChoiceField(
+        choices=["Months", "Amount"], required=False, allow_null=True
+    )
 
 
 class PropertyCreateSerializer(serializers.Serializer):
@@ -221,7 +308,7 @@ class PropertyCreateSerializer(serializers.Serializer):
     dimension_area_sqft = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, allow_null=True
     )
-    rental_type = serializers.ChoiceField(choices=["Flat", "Commercial", "Villa"])
+    rental_type = serializers.ChoiceField(choices=["Flat", "Commercial", "Villa", "Warehouse"])
     rental_for = serializers.ChoiceField(
         choices=["Bachelor", "Family", "Labour"], required=False, default="Family"
     )
@@ -243,6 +330,7 @@ class PropertyCreateSerializer(serializers.Serializer):
     commercial_data = CommercialPropertySerializer(required=False, allow_null=True)
     flat_data = FlatPropertySerializer(required=False, allow_null=True)
     villa_data = VillaPropertySerializer(required=False, allow_null=True)
+    warehouse_data = WarehousePropertySerializer(required=False, allow_null=True)
 
     def validate(self, data):
         """Validate that the correct property type data is provided based on rental_type"""
@@ -253,7 +341,7 @@ class PropertyCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'commercial_data': 'Commercial property data is required for Commercial rental type.'
                 })
-            if data.get('flat_data') or data.get('villa_data'):
+            if data.get('flat_data') or data.get('villa_data') or data.get('warehouse_data'):
                 raise serializers.ValidationError({
                     'property_type_data': 'Only commercial_data should be provided for Commercial rental type.'
                 })
@@ -263,7 +351,7 @@ class PropertyCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'flat_data': 'Flat property data is required for Flat rental type.'
                 })
-            if data.get('commercial_data') or data.get('villa_data'):
+            if data.get('commercial_data') or data.get('villa_data') or data.get('warehouse_data'):
                 raise serializers.ValidationError({
                     'property_type_data': 'Only flat_data should be provided for Flat rental type.'
                 })
@@ -273,9 +361,19 @@ class PropertyCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'villa_data': 'Villa property data is required for Villa rental type.'
                 })
-            if data.get('commercial_data') or data.get('flat_data'):
+            if data.get('commercial_data') or data.get('flat_data') or data.get('warehouse_data'):
                 raise serializers.ValidationError({
                     'property_type_data': 'Only villa_data should be provided for Villa rental type.'
+                })
+        
+        elif rental_type == 'Warehouse':
+            if not data.get('warehouse_data'):
+                raise serializers.ValidationError({
+                    'warehouse_data': 'Warehouse property data is required for Warehouse rental type.'
+                })
+            if data.get('commercial_data') or data.get('flat_data') or data.get('villa_data'):
+                raise serializers.ValidationError({
+                    'property_type_data': 'Only warehouse_data should be provided for Warehouse rental type.'
                 })
         
         return data
@@ -285,12 +383,14 @@ class PropertyCreateSerializer(serializers.Serializer):
             PropertyCommonData,
             CommercialPropertyData,
             FlatPropertyData,
-            VillaPropertyData
+            VillaPropertyData,
+            WarehousePropertyData
         )
         
         commercial_data_dict = validated_data.pop('commercial_data', None)
         flat_data_dict = validated_data.pop('flat_data', None)
         villa_data_dict = validated_data.pop('villa_data', None)
+        warehouse_data_dict = validated_data.pop('warehouse_data', None)
         property_details_dict = validated_data.pop('property_details')
         assigned_to = validated_data.pop('assigned_to', None)
         photos = validated_data.pop('photos', [])
@@ -310,12 +410,17 @@ class PropertyCreateSerializer(serializers.Serializer):
         if villa_data_dict:
             villa_data = VillaPropertyData(**villa_data_dict)
         
+        warehouse_data = None
+        if warehouse_data_dict:
+            warehouse_data = WarehousePropertyData(**warehouse_data_dict)
+        
         return PropertyCreateRequest(
             **validated_data,
             property_details=property_details,
             commercial_data=commercial_data,
             flat_data=flat_data,
             villa_data=villa_data,
+            warehouse_data=warehouse_data,
             assigned_to=assigned_to,
             photos=photos or [],
             videos=videos or []

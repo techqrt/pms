@@ -407,6 +407,32 @@ class PropertyDetail(models.Model):
     #flat and villa
     power_backup = models.BooleanField(default=False,null=True)
     cctv = models.BooleanField(default=False,null=True)
+
+    #villa specific
+    SWIMMING_POOL_CHOICES = [
+        ("No", "No"),
+        ("Private", "Private"),
+        ("Common", "Common"),
+    ]
+    swimming_pool = models.CharField(
+        max_length=10,
+        choices=SWIMMING_POOL_CHOICES,
+        default="No",
+        null=True,
+        blank=True
+    )
+    unit = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+    super_builtup_area_sqft = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    pantry = models.BooleanField(default=False, null=True)
     allowed_tenant_types = models.JSONField(
         default=list,
         help_text="Example: ['Bachelor', 'Family']",null=True
@@ -434,6 +460,224 @@ class PropertyDetail(models.Model):
         null=True,
         blank=True
     )
+
+    # Warehouse Specific Fields
+    WAREHOUSE_CATEGORY_CHOICES = [
+        ("Industrial Warehouse", "Industrial Warehouse"),
+        ("Logistics Warehouse", "Logistics Warehouse"),
+        ("Cold Storage", "Cold Storage"),
+        ("Godown", "Godown"),
+    ]
+    
+    warehouse_category = models.CharField(
+        max_length=30,
+        choices=WAREHOUSE_CATEGORY_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    warehouse_name = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True
+    )
+    
+    industrial_estate_name = models.CharField(
+        max_length=150,
+        null=True,
+        blank=True
+    )
+    
+    plot_shed_number = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+    
+    OWNERSHIP_TYPE_CHOICES = [
+        ("Owned", "Owned"),
+        ("Leased", "Leased"),
+    ]
+    
+    ownership_type = models.CharField(
+        max_length=20,
+        choices=OWNERSHIP_TYPE_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    clear_height_ft = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    no_of_bays = models.PositiveIntegerField(null=True, blank=True)
+    
+    no_of_loading_docks = models.PositiveIntegerField(null=True, blank=True)
+    
+    dock_height_ft = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    floor_load_capacity_mt_sqft = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True
+    )
+    
+    column_spacing_ft = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    has_mezzanine_floor = models.BooleanField(default=False, null=True)
+    
+    office_space_area_sqft = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    has_transformer = models.BooleanField(default=False, null=True)
+    
+    WATER_SUPPLY_SOURCE_CHOICES = [
+        ("Borewell", "Borewell"),
+        ("Municipal", "Municipal"),
+        ("Tanker", "Tanker"),
+    ]
+    
+    water_supply_source = models.CharField(
+        max_length=20,
+        choices=WATER_SUPPLY_SOURCE_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    has_drainage_system = models.BooleanField(default=False, null=True)
+    
+    has_internet_fiber = models.BooleanField(default=False, null=True)
+    
+    entry_gate_width_ft = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    road_width_ft = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    truck_parking_capacity = models.PositiveIntegerField(null=True, blank=True)
+    
+    CONTAINER_ACCESS_CHOICES = [
+        ("20 ft", "20 ft"),
+        ("40 ft", "40 ft"),
+        ("Both", "Both"),
+    ]
+    
+    container_access = models.CharField(
+        max_length=20,
+        choices=CONTAINER_ACCESS_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    TURNING_RADIUS_CHOICES = [
+        ("Adequate", "Adequate"),
+        ("Limited", "Limited"),
+    ]
+    
+    turning_radius = models.CharField(
+        max_length=20,
+        choices=TURNING_RADIUS_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    has_weighbridge_nearby = models.BooleanField(default=False, null=True)
+    
+    MONTHLY_RENT_TYPE_CHOICES = [
+        ("Per Sq. Ft.", "Per Sq. Ft."),
+        ("Lump Sum", "Lump Sum"),
+    ]
+    
+    monthly_rent_type = models.CharField(
+        max_length=20,
+        choices=MONTHLY_RENT_TYPE_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    rent_escalation_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    lock_in_period_months = models.PositiveIntegerField(null=True, blank=True)
+    
+    allowed_industry_types = models.JSONField(
+        default=list,
+        help_text="Example: ['FMCG', 'Pharma', 'E-commerce']",
+        null=True,
+        blank=True
+    )
+    
+    maintenance_charges = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    cam_charges = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    
+    SECURITY_DEPOSIT_TYPE_CHOICES = [
+        ("Months", "Months"),
+        ("Amount", "Amount"),
+    ]
+    
+    security_deposit_type = models.CharField(
+        max_length=20,
+        choices=SECURITY_DEPOSIT_TYPE_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    security_deposit_months = models.PositiveIntegerField(null=True, blank=True)
+
+    # Common Overview fields
+    FURNISHING_CHOICES = [
+        ("Unfurnished", "Unfurnished"),
+        ("Semi-Furnished", "Semi-Furnished"),
+        ("Fully Furnished", "Fully Furnished"),
+    ]
+    furnishing_status = models.CharField(
+        max_length=20,
+        choices=FURNISHING_CHOICES,
+        null=True,
+        blank=True
+    )
+    payment_due_date = models.DateField(null=True, blank=True)
+    rent_increase_date = models.DateField(null=True, blank=True)
 
     class Meta:
         db_table = "property_detail"
@@ -471,6 +715,9 @@ class PropertyDetail(models.Model):
         other_charges: dict = None,
         available_from = None,
         current_tenant_id: int = None,
+        furnishing_status: str = None,
+        payment_due_date = None,
+        rent_increase_date = None,
         # Flat-specific fields
         flat_number: str = None,
         floor_number: int = None,
@@ -541,6 +788,40 @@ class PropertyDetail(models.Model):
         gated_community: bool = None,
         bachelor_allowed: bool = None,
         pets_allowed: bool = None,
+        swimming_pool: str = None,
+        unit: str = None,
+        super_builtup_area_sqft: float = None,
+        pantry: bool = None,
+        # Warehouse-specific fields
+        warehouse_category: str = None,
+        warehouse_name: str = None,
+        industrial_estate_name: str = None,
+        plot_shed_number: str = None,
+        ownership_type: str = None,
+        clear_height_ft: float = None,
+        no_of_bays: int = None,
+        no_of_loading_docks: int = None,
+        dock_height_ft: float = None,
+        floor_load_capacity_mt_sqft: str = None,
+        column_spacing_ft: float = None,
+        has_mezzanine_floor: bool = None,
+        office_space_area_sqft: float = None,
+        has_transformer: bool = None,
+        water_supply_source: str = None,
+        has_drainage_system: bool = None,
+        has_internet_fiber: bool = None,
+        entry_gate_width_ft: float = None,
+        road_width_ft: float = None,
+        truck_parking_capacity: int = None,
+        container_access: str = None,
+        turning_radius: str = None,
+        has_weighbridge_nearby: bool = None,
+        monthly_rent_type: str = None,
+        rent_escalation_percentage: float = None,
+        allowed_industry_types: list = None,
+        maintenance_charges: float = None,
+        cam_charges: float = None,
+        security_deposit_type: str = None,
         # Shared fields
         maintenance_charge_amount: float = None,
         electricity_charge_amount: float = None,
@@ -602,6 +883,9 @@ class PropertyDetail(models.Model):
             google_map_location=google_map_location,
             internal_notes=internal_notes,
             created_by_id=created_by_id,
+            furnishing_status=furnishing_status,
+            payment_due_date=payment_due_date,
+            rent_increase_date=rent_increase_date,
             # Flat fields
             flat_number=flat_number,
             floor_number=floor_number,
@@ -672,6 +956,40 @@ class PropertyDetail(models.Model):
             gated_community=gated_community,
             bachelor_allowed=bachelor_allowed,
             pets_allowed=pets_allowed,
+            swimming_pool=swimming_pool,
+            unit=unit,
+            super_builtup_area_sqft=super_builtup_area_sqft,
+            pantry=pantry,
+            # Warehouse fields
+            warehouse_category=warehouse_category,
+            warehouse_name=warehouse_name,
+            industrial_estate_name=industrial_estate_name,
+            plot_shed_number=plot_shed_number,
+            ownership_type=ownership_type,
+            clear_height_ft=clear_height_ft,
+            no_of_bays=no_of_bays,
+            no_of_loading_docks=no_of_loading_docks,
+            dock_height_ft=dock_height_ft,
+            floor_load_capacity_mt_sqft=floor_load_capacity_mt_sqft,
+            column_spacing_ft=column_spacing_ft,
+            has_mezzanine_floor=has_mezzanine_floor,
+            office_space_area_sqft=office_space_area_sqft,
+            has_transformer=has_transformer,
+            water_supply_source=water_supply_source,
+            has_drainage_system=has_drainage_system,
+            has_internet_fiber=has_internet_fiber,
+            entry_gate_width_ft=entry_gate_width_ft,
+            road_width_ft=road_width_ft,
+            truck_parking_capacity=truck_parking_capacity,
+            container_access=container_access,
+            turning_radius=turning_radius,
+            has_weighbridge_nearby=has_weighbridge_nearby,
+            monthly_rent_type=monthly_rent_type,
+            rent_escalation_percentage=rent_escalation_percentage,
+            allowed_industry_types=allowed_industry_types or [],
+            maintenance_charges=maintenance_charges,
+            cam_charges=cam_charges,
+            security_deposit_type=security_deposit_type,
             # Shared fields
             maintenance_charge_amount=maintenance_charge_amount,
             electricity_charge_amount=electricity_charge_amount,

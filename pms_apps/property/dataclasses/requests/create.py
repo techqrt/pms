@@ -34,6 +34,9 @@ class PropertyCommonData:
     other_charges: dict | None = None
     available_from: date | None = None
     current_tenant_id: str | None = None
+    furnishing_status: str | None = None
+    payment_due_date: date | None = None
+    rent_increase_date: date | None = None
 
 
 @dataclass
@@ -63,6 +66,8 @@ class CommercialPropertyData:
     lock_in_period_months: int | None = None
     allowed_business: str | None = None
     prohibited_business: str | None = None
+    cctv: bool | None = None
+    super_builtup_area_sqft: Decimal | None = None
 
 
 @dataclass
@@ -127,6 +132,51 @@ class VillaPropertyData:
     maintenance_charge_amount: Decimal | None = None
     electricity_charge_amount: Decimal | None = None
     water_charge_amount: Decimal | None = None
+    facing: str | None = None
+    kitchen_type: str | None = None
+    swimming_pool: str | None = None
+    unit: str | None = None
+    super_builtup_area_sqft: Decimal | None = None
+    pantry: bool | None = None
+
+
+@dataclass
+class WarehousePropertyData:
+    warehouse_category: str
+    warehouse_name: str
+    plot_area_sqft: Decimal
+    clear_height_ft: Decimal
+    no_of_bays: int
+    no_of_loading_docks: int
+    dock_height_ft: Decimal
+    floor_load_capacity_mt_sqft: str
+    column_spacing_ft: Decimal
+    has_mezzanine_floor: bool
+    power_load_kw: Decimal
+    has_transformer: bool
+    has_dg_backup: bool
+    water_supply_source: str
+    has_drainage_system: bool
+    has_internet_fiber: bool
+    entry_gate_width_ft: Decimal
+    road_width_ft: Decimal
+    truck_parking_capacity: int
+    container_access: str
+    turning_radius: str
+    has_weighbridge_nearby: bool
+    monthly_rent_type: str
+    rent_escalation_percentage: Decimal | None = None
+    lock_in_period_months: int | None = None
+    allowed_industry_types: List[str] | None = None
+    industrial_estate_name: str | None = None
+    plot_shed_number: str | None = None
+    ownership_type: str | None = None
+    office_space_area_sqft: Decimal | None = None
+    maintenance_charges: Decimal | None = None
+    cam_charges: Decimal | None = None
+    security_deposit_months: int | None = None
+    security_deposit_amount: Decimal | None = None
+    security_deposit_type: str | None = None
 
 
 @dataclass
@@ -147,6 +197,7 @@ class PropertyCreateRequest:
     commercial_data: CommercialPropertyData | None = None
     flat_data: FlatPropertyData | None = None
     villa_data: VillaPropertyData | None = None
+    warehouse_data: WarehousePropertyData | None = None
     assigned_to: dict | None = None
     photos: List[str] = field(default_factory=list)
     videos: List[str] = field(default_factory=list)

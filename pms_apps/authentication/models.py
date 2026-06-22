@@ -22,6 +22,7 @@ class User(AbstractBaseUser):
         ("General Manager", "General Manager"),
         ("HR", "HR"),
         ("Owner", "Owner"),
+        ("Check-In Check-Out", "Check-In Check-Out"),
     ]
 
     ROLE_CHOICES = [
@@ -33,7 +34,7 @@ class User(AbstractBaseUser):
     ]
 
     user_id = models.AutoField(primary_key=True)
-    phone_number = models.CharField(max_length=20, unique=True)
+    phone_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
     name = models.CharField(max_length=100, default="")
     email = models.EmailField(blank=True, null=True)
     department = models.CharField(

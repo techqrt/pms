@@ -115,6 +115,9 @@ class PropertyView:
                 'current_tenant_id': params.property_details.current_tenant,
                 'address_line_2': params.property_details.address_line_2,
                 'internal_notes': params.property_details.internal_notes,
+                'furnishing_status': params.property_details.furnishing_status,
+                'payment_due_date': params.property_details.payment_due_date,
+                'rent_increase_date': params.property_details.rent_increase_date,
             }
 
             # Add rental type-specific data
@@ -170,6 +173,8 @@ class PropertyView:
                     'maintenance_charge_amount': params.commercial_data.maintenance_charge_amount,
                     'electricity_charge_amount': params.commercial_data.electricity_charge_amount,
                     'water_charge_amount': params.commercial_data.water_charge_amount,
+                    'cctv': params.commercial_data.cctv,
+                    'super_builtup_area_sqft': params.commercial_data.super_builtup_area_sqft,
                 })
             elif params.rental_type == 'Villa' and params.villa_data:
                 property_detail_kwargs.update({
@@ -207,6 +212,49 @@ class PropertyView:
                     'maintenance_charge_amount': params.villa_data.maintenance_charge_amount,
                     'electricity_charge_amount': params.villa_data.electricity_charge_amount,
                     'water_charge_amount': params.villa_data.water_charge_amount,
+                    'facing': params.villa_data.facing,
+                    'kitchen_type': params.villa_data.kitchen_type,
+                    'swimming_pool': params.villa_data.swimming_pool,
+                    'unit': params.villa_data.unit,
+                    'super_builtup_area_sqft': params.villa_data.super_builtup_area_sqft,
+                    'pantry': params.villa_data.pantry,
+                })
+            elif params.rental_type == 'Warehouse' and params.warehouse_data:
+                property_detail_kwargs.update({
+                    'warehouse_category': params.warehouse_data.warehouse_category,
+                    'warehouse_name': params.warehouse_data.warehouse_name,
+                    'industrial_estate_name': params.warehouse_data.industrial_estate_name,
+                    'plot_shed_number': params.warehouse_data.plot_shed_number,
+                    'ownership_type': params.warehouse_data.ownership_type,
+                    'clear_height_ft': params.warehouse_data.clear_height_ft,
+                    'no_of_bays': params.warehouse_data.no_of_bays,
+                    'no_of_loading_docks': params.warehouse_data.no_of_loading_docks,
+                    'dock_height_ft': params.warehouse_data.dock_height_ft,
+                    'floor_load_capacity_mt_sqft': params.warehouse_data.floor_load_capacity_mt_sqft,
+                    'column_spacing_ft': params.warehouse_data.column_spacing_ft,
+                    'has_mezzanine_floor': params.warehouse_data.has_mezzanine_floor,
+                    'office_space_area_sqft': params.warehouse_data.office_space_area_sqft,
+                    'has_transformer': params.warehouse_data.has_transformer,
+                    'water_supply_source': params.warehouse_data.water_supply_source,
+                    'has_drainage_system': params.warehouse_data.has_drainage_system,
+                    'has_internet_fiber': params.warehouse_data.has_internet_fiber,
+                    'entry_gate_width_ft': params.warehouse_data.entry_gate_width_ft,
+                    'road_width_ft': params.warehouse_data.road_width_ft,
+                    'truck_parking_capacity': params.warehouse_data.truck_parking_capacity,
+                    'container_access': params.warehouse_data.container_access,
+                    'turning_radius': params.warehouse_data.turning_radius,
+                    'has_weighbridge_nearby': params.warehouse_data.has_weighbridge_nearby,
+                    'monthly_rent_type': params.warehouse_data.monthly_rent_type,
+                    'rent_escalation_percentage': params.warehouse_data.rent_escalation_percentage,
+                    'lock_in_period_months': params.warehouse_data.lock_in_period_months,
+                    'allowed_industry_types': params.warehouse_data.allowed_industry_types,
+                    'maintenance_charges': params.warehouse_data.maintenance_charges,
+                    'cam_charges': params.warehouse_data.cam_charges,
+                    'security_deposit_type': params.warehouse_data.security_deposit_type,
+                    'security_deposit_months': params.warehouse_data.security_deposit_months,
+                    'has_dg_backup': params.warehouse_data.has_dg_backup,
+                    'power_load_kw': params.warehouse_data.power_load_kw,
+                    'plot_area_sqft': params.warehouse_data.plot_area_sqft,
                 })
 
             PropertyDetail.create(**property_detail_kwargs)
@@ -338,7 +386,8 @@ class PropertyView:
             'water_charge_type', 'late_fee_type', 'late_fee_value', 'current_status',
             'landlord_id', 'address_line_1', 'address_line_2', 'area_zone', 'city',
             'state', 'country', 'pincode', 'google_map_location', 'year_of_construction',
-            'other_charges', 'available_from', 'current_tenant_id', 'internal_notes'
+            'other_charges', 'available_from', 'current_tenant_id', 'internal_notes',
+            'furnishing_status', 'payment_due_date', 'rent_increase_date'
         ]
         property_dict['propertyDetails'] = {
             self._to_camel_case(k): detail_dict.get(k) 

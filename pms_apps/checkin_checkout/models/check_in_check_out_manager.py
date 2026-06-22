@@ -1,0 +1,191 @@
+from django.db import models
+from django.utils import timezone
+from django.db.models import Q
+from pms_apps.authentication.models import User
+from pms_apps.common.models.permissions import LeadPermission, PropertyPermission
+
+
+class CheckInCheckOutManager(models.Model):
+    manager_id = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name="check_in_check_out_manager_profile"
+    )
+    name = models.CharField(max_length=100, default="")
+    dob = models.DateField(null=True, blank=True)
+    department = models.CharField(max_length=100, blank=True, null=True)
+    team_size = models.IntegerField(default=0)
+    profile_picture = models.ImageField(
+        verbose_name='Profile Picture',
+        upload_to='check_in_check_out_manager_profiles/',
+        max_length=500,
+        null=True,
+        blank=True
+    )
+
+    lead_permission = models.ForeignKey(
+        LeadPermission,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
+    property_permission = models.ForeignKey(
+        PropertyPermission,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
+
+    created_date_time = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "check_in_check_out_manager"
+
+    def __str__(self):
+        return f"{self.name} ({self.manager_id.phone_number})"
+
+    @staticmethod
+    def get_permissions(user_id: int) -> dict:
+        manager = CheckInCheckOutManager.objects.filter(manager_id__user_id=user_id).first()
+
+        permissions = {}
+        if manager:
+            if manager.lead_permission:
+                permissions["lead"] = manager.lead_permission.lead
+            if manager.property_permission:
+                permissions["property"] = manager.property_permission.property
+
+        return {"permissions": permissions}
+
+    @staticmethod
+    def get_id(user_id: int) -> int:
+        manager = CheckInCheckOutManager.objects.filter(manager_id__user_id=user_id).first()
+        if manager:
+            return manager.manager_id_id
+        return None
+
+    def create(
+        self,
+        manager_id: int,
+        name: str,
+        dob: str,
+        department: str,
+        team_size: int,
+        lead_permission_id: int = None,
+        property_permission_id: int = None,
+        profile_picture=None,
+    ) -> int:
+        self.manager_id_id = manager_id
+        self.name = name
+        self.dob = dob
+        self.department = department
+        self.team_size = team_size
+        self.lead_permission = LeadPermission(lead_permission_id)
+        self.property_permission = PropertyPermission(property_permission_id)
+        if profile_picture is not None:
+            self.profile_picture = profile_picture
+
+        self.created_date_time = timezone.now()
+        self.save()
+        return self.manager_id_id
+
+    @staticmethod
+    def update(
+        manager_id: int = None,
+        name: str = None,
+        dob: str = None,
+        department: str = None,
+        team_size: int = None,
+        lead_permission_id: int = None,
+        property_permission_id: int = None,
+        profile_picture=None,
+    ) -> int:
+        manager = CheckInCheckOutManager.objects.get(manager_id=manager_id)
+
+        if name is not None:
+            manager.name = name
+
+        if dob is not None:
+            manager.dob = dob
+
+        if department is not None:
+            manager.department = department
+
+        if team_size is not None:
+            manager.team_size = team_size
+
+        if lead_permission_id is not None:
+            manager.lead_permission_id = lead_permission_id
+
+        if property_permission_id is not None:
+            manager.property_permission_id = property_permission_id
+
+        if profile_picture is not None:
+            manager.profile_picture = profile_picture
+
+        manager.save()
+        return manager.manager_id_id
+
+    @staticmethod
+    def remove(manager_id: int) -> None:
+        CheckInCheckOutManager.objects.get(manager_id_id=manager_id).delete()
+
+    @staticmethod
+    def get(manager_id: int) -> dict:
+        return CheckInCheckOutManager.objects.filter(manager_id__user_id=manager_id).values(
+            "manager_id",
+            "name",
+            "dob",
+            "department",
+            "team_size",
+            "profile_picture",
+            "created_date_time",
+
+            "property_permission__permission_id",
+            "property_permission__property",
+            "lead_permission__permission_id",
+            "lead_permission__lead",
+            "manager_id__phone_number",
+            "manager_id__email",
+        ).first()
+
+    @staticmethod
+    def get_all(
+        sort_by: str = '',
+        sort_order: str = '',
+        filter_key: str = '',
+        filter_value: str = '',
+        search_key: str = '',
+    ) -> list:
+        data = CheckInCheckOutManager.objects.all()
+
+        if filter_key and filter_value:
+            data = data.filter(**{f"{filter_key}__icontains": filter_value})
+
+        if search_key:
+            data = data.filter(
+                Q(name__icontains=search_key) |
+                Q(department__icontains=search_key)
+            )
+
+        if sort_by:
+            data = data.order_by(
+                ('-' if sort_order == 'desc' else '') + sort_by
+            )
+
+        return list(
+            data.values(
+                "manager_id",
+                "name",
+                "dob",
+                "department",
+                "team_size",
+                "profile_picture",
+                "created_date_time",
+                "property_permission__permission_id",
+                "property_permission__property",
+                "lead_permission__permission_id",
+                "lead_permission__lead",
+                "manager_id__phone_number",
+                "manager_id__email",
+            )
+        )

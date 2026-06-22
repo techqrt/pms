@@ -30,6 +30,9 @@ class PropertyDetailUpdateData:
     current_tenant_id: Optional[str] = None
     address_line_2: Optional[str] = None
     internal_notes: Optional[str] = None
+    furnishing_status: Optional[str] = None
+    payment_due_date: Optional[date] = None
+    rent_increase_date: Optional[date] = None
 
 @dataclass
 class CommercialPropertyUpdateData:

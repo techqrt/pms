@@ -22,6 +22,7 @@ class UserAuthSerializer(serializers.Serializer):
         "Owner": ("Owner",),
         "Property": ("Employee", "Manager"),
         "Reception": ("Manager", "Employee"),
+        "Check-In Check-Out": ("Manager", "Employee"),
     }
 
     def validate(self, data):

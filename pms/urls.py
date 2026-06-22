@@ -37,6 +37,7 @@ urlpatterns = [
     path('lead/',include('pms_apps.lead.urls')),
     path('marketing/', include('pms_apps.marketing.urls')),
     path('property/', include('pms_apps.property.urls')),
+    path('checkin-checkout/', include('pms_apps.checkin_checkout.urls')),
     path('maintenance/', include('pms_apps.maintenance.urls')),
     path('activity/',include('pms_apps.activity_log.urls')),
     path('reception/', include('pms_apps.reception.urls')),
