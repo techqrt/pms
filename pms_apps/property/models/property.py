@@ -8,7 +8,8 @@ class Property(models.Model):
     RENTAL_TYPE_CHOICES = [
         ("Flat", "Flat"),
         ("Commercial", "Commercial"),
-        ("Villa","Villa")
+        ("Villa","Villa"),
+        ("Warehouse", "Warehouse")
     ]
 
     RENTAL_FOR_CHOICES = [

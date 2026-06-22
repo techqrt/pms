@@ -36,6 +36,8 @@ from pms_apps.IT.models.IT_employee import ITEmployee
 from pms_apps.IT.models.IT_manager import ITManager
 from pms_apps.IT.models.IT_technician import ITTechnician
 from pms_apps.hr.models import HREmployee
+from pms_apps.checkin_checkout.models.check_in_check_out_employee import CheckInCheckOutEmployee
+from pms_apps.checkin_checkout.models.check_in_check_out_manager import CheckInCheckOutManager
 
 class UserAuthView(APIView):
     permission_classes = [AllowAny]
@@ -268,7 +270,12 @@ class UserAuthView(APIView):
                 else ITTechnician.objects.create(technician_id=user)
                 if role == "Technician"
                 else None
-            )
+            ),
+            "Check-In Check-Out": lambda: (
+                CheckInCheckOutManager.objects.create(manager_id=user)
+                if role == "Manager"
+                else CheckInCheckOutEmployee.objects.create(employee_id=user)
+            ),
         }
 
         create_fn = module_map.get(module)

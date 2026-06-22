@@ -50,12 +50,12 @@ class Lead(models.Model):
     
     first_name = models.CharField(
         verbose_name="Firstname",
-        max_length=15,
+        max_length=100,
     )
-    
+
     last_name = models.CharField(
         verbose_name="Lastname",
-        max_length=15
+        max_length=100
     )
     lead_category = models.CharField(
         verbose_name='Lead Category',
@@ -119,6 +119,12 @@ class Lead(models.Model):
         verbose_name="Passport/ID",
         max_length=50,
     )
+    civil_id = models.CharField(
+        verbose_name="Civil ID",
+        max_length=50,
+        null=True,
+        blank=True,
+    )
     purpose = models.CharField(
         verbose_name="Purpose",
         choices=PURPOSE_CHOICES,
@@ -178,6 +184,7 @@ class Lead(models.Model):
         po_box: str = None,
         feedback: str = None,
         lead_category: str = None,
+        civil_id: str = None,
         profile_image = None
     ) -> int:
         self.lead_id_id = lead_id
@@ -190,6 +197,7 @@ class Lead(models.Model):
         self.country_id = country_id
         self.nationality_id = nationality_id
         self.passport_or_id = passport_or_id
+        self.civil_id = civil_id
         self.purpose = purpose
         self.po_box = po_box
         self.feedback = feedback
@@ -216,6 +224,7 @@ class Lead(models.Model):
         po_box: str = None,
         feedback: str = None,
         lead_category: str = None,
+        civil_id: str = None,
         is_active: bool = None,
         property_permission_id : int = None,
         profile_image = None,
@@ -239,6 +248,8 @@ class Lead(models.Model):
             lead.nationality_id = nationality_id
         if passport_or_id is not None:
             lead.passport_or_id = passport_or_id
+        if civil_id is not None:
+            lead.civil_id = civil_id
         if purpose is not None:
             lead.purpose = purpose
         if po_box is not None:
@@ -267,7 +278,7 @@ class Lead(models.Model):
     def get(lead_id: int, include_profile_image: bool = False) -> dict:
         fields = [
             "lead_id",  "first_name", "last_name", "lead_category", "lead_origin",
-            "address", "po_box", "feedback", "country__name","city__name","nationality__name","passport_or_id", "purpose",
+            "address", "po_box", "feedback", "country__name","city__name","nationality__name","passport_or_id", "civil_id", "purpose",
             "created_at", "updated_at", "is_active","lead_assign_to__name",
             "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
         ]
@@ -296,7 +307,7 @@ class Lead(models.Model):
         return list(
             data.values(
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
-                "address", "po_box", "feedback", "country__name","city__name","nationality__name", "passport_or_id", "purpose",
+                "address", "po_box", "feedback", "country__name","city__name","nationality__name", "passport_or_id", "civil_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
                 "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
             )
@@ -325,7 +336,7 @@ class Lead(models.Model):
         return list(
             data.values(
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
-                "address", "po_box", "feedback", "country__name","city__name","nationality__name", "passport_or_id", "purpose",
+                "address", "po_box", "feedback", "country__name","city__name","nationality__name", "passport_or_id", "civil_id", "purpose",
                 "created_at", "updated_at", "is_active","lead_assign_to__name",
                 "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
             )

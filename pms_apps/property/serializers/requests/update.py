@@ -55,6 +55,11 @@ class PropertyDetailUpdateSerializer(serializers.Serializer):
     available_from = serializers.DateField(required=False, allow_null=True)
     current_tenant_id = serializers.CharField(max_length=250, required=False, allow_null=True)
     internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    furnishing_status = serializers.ChoiceField(
+        choices=["Unfurnished", "Semi-Furnished", "Fully Furnished"], required=False, allow_null=True
+    )
+    payment_due_date = serializers.DateField(required=False, allow_null=True)
+    rent_increase_date = serializers.DateField(required=False, allow_null=True)
 
 
 class CommercialPropertyUpdateSerializer(serializers.Serializer):

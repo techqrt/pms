@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'pms_apps.reception',
     'pms_apps.collection',
     'pms_apps.property',
+    'pms_apps.checkin_checkout',
     'pms_apps.common',
     'pms_apps.lead',
     'pms_apps.hr',

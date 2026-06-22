@@ -1,0 +1,39 @@
+from django.db import models
+
+
+class CheckOutDocument(models.Model):
+    DOCUMENT_TYPE_CHOICES = [
+        ("Tenant ID Proof", "Tenant ID Proof"),
+        ("Passport Copy", "Passport Copy"),
+        ("Agreement Copy", "Agreement Copy"),
+        ("Inspection Photo", "Inspection Photo"),
+        ("Meter Reading Photo", "Meter Reading Photo"),
+    ]
+
+    check_out_document_id = models.AutoField(primary_key=True)
+    check_out = models.ForeignKey(
+        "checkin_checkout.CheckOut",
+        on_delete=models.CASCADE,
+        related_name="documents"
+    )
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+    file = models.FileField(upload_to="checkin_checkout/check_out_documents/", max_length=500)
+    uploaded_by = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="check_out_documents_uploaded"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "check_out_document"
+        ordering = ["-created_at"]
+        verbose_name = "Check-Out Document"
+        verbose_name_plural = "Check-Out Documents"
+
+    def __str__(self):
+        return f"{self.document_type} for CheckOut {self.check_out_id}"
