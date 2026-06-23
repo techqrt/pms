@@ -182,3 +182,104 @@ class CheckInUtils:
     def reverse_mapper(fields: list[str]) -> dict[str, str]:
         reverse_map = {v: k for k, v in CheckInUtils().mapped_columns_name.items()}
         return {field: reverse_map.get(field, '') for field in fields}
+
+
+class CheckOutUtils:
+    def __init__(self, columns_required: list = []) -> None:
+        self.columns_required = columns_required
+        self.mapped_columns_name = {
+            'check_out_id': 'checkOutId',
+            'check_out_code': 'checkOutCode',
+            'check_out_date': 'checkOutDate',
+            'check_out_status': 'checkOutStatus',
+            'remarks_notes': 'remarksNotes',
+            'property_id': 'propertyId',
+            'property_assignment_id': 'propertyAssignmentId',
+            'check_in_id': 'checkInId',
+            'tenant_id': 'tenantId',
+            'assigned_employee_id': 'assignedEmployeeId',
+            'assigned_employee__name': 'assignedEmployee.name',
+            'tenant_code': 'tenantCode',
+            'tenant_name': 'tenantName',
+            'tenant_type': 'tenantType',
+            'tenant_mobile_number': 'tenantMobileNumber',
+            'tenant_email': 'tenantEmail',
+            'tenant_civil_id': 'tenantCivilId',
+            'tenant_passport_number': 'tenantPassportNumber',
+            'tenant_nationality': 'tenantNationality',
+            'property_type': 'propertyType',
+            'property_code': 'propertyCode',
+            'building_name': 'buildingName',
+            'flat_unit_number': 'flatUnitNumber',
+            'floor_number': 'floorNumber',
+            'property_status': 'propertyStatus',
+            'monthly_rent': 'monthlyRent',
+            'security_deposit': 'securityDeposit',
+            'advance_rent_received': 'advanceRentReceived',
+            'first_month_rent_paid': 'firstMonthRentPaid',
+            'payment_mode': 'paymentMode',
+            'maintenance_charges': 'maintenanceCharges',
+            'inspection_required': 'inspectionRequired',
+            'inspection_date': 'inspectionDate',
+            'technician_type': 'technicianType',
+            'manager_approval': 'managerApproval',
+            'issue_identified': 'issueIdentified',
+            'supervisor_remarks': 'supervisorRemarks',
+            'repair_required': 'repairRequired',
+            'quotation_amount': 'quotationAmount',
+            'inventory_available': 'inventoryAvailable',
+            'gm_approval': 'gmApproval',
+            'landlord_consent': 'landlordConsent',
+            'finance_alert_generated': 'financeAlertGenerated',
+            'rent_adjustment_amount': 'rentAdjustmentAmount',
+            'electricity_meter_reading': 'electricityMeterReading',
+            'water_meter_reading': 'waterMeterReading',
+            'gas_meter_reading': 'gasMeterReading',
+            'charge_type': 'chargeType',
+            'total_amount': 'totalAmount',
+            'payment_status': 'paymentStatus',
+            'payment_date': 'paymentDate',
+            'transaction_id': 'transactionId',
+            'payment_proof': 'paymentProof',
+            'key_number': 'keyNumber',
+            'key_return': 'keyReturn',
+            'expected_return_date': 'expectedReturnDate',
+            'confirmation_received': 'confirmationReceived',
+            'key_return_date': 'keyReturnDate',
+            'key_return_status': 'keyReturnStatus',
+            'internal_comments': 'internalComments',
+            'tenant_remarks': 'tenantRemarks',
+            'special_instructions': 'specialInstructions',
+            'created_by_id': 'createdById',
+            'created_by__name': 'createdBy.name',
+            'updated_by_id': 'updatedById',
+            'created_at': 'createdAt',
+            'updated_at': 'updatedAt',
+            'status_history': 'statusHistory',
+            'is_active': 'isActive',
+        }
+
+    def mapper(self, data: list) -> str | None:
+        if not data:
+            return '[]'
+
+        dataframe = pandas.DataFrame.from_records(data)
+
+        if self.columns_required:
+            Common.mapper_value_error(
+                mapped_column_names=self.mapped_columns_name,
+                columns_required=self.columns_required
+            )
+            reverse_map = {v: k for k, v in self.mapped_columns_name.items()}
+            db_columns = [reverse_map.get(col, col) for col in self.columns_required]
+            dataframe = dataframe[db_columns]
+
+        dataframe.rename(columns=self.mapped_columns_name, inplace=True)
+
+        flatten_data, cleaned_df = CheckInUtils.flatten_to_nested_dict(dataframe)
+        return json.dumps(flatten_data, default=str)
+
+    @staticmethod
+    def reverse_mapper(fields: list[str]) -> dict[str, str]:
+        reverse_map = {v: k for k, v in CheckOutUtils().mapped_columns_name.items()}
+        return {field: reverse_map.get(field, '') for field in fields}
