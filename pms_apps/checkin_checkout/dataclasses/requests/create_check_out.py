@@ -1,0 +1,88 @@
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+from typing import Optional
+
+
+@dataclass
+class CheckOutCreateRequest:
+    property_id: int
+    property_assignment_id: Optional[int] = None
+    check_in_id: Optional[int] = None
+    tenant_id: Optional[int] = None
+    assigned_employee_id: Optional[int] = None
+    user_id: Optional[int] = None
+
+    # A. Check-Out Information
+    check_out_date: Optional[date] = None
+    check_out_status: str = "Pending"
+    remarks_notes: str = ""
+
+    # B. Tenant Details
+    tenant_code: Optional[str] = None
+    tenant_name: Optional[str] = None
+    tenant_type: Optional[str] = None
+    tenant_mobile_number: Optional[str] = None
+    tenant_email: Optional[str] = None
+    tenant_civil_id: Optional[str] = None
+    tenant_passport_number: Optional[str] = None
+    tenant_nationality: Optional[str] = None
+
+    # C. Property Details
+    property_type: Optional[str] = None
+    property_code: Optional[str] = None
+    building_name: Optional[str] = None
+    flat_unit_number: Optional[str] = None
+    floor_number: Optional[str] = None
+    property_status: Optional[str] = None
+
+    # D. Rental Details
+    monthly_rent: Optional[Decimal] = None
+    security_deposit: Optional[Decimal] = None
+    advance_rent_received: Optional[Decimal] = None
+    first_month_rent_paid: Optional[Decimal] = None
+    payment_mode: Optional[str] = None
+    maintenance_charges: Optional[Decimal] = None
+
+    # E. Property Inspection
+    inspection_required: Optional[str] = None
+    inspection_date: Optional[date] = None
+    technician_type: Optional[str] = None
+    manager_approval: Optional[str] = None
+    issue_identified: Optional[str] = None
+    supervisor_remarks: Optional[str] = None
+
+    # F. Repair & Damage
+    repair_required: Optional[str] = None
+    quotation_amount: Optional[Decimal] = None
+    inventory_available: Optional[str] = None
+    gm_approval: Optional[str] = None
+    landlord_consent: Optional[str] = None
+    finance_alert_generated: Optional[str] = None
+    rent_adjustment_amount: Optional[Decimal] = None
+
+    # G. Check-Out Utility Meter Readings
+    electricity_meter_reading: Optional[Decimal] = None
+    water_meter_reading: Optional[Decimal] = None
+    gas_meter_reading: Optional[Decimal] = None
+
+    # H. Finance Details
+    charge_type: Optional[str] = None
+    total_amount: Optional[Decimal] = None
+    payment_status: Optional[str] = None
+    payment_date: Optional[date] = None
+    transaction_id: Optional[str] = None
+    payment_proof: Optional[str] = None
+
+    # I. Key Return
+    key_number: Optional[str] = None
+    key_return: Optional[str] = None
+    expected_return_date: Optional[date] = None
+    confirmation_received: Optional[str] = None
+    key_return_date: Optional[date] = None
+    key_return_status: str = "Pending"
+
+    # K. Comments
+    internal_comments: str = ""
+    tenant_remarks: str = ""
+    special_instructions: str = ""

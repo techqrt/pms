@@ -30,4 +30,18 @@ urlpatterns = [
     path("check_in/key/create/", CheckInViewController.create_key, name="create_check_in_key"),
     path("check_in/key/update/", CheckInViewController.update_key, name="update_check_in_key"),
     path("check_in/key/delete/", CheckInViewController.delete_key, name="delete_check_in_key"),
+
+    path("check_out/create/", CheckOutViewController.create, name="create_check_out"),
+    path("check_out/get/", CheckOutViewController.get, name="get_check_out"),
+    path("check_out/get_all/", CheckOutViewController.get_all, name="get_all_check_out"),
+    path("check_out/update/information/", CheckOutViewController.update_information, name="update_check_out_information"),
+    path("check_out/update/tenant_details/", CheckOutViewController.update_tenant_details, name="update_check_out_tenant_details"),
+    path("check_out/update/property_details/", CheckOutViewController.update_property_details, name="update_check_out_property_details"),
+    path("check_out/update/rental_details/", CheckOutViewController.update_rental_details, name="update_check_out_rental_details"),
+    path("check_out/update/property_inspection/", CheckOutViewController.update_property_inspection, name="update_check_out_property_inspection"),
+    path("check_out/update/repair_damage/", CheckOutViewController.update_repair_damage, name="update_check_out_repair_damage"),
+    path("check_out/update/utility_meter_readings/", CheckOutViewController.update_utility_meter_readings, name="update_check_out_utility_meter_readings"),
+    path("check_out/update/finance_details/", CheckOutViewController.update_finance_details, name="update_check_out_finance_details"),
+    path("check_out/update/key_return/", CheckOutViewController.update_key_return, name="update_check_out_key_return"),
+    path("check_out/update/comments/", CheckOutViewController.update_comments, name="update_check_out_comments"),
 ]
