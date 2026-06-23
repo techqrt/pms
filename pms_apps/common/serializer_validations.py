@@ -15,6 +15,8 @@ class SerializerValidations:
             request: Request = args[0]
 
             data = request.data
+            if hasattr(data, '_mutable'):
+                data = data.copy()
             data.update(Utils.get_query_params(request=request))
             serializer = self.serializer(data=data)
             validator = Utils().validator(serializer=serializer)
