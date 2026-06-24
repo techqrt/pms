@@ -33,6 +33,24 @@ class Lead(models.Model):
         ("Married", "Married")
     ]
 
+    TENANT_TYPE_CHOICES = [
+        ("Individual", "Individual"),
+        ("Corporate", "Corporate"),
+    ]
+
+    GENDER_CHOICES = [
+        ("Male", "Male"),
+        ("Female", "Female"),
+        ("Other", "Other"),
+    ]
+
+    MARITAL_STATUS_CHOICES = [
+        ("Single", "Single"),
+        ("Married", "Married"),
+        ("Divorced", "Divorced"),
+        ("Widowed", "Widowed"),
+    ]
+
     lead_id = models.OneToOneField(
         to=User,
         verbose_name='Lead User',
@@ -130,6 +148,16 @@ class Lead(models.Model):
         choices=PURPOSE_CHOICES,
         max_length=10,
     )
+    tenant_code = models.CharField(max_length=100, null=True, blank=True)
+    tenant_type = models.CharField(max_length=20, choices=TENANT_TYPE_CHOICES, null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
+    marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, null=True, blank=True)
+    emergency_contact_name = models.CharField(max_length=200, null=True, blank=True)
+    emergency_contact_number = models.CharField(max_length=20, null=True, blank=True)
+    profession = models.CharField(max_length=200, null=True, blank=True)
+    company_name = models.CharField(max_length=200, null=True, blank=True)
+
     created_at = models.DateTimeField(
         verbose_name="Created At",
         auto_now_add=True
@@ -228,6 +256,15 @@ class Lead(models.Model):
         is_active: bool = None,
         property_permission_id : int = None,
         profile_image = None,
+        tenant_code: str = None,
+        tenant_type: str = None,
+        date_of_birth=None,
+        gender: str = None,
+        marital_status: str = None,
+        emergency_contact_name: str = None,
+        emergency_contact_number: str = None,
+        profession: str = None,
+        company_name: str = None,
     ) -> int:
         lead = Lead.objects.get(lead_id=lead_id)
         if lead_assign_to is not None:
@@ -260,10 +297,28 @@ class Lead(models.Model):
             lead.lead_category = lead_category
         if is_active is not None:
             lead.is_active = is_active
-        if property_permission_id is not None: 
+        if property_permission_id is not None:
             lead.property_permissions_id = property_permission_id
         if profile_image is not None:
             lead.profile_image = profile_image
+        if tenant_code is not None:
+            lead.tenant_code = tenant_code
+        if tenant_type is not None:
+            lead.tenant_type = tenant_type
+        if date_of_birth is not None:
+            lead.date_of_birth = date_of_birth
+        if gender is not None:
+            lead.gender = gender
+        if marital_status is not None:
+            lead.marital_status = marital_status
+        if emergency_contact_name is not None:
+            lead.emergency_contact_name = emergency_contact_name
+        if emergency_contact_number is not None:
+            lead.emergency_contact_number = emergency_contact_number
+        if profession is not None:
+            lead.profession = profession
+        if company_name is not None:
+            lead.company_name = company_name
         lead.save()
         return lead.lead_id
 

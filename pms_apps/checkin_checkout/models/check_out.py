@@ -11,11 +11,6 @@ class CheckOut(models.Model):
         ("Cancelled", "Cancelled"),
     ]
 
-    TENANT_TYPE_CHOICES = [
-        ("Individual", "Individual"),
-        ("Corporate", "Corporate"),
-    ]
-
     YES_NO_CHOICES = [
         ("Yes", "Yes"),
         ("No", "No"),
@@ -102,28 +97,8 @@ class CheckOut(models.Model):
     )
     remarks_notes = models.TextField(blank=True, default="")
 
-    # B. Tenant Details (snapshot)
-    tenant_code = models.CharField(max_length=50, null=True, blank=True)
-    tenant_name = models.CharField(max_length=255, null=True, blank=True)
-    tenant_type = models.CharField(
-        max_length=20,
-        choices=TENANT_TYPE_CHOICES,
-        null=True,
-        blank=True
-    )
-    tenant_mobile_number = models.CharField(max_length=20, null=True, blank=True)
-    tenant_email = models.EmailField(null=True, blank=True)
-    tenant_civil_id = models.CharField(max_length=50, null=True, blank=True)
-    tenant_passport_number = models.CharField(max_length=50, null=True, blank=True)
-    tenant_nationality = models.CharField(max_length=100, null=True, blank=True)
-
-    # C. Property Details (snapshot)
-    property_type = models.CharField(max_length=100, null=True, blank=True)
-    property_code = models.CharField(max_length=100, null=True, blank=True)
-    building_name = models.CharField(max_length=150, null=True, blank=True)
-    flat_unit_number = models.CharField(max_length=50, null=True, blank=True)
-    floor_number = models.CharField(max_length=50, null=True, blank=True)
-    property_status = models.CharField(max_length=50, null=True, blank=True)
+    # B. Tenant Details — sourced live from Lead via tenant FK
+    # C. Property Details — sourced live from Property/PropertyDetail via property FK
 
     # D. Rental Details
     monthly_rent = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -289,20 +264,6 @@ class CheckOut(models.Model):
         check_out_date=None,
         check_out_status: str = "Pending",
         remarks_notes: str = "",
-        tenant_code: str = None,
-        tenant_name: str = None,
-        tenant_type: str = None,
-        tenant_mobile_number: str = None,
-        tenant_email: str = None,
-        tenant_civil_id: str = None,
-        tenant_passport_number: str = None,
-        tenant_nationality: str = None,
-        property_type: str = None,
-        property_code: str = None,
-        building_name: str = None,
-        flat_unit_number: str = None,
-        floor_number: str = None,
-        property_status: str = None,
         monthly_rent=None,
         security_deposit=None,
         advance_rent_received=None,
@@ -351,24 +312,6 @@ class CheckOut(models.Model):
         self.check_out_date = check_out_date
         self.check_out_status = check_out_status
         self.remarks_notes = remarks_notes
-
-        # B. Tenant Details (snapshot)
-        self.tenant_code = tenant_code
-        self.tenant_name = tenant_name
-        self.tenant_type = tenant_type
-        self.tenant_mobile_number = tenant_mobile_number
-        self.tenant_email = tenant_email
-        self.tenant_civil_id = tenant_civil_id
-        self.tenant_passport_number = tenant_passport_number
-        self.tenant_nationality = tenant_nationality
-
-        # C. Property Details (snapshot)
-        self.property_type = property_type
-        self.property_code = property_code
-        self.building_name = building_name
-        self.flat_unit_number = flat_unit_number
-        self.floor_number = floor_number
-        self.property_status = property_status
 
         # D. Rental Details
         self.monthly_rent = monthly_rent
@@ -430,15 +373,61 @@ class CheckOut(models.Model):
         return self.check_out_id
 
     @staticmethod
+    def _tenant_data(tenant_id: int) -> dict:
+        from pms_apps.lead.models.lead import Lead as LeadModel
+        if not tenant_id:
+            return {}
+        row = LeadModel.objects.filter(lead_id=tenant_id).values(
+            'first_name', 'last_name', 'lead_id__phone_number', 'lead_id__email',
+            'civil_id', 'passport_or_id', 'nationality__name',
+            'tenant_code', 'tenant_type',
+        ).first() or {}
+        return {
+            'tenant_name': f"{row.get('first_name') or ''} {row.get('last_name') or ''}".strip() or None,
+            'tenant_mobile_number': row.get('lead_id__phone_number'),
+            'tenant_email': row.get('lead_id__email'),
+            'tenant_civil_id': row.get('civil_id'),
+            'tenant_passport_number': row.get('passport_or_id'),
+            'tenant_nationality': row.get('nationality__name'),
+            'tenant_code': row.get('tenant_code'),
+            'tenant_type': row.get('tenant_type'),
+        }
+
+    @staticmethod
+    def _property_data(property_id: int) -> dict:
+        from pms_apps.property.models.property import Property as PropertyModel
+        from pms_apps.property.models.property_details import PropertyDetail
+        if not property_id:
+            return {}
+        prop = PropertyModel.objects.filter(property_id=property_id).values('rental_type').first() or {}
+        detail = PropertyDetail.objects.filter(property_id=property_id).values(
+            'property_code', 'building_name', 'floor_number', 'current_status',
+            'flat_number', 'commercial_category', 'villa_name',
+        ).first() or {}
+        rental_type = prop.get('rental_type')
+        if rental_type == 'Flat':
+            unit = detail.get('flat_number')
+        elif rental_type == 'Commercial':
+            unit = detail.get('commercial_category')
+        elif rental_type == 'Villa':
+            unit = detail.get('villa_name')
+        else:
+            unit = None
+        return {
+            'property_type': rental_type,
+            'property_code': str(detail['property_code']) if detail.get('property_code') else None,
+            'building_name': detail.get('building_name'),
+            'flat_unit_number': unit,
+            'floor_number': str(detail['floor_number']) if detail.get('floor_number') is not None else None,
+            'property_status': detail.get('current_status'),
+        }
+
+    @staticmethod
     def get(check_out_id: int) -> dict:
-        fields = [
+        own_fields = [
             "check_out_id", "check_out_code", "check_out_date", "check_out_status", "remarks_notes",
             "property_id", "property_assignment_id", "check_in_id", "tenant_id", "assigned_employee_id",
             "assigned_employee__name",
-            "tenant_code", "tenant_name", "tenant_type", "tenant_mobile_number", "tenant_email",
-            "tenant_civil_id", "tenant_passport_number", "tenant_nationality",
-            "property_type", "property_code", "building_name", "flat_unit_number",
-            "floor_number", "property_status",
             "monthly_rent", "security_deposit", "advance_rent_received", "first_month_rent_paid",
             "payment_mode", "maintenance_charges",
             "inspection_required", "inspection_date", "technician_type", "manager_approval",
@@ -454,13 +443,16 @@ class CheckOut(models.Model):
             "created_by_id", "created_by__name", "updated_by_id", "created_at", "updated_at",
             "status_history", "is_active",
         ]
-        return CheckOut.objects.filter(check_out_id=check_out_id, is_active=True).values(*fields).first()
+        row = CheckOut.objects.filter(check_out_id=check_out_id, is_active=True).values(*own_fields).first()
+        if not row:
+            return None
+        row.update(CheckOut._tenant_data(row.get('tenant_id')))
+        row.update(CheckOut._property_data(row.get('property_id')))
+        return row
 
-    # Fields that should be matched exactly when used as a get_all filter_key
-    # (IDs, statuses, and choice fields) — everything else falls back to icontains.
     EXACT_MATCH_FILTER_FIELDS = {
         "check_out_id", "property_id", "tenant_id", "assigned_employee_id",
-        "check_out_status", "manager_approval", "key_return_status", "property_type",
+        "check_out_status", "manager_approval", "key_return_status",
     }
 
     @staticmethod
@@ -486,8 +478,8 @@ class CheckOut(models.Model):
         if search_key:
             query = query.filter(
                 Q(check_out_code__icontains=search_key) |
-                Q(tenant_name__icontains=search_key) |
-                Q(building_name__icontains=search_key)
+                Q(tenant__first_name__icontains=search_key) |
+                Q(tenant__last_name__icontains=search_key)
             )
 
         if from_date:
@@ -500,12 +492,51 @@ class CheckOut(models.Model):
         else:
             query = query.order_by("-created_at")
 
-        fields = [
-            "check_out_id", "tenant_id", "tenant_name", "building_name", "flat_unit_number",
+        own_fields = [
+            "check_out_id", "tenant_id", "property_id",
             "check_out_date", "monthly_rent", "manager_approval", "key_return_status",
             "check_out_status", "assigned_employee_id", "assigned_employee__name",
         ]
-        return list(query.values(*fields))
+        rows = list(query.values(*own_fields))
+        if not rows:
+            return []
+
+        from pms_apps.lead.models.lead import Lead as LeadModel
+        from pms_apps.property.models.property_details import PropertyDetail
+        from pms_apps.property.models.property import Property as PropertyModel
+
+        tenant_ids = {r['tenant_id'] for r in rows if r.get('tenant_id')}
+        property_ids = {r['property_id'] for r in rows if r.get('property_id')}
+
+        tenant_map = {}
+        for t in LeadModel.objects.filter(lead_id__in=tenant_ids).values('lead_id', 'first_name', 'last_name'):
+            name = f"{t.get('first_name') or ''} {t.get('last_name') or ''}".strip() or None
+            tenant_map[t['lead_id']] = name
+
+        prop_type_map = {p['property_id']: p['rental_type']
+                         for p in PropertyModel.objects.filter(property_id__in=property_ids).values('property_id', 'rental_type')}
+        detail_map = {d['property_id']: d for d in PropertyDetail.objects.filter(property_id__in=property_ids).values(
+            'property_id', 'building_name', 'flat_number', 'commercial_category', 'villa_name'
+        )}
+
+        for row in rows:
+            tid = row.pop('tenant_id', None)
+            pid = row.pop('property_id', None)
+            row['tenant_id'] = tid
+            row['tenant_name'] = tenant_map.get(tid)
+            d = detail_map.get(pid) or {}
+            row['building_name'] = d.get('building_name')
+            rtype = prop_type_map.get(pid)
+            if rtype == 'Flat':
+                row['flat_unit_number'] = d.get('flat_number')
+            elif rtype == 'Commercial':
+                row['flat_unit_number'] = d.get('commercial_category')
+            elif rtype == 'Villa':
+                row['flat_unit_number'] = d.get('villa_name')
+            else:
+                row['flat_unit_number'] = None
+
+        return rows
 
     @staticmethod
     def delete(check_out_id: int):
@@ -556,30 +587,46 @@ class CheckOut(models.Model):
         tenant_nationality: str = None,
         updated_by: int = None,
     ) -> int:
+        from pms_apps.lead.models.lead import Lead as LeadModel
+        from pms_apps.authentication.models import User
+        from pms_apps.helper_apis.models.nationality import Nationality
+
         try:
             check_out = CheckOut.objects.get(check_out_id=check_out_id)
         except CheckOut.DoesNotExist:
             raise ValueError(f"Invalid Check-Out Id: {check_out_id}")
 
-        if tenant_code is not None:
-            check_out.tenant_code = tenant_code
-        if tenant_name is not None:
-            check_out.tenant_name = tenant_name
-        if tenant_type is not None:
-            check_out.tenant_type = tenant_type
-        if tenant_mobile_number is not None:
-            check_out.tenant_mobile_number = tenant_mobile_number
-        if tenant_email is not None:
-            check_out.tenant_email = tenant_email
-        if tenant_civil_id is not None:
-            check_out.tenant_civil_id = tenant_civil_id
-        if tenant_passport_number is not None:
-            check_out.tenant_passport_number = tenant_passport_number
-        if tenant_nationality is not None:
-            check_out.tenant_nationality = tenant_nationality
+        if check_out.tenant_id:
+            lead = LeadModel.objects.filter(lead_id=check_out.tenant_id).first()
+            if lead:
+                if tenant_name is not None:
+                    parts = tenant_name.split(' ', 1)
+                    lead.first_name = parts[0]
+                    lead.last_name = parts[1] if len(parts) > 1 else lead.last_name
+                if tenant_code is not None:
+                    lead.tenant_code = tenant_code
+                if tenant_type is not None:
+                    lead.tenant_type = tenant_type
+                if tenant_civil_id is not None:
+                    lead.civil_id = tenant_civil_id
+                if tenant_passport_number is not None:
+                    lead.passport_or_id = tenant_passport_number
+                if tenant_nationality is not None:
+                    nat = Nationality.objects.filter(name__iexact=tenant_nationality).first()
+                    if nat:
+                        lead.nationality_id = nat.id
+                lead.save()
+
+                user = User.objects.filter(user_id=check_out.tenant_id).first()
+                if user:
+                    if tenant_mobile_number is not None:
+                        user.phone_number = tenant_mobile_number
+                    if tenant_email is not None:
+                        user.email = tenant_email
+                    user.save()
+
         if updated_by is not None:
             check_out.updated_by_id = updated_by
-
         check_out.save()
         return check_out.check_out_id
 
@@ -594,26 +641,39 @@ class CheckOut(models.Model):
         property_status: str = None,
         updated_by: int = None,
     ) -> int:
+        from pms_apps.property.models.property_details import PropertyDetail
+        from pms_apps.property.models.property import Property as PropertyModel
+
         try:
             check_out = CheckOut.objects.get(check_out_id=check_out_id)
         except CheckOut.DoesNotExist:
             raise ValueError(f"Invalid Check-Out Id: {check_out_id}")
 
-        if property_type is not None:
-            check_out.property_type = property_type
-        if property_code is not None:
-            check_out.property_code = property_code
-        if building_name is not None:
-            check_out.building_name = building_name
-        if flat_unit_number is not None:
-            check_out.flat_unit_number = flat_unit_number
-        if floor_number is not None:
-            check_out.floor_number = floor_number
-        if property_status is not None:
-            check_out.property_status = property_status
+        if check_out.property_id:
+            detail = PropertyDetail.objects.filter(property_id=check_out.property_id).first()
+            if detail:
+                if building_name is not None:
+                    detail.building_name = building_name
+                if floor_number is not None:
+                    try:
+                        detail.floor_number = int(floor_number)
+                    except (ValueError, TypeError):
+                        pass
+                if property_status is not None:
+                    detail.current_status = property_status
+                if flat_unit_number is not None:
+                    prop = PropertyModel.objects.filter(property_id=check_out.property_id).values('rental_type').first()
+                    rtype = prop.get('rental_type') if prop else None
+                    if rtype == 'Flat':
+                        detail.flat_number = flat_unit_number
+                    elif rtype == 'Commercial':
+                        detail.commercial_category = flat_unit_number
+                    elif rtype == 'Villa':
+                        detail.villa_name = flat_unit_number
+                detail.save()
+
         if updated_by is not None:
             check_out.updated_by_id = updated_by
-
         check_out.save()
         return check_out.check_out_id
 
