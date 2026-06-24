@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from pms_apps.checkin_checkout.dataclasses.requests.create_check_in import CheckInCreateRequest
 from pms_apps.checkin_checkout.models.check_in import CheckIn
+from pms_apps.lead.models.lead import Lead
 
 
 class CheckInCreateSerializer(serializers.Serializer):
@@ -21,7 +22,7 @@ class CheckInCreateSerializer(serializers.Serializer):
     tenant_code = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     tenant_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     tenant_type = serializers.ChoiceField(
-        choices=[choice[0] for choice in CheckIn.TENANT_TYPE_CHOICES],
+        choices=[choice[0] for choice in Lead.TENANT_TYPE_CHOICES],
         required=False, allow_null=True
     )
     tenant_mobile_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
@@ -32,11 +33,11 @@ class CheckInCreateSerializer(serializers.Serializer):
     tenant_address = serializers.CharField(required=False, default="", allow_blank=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
     gender = serializers.ChoiceField(
-        choices=[choice[0] for choice in CheckIn.GENDER_CHOICES],
+        choices=[choice[0] for choice in Lead.GENDER_CHOICES],
         required=False, allow_null=True
     )
     marital_status = serializers.ChoiceField(
-        choices=[choice[0] for choice in CheckIn.MARITAL_STATUS_CHOICES],
+        choices=[choice[0] for choice in Lead.MARITAL_STATUS_CHOICES],
         required=False, allow_null=True
     )
     alternate_mobile_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)

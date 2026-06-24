@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from pms_apps.checkin_checkout.models.check_out import CheckOut
+from pms_apps.lead.models.lead import Lead
 from pms_apps.checkin_checkout.dataclasses.requests.update_check_out import (
     CheckOutInformationUpdateRequest,
     CheckOutTenantDetailsUpdateRequest,
@@ -37,7 +38,7 @@ class CheckOutTenantDetailsUpdateSerializer(serializers.Serializer):
     tenant_code = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_type = serializers.ChoiceField(
-        choices=_choices(CheckOut.TENANT_TYPE_CHOICES), required=False, allow_null=True
+        choices=_choices(Lead.TENANT_TYPE_CHOICES), required=False, allow_null=True
     )
     tenant_mobile_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_email = serializers.EmailField(required=False, allow_null=True)
