@@ -18,6 +18,10 @@ class CheckOutCreateSerializer(serializers.Serializer):
         default="Pending"
     )
     remarks_notes = serializers.CharField(required=False, default="", allow_blank=True)
+    request_from = serializers.ChoiceField(
+        choices=[choice[0] for choice in CheckOut.REQUEST_FROM_CHOICES],
+        required=False, allow_null=True
+    )
 
     # B. Tenant Details
     tenant_code = serializers.CharField(required=False, allow_null=True, allow_blank=True)
@@ -141,6 +145,7 @@ class CheckOutCreateSerializer(serializers.Serializer):
             check_out_date=validated_data.get('check_out_date'),
             check_out_status=validated_data.get('check_out_status', 'Pending'),
             remarks_notes=validated_data.get('remarks_notes', ''),
+            request_from=validated_data.get('request_from'),
 
             tenant_code=validated_data.get('tenant_code'),
             tenant_name=validated_data.get('tenant_name'),

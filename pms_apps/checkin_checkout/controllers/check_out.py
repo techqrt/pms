@@ -8,6 +8,28 @@ from pms_apps.common.serializers.request.get_all import GetAllSerializer
 
 from pms_apps.checkin_checkout.serializers.requests.create_check_out import CheckOutCreateSerializer
 from pms_apps.checkin_checkout.serializers.requests.get_check_out import CheckOutGetSerializer
+from pms_apps.checkin_checkout.serializers.requests.delete_check_out import CheckOutDeleteSerializer
+from pms_apps.checkin_checkout.serializers.requests.upload_check_out_document import CheckOutDocumentUploadSerializer
+from pms_apps.checkin_checkout.serializers.requests.create_check_out_inspection_item import CheckOutInspectionItemCreateSerializer
+from pms_apps.checkin_checkout.serializers.requests.update_check_out_inspection_item import (
+    CheckOutInspectionItemUpdateSerializer,
+    CheckOutInspectionItemDeleteSerializer,
+)
+from pms_apps.checkin_checkout.serializers.requests.create_check_out_utility_reading import CheckOutUtilityReadingCreateSerializer
+from pms_apps.checkin_checkout.serializers.requests.update_check_out_utility_reading import (
+    CheckOutUtilityReadingUpdateSerializer,
+    CheckOutUtilityReadingDeleteSerializer,
+)
+from pms_apps.checkin_checkout.serializers.requests.create_check_out_payment import CheckOutPaymentCreateSerializer
+from pms_apps.checkin_checkout.serializers.requests.update_check_out_payment import (
+    CheckOutPaymentUpdateSerializer,
+    CheckOutPaymentDeleteSerializer,
+)
+from pms_apps.checkin_checkout.serializers.requests.create_check_out_key import CheckOutKeyCreateSerializer
+from pms_apps.checkin_checkout.serializers.requests.update_check_out_key import (
+    CheckOutKeyUpdateSerializer,
+    CheckOutKeyDeleteSerializer,
+)
 from pms_apps.checkin_checkout.serializers.requests.update_check_out import (
     CheckOutInformationUpdateSerializer,
     CheckOutTenantDetailsUpdateSerializer,
@@ -159,3 +181,143 @@ class CheckOutViewController:
     @SerializerValidations(serializer=CheckOutCommentsUpdateSerializer).validate
     def update_comments(request: Request) -> Response:
         return CheckOutView().update_comments_extract(params=request.params)
+
+    @extend_schema(
+        description="Delete a Check-Out (soft delete)",
+        parameters=CheckOutDeleteSerializer.get_parameters(),
+        responses=SwaggerPage.response(description=CheckOutView().data_delete)
+    )
+    @api_view(["DELETE"])
+    @SerializerValidations(serializer=CheckOutDeleteSerializer).validate
+    def delete(request: Request) -> Response:
+        return CheckOutView().delete_extract(params=request.params)
+
+    @extend_schema(
+        description="Upload a document for a Check-Out",
+        request=CheckOutDocumentUploadSerializer,
+        responses=SwaggerPage.response(description="Document uploaded successfully")
+    )
+    @api_view(["POST"])
+    @SerializerValidations(serializer=CheckOutDocumentUploadSerializer).validate
+    def upload_document(request: Request) -> Response:
+        return CheckOutView().upload_document_extract(params=request.params)
+
+    @extend_schema(
+        description="Create a Check-Out Inspection Item",
+        request=CheckOutInspectionItemCreateSerializer,
+        responses=SwaggerPage.response(description="Inspection item recorded successfully")
+    )
+    @api_view(["POST"])
+    @SerializerValidations(serializer=CheckOutInspectionItemCreateSerializer).validate
+    def create_inspection_item(request: Request) -> Response:
+        return CheckOutView().create_inspection_item_extract(params=request.params)
+
+    @extend_schema(
+        description="Update a Check-Out Inspection Item",
+        request=CheckOutInspectionItemUpdateSerializer,
+        responses=SwaggerPage.response(description="Inspection item updated successfully")
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckOutInspectionItemUpdateSerializer).validate
+    def update_inspection_item(request: Request) -> Response:
+        return CheckOutView().update_inspection_item_extract(params=request.params)
+
+    @extend_schema(
+        description="Delete a Check-Out Inspection Item",
+        parameters=CheckOutInspectionItemDeleteSerializer.get_parameters(),
+        responses=SwaggerPage.response(description="Inspection item deleted successfully")
+    )
+    @api_view(["DELETE"])
+    @SerializerValidations(serializer=CheckOutInspectionItemDeleteSerializer).validate
+    def delete_inspection_item(request: Request) -> Response:
+        return CheckOutView().delete_inspection_item_extract(params=request.params)
+
+    @extend_schema(
+        description="Create a Check-Out Utility Reading",
+        request=CheckOutUtilityReadingCreateSerializer,
+        responses=SwaggerPage.response(description="Utility reading recorded successfully")
+    )
+    @api_view(["POST"])
+    @SerializerValidations(serializer=CheckOutUtilityReadingCreateSerializer).validate
+    def create_utility_reading(request: Request) -> Response:
+        return CheckOutView().create_utility_reading_extract(params=request.params)
+
+    @extend_schema(
+        description="Update a Check-Out Utility Reading",
+        request=CheckOutUtilityReadingUpdateSerializer,
+        responses=SwaggerPage.response(description="Utility reading updated successfully")
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckOutUtilityReadingUpdateSerializer).validate
+    def update_utility_reading(request: Request) -> Response:
+        return CheckOutView().update_utility_reading_extract(params=request.params)
+
+    @extend_schema(
+        description="Delete a Check-Out Utility Reading",
+        parameters=CheckOutUtilityReadingDeleteSerializer.get_parameters(),
+        responses=SwaggerPage.response(description="Utility reading deleted successfully")
+    )
+    @api_view(["DELETE"])
+    @SerializerValidations(serializer=CheckOutUtilityReadingDeleteSerializer).validate
+    def delete_utility_reading(request: Request) -> Response:
+        return CheckOutView().delete_utility_reading_extract(params=request.params)
+
+    @extend_schema(
+        description="Create a Check-Out Payment",
+        request=CheckOutPaymentCreateSerializer,
+        responses=SwaggerPage.response(description="Payment recorded successfully")
+    )
+    @api_view(["POST"])
+    @SerializerValidations(serializer=CheckOutPaymentCreateSerializer).validate
+    def create_payment(request: Request) -> Response:
+        return CheckOutView().create_payment_extract(params=request.params)
+
+    @extend_schema(
+        description="Update a Check-Out Payment",
+        request=CheckOutPaymentUpdateSerializer,
+        responses=SwaggerPage.response(description="Payment updated successfully")
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckOutPaymentUpdateSerializer).validate
+    def update_payment(request: Request) -> Response:
+        return CheckOutView().update_payment_extract(params=request.params)
+
+    @extend_schema(
+        description="Delete a Check-Out Payment",
+        parameters=CheckOutPaymentDeleteSerializer.get_parameters(),
+        responses=SwaggerPage.response(description="Payment deleted successfully")
+    )
+    @api_view(["DELETE"])
+    @SerializerValidations(serializer=CheckOutPaymentDeleteSerializer).validate
+    def delete_payment(request: Request) -> Response:
+        return CheckOutView().delete_payment_extract(params=request.params)
+
+    @extend_schema(
+        description="Create a Check-Out Key",
+        request=CheckOutKeyCreateSerializer,
+        responses=SwaggerPage.response(description="Key recorded successfully")
+    )
+    @api_view(["POST"])
+    @SerializerValidations(serializer=CheckOutKeyCreateSerializer).validate
+    def create_key(request: Request) -> Response:
+        return CheckOutView().create_key_extract(params=request.params)
+
+    @extend_schema(
+        description="Update a Check-Out Key",
+        request=CheckOutKeyUpdateSerializer,
+        responses=SwaggerPage.response(description="Key updated successfully")
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckOutKeyUpdateSerializer).validate
+    def update_key(request: Request) -> Response:
+        return CheckOutView().update_key_extract(params=request.params)
+
+    @extend_schema(
+        description="Delete a Check-Out Key",
+        parameters=CheckOutKeyDeleteSerializer.get_parameters(),
+        responses=SwaggerPage.response(description="Key deleted successfully")
+    )
+    @api_view(["DELETE"])
+    @SerializerValidations(serializer=CheckOutKeyDeleteSerializer).validate
+    def delete_key(request: Request) -> Response:
+        return CheckOutView().delete_key_extract(params=request.params)

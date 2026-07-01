@@ -17,6 +17,7 @@ class CheckOutCreateRequest:
     check_out_date: Optional[date] = None
     check_out_status: str = "Pending"
     remarks_notes: str = ""
+    request_from: Optional[str] = None
 
     # B. Tenant Details
     tenant_code: Optional[str] = None
