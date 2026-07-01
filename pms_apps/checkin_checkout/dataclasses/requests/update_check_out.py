@@ -11,6 +11,7 @@ class CheckOutInformationUpdateRequest:
     check_out_date: Optional[date] = None
     check_out_status: Optional[str] = None
     remarks_notes: Optional[str] = None
+    request_from: Optional[str] = None
 
 
 @dataclass
@@ -24,6 +25,7 @@ class CheckOutTenantDetailsUpdateRequest:
     tenant_civil_id: Optional[str] = None
     tenant_passport_number: Optional[str] = None
     tenant_nationality: Optional[str] = None
+    tenant_address: Optional[str] = None
 
 
 @dataclass
@@ -55,6 +57,7 @@ class CheckOutPropertyInspectionUpdateRequest:
     inspection_date: Optional[date] = None
     technician_type: Optional[str] = None
     manager_approval: Optional[str] = None
+    inspection_priority: Optional[str] = None
     issue_identified: Optional[str] = None
     supervisor_remarks: Optional[str] = None
 
@@ -69,6 +72,7 @@ class CheckOutRepairDamageUpdateRequest:
     landlord_consent: Optional[str] = None
     finance_alert_generated: Optional[str] = None
     rent_adjustment_amount: Optional[Decimal] = None
+    repair_priority: Optional[str] = None
 
 
 @dataclass
@@ -87,6 +91,8 @@ class CheckOutFinanceDetailsUpdateRequest:
     payment_status: Optional[str] = None
     payment_date: Optional[date] = None
     transaction_id: Optional[str] = None
+    settlement_status: Optional[str] = None
+    finance_description: Optional[str] = None
     payment_proof: Optional[str] = None
 
 
@@ -94,6 +100,8 @@ class CheckOutFinanceDetailsUpdateRequest:
 class CheckOutKeyReturnUpdateRequest:
     check_out_id: int
     key_number: Optional[str] = None
+    key_type: Optional[str] = None
+    key_available: Optional[str] = None
     key_return: Optional[str] = None
     expected_return_date: Optional[date] = None
     confirmation_received: Optional[str] = None

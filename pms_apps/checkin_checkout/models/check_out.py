@@ -50,6 +50,24 @@ class CheckOut(models.Model):
         ("Lost", "Lost"),
     ]
 
+    PRIORITY_CHOICES = [
+        ("Low", "Low"),
+        ("Medium", "Medium"),
+        ("High", "High"),
+        ("Critical", "Critical"),
+    ]
+
+    SETTLEMENT_STATUS_CHOICES = [
+        ("Pending", "Pending"),
+        ("Settled", "Settled"),
+        ("Partially Settled", "Partially Settled"),
+    ]
+
+    REQUEST_FROM_CHOICES = [
+        ("Tenant", "Tenant"),
+        ("Admin", "Admin"),
+    ]
+
     check_out_id = models.AutoField(primary_key=True)
 
     # Core Relations
@@ -96,6 +114,9 @@ class CheckOut(models.Model):
         default="Pending"
     )
     remarks_notes = models.TextField(blank=True, default="")
+    request_from = models.CharField(
+        max_length=10, choices=REQUEST_FROM_CHOICES, null=True, blank=True
+    )
 
     # B. Tenant Details — sourced live from Lead via tenant FK
     # C. Property Details — sourced live from Property/PropertyDetail via property FK
@@ -130,6 +151,7 @@ class CheckOut(models.Model):
     )
     issue_identified = models.TextField(blank=True, default="")
     supervisor_remarks = models.TextField(blank=True, default="")
+    inspection_priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, null=True, blank=True)
 
     # F. Repair & Damage
     repair_required = models.CharField(
@@ -164,6 +186,7 @@ class CheckOut(models.Model):
         blank=True
     )
     rent_adjustment_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    repair_priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, null=True, blank=True)
 
     # G. Check-Out Utility Meter Readings
     electricity_meter_reading = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -186,6 +209,8 @@ class CheckOut(models.Model):
     )
     payment_date = models.DateField(null=True, blank=True)
     transaction_id = models.CharField(max_length=100, null=True, blank=True)
+    settlement_status = models.CharField(max_length=30, choices=SETTLEMENT_STATUS_CHOICES, null=True, blank=True)
+    finance_description = models.TextField(blank=True, default="")
     payment_proof = models.FileField(
         upload_to="checkin_checkout/payment_proofs/",
         max_length=500,
@@ -195,6 +220,8 @@ class CheckOut(models.Model):
 
     # I. Key Return
     key_number = models.CharField(max_length=100, null=True, blank=True)
+    key_type = models.CharField(max_length=100, null=True, blank=True)
+    key_available = models.CharField(max_length=10, choices=YES_NO_CHOICES, null=True, blank=True)
     key_return = models.CharField(
         max_length=10,
         choices=YES_NO_CHOICES,
@@ -264,6 +291,7 @@ class CheckOut(models.Model):
         check_out_date=None,
         check_out_status: str = "Pending",
         remarks_notes: str = "",
+        request_from: str = None,
         monthly_rent=None,
         security_deposit=None,
         advance_rent_received=None,
@@ -312,6 +340,7 @@ class CheckOut(models.Model):
         self.check_out_date = check_out_date
         self.check_out_status = check_out_status
         self.remarks_notes = remarks_notes
+        self.request_from = request_from
 
         # D. Rental Details
         self.monthly_rent = monthly_rent
@@ -379,8 +408,9 @@ class CheckOut(models.Model):
             return {}
         row = LeadModel.objects.filter(lead_id=tenant_id).values(
             'first_name', 'last_name', 'lead_id__phone_number', 'lead_id__email',
-            'civil_id', 'passport_or_id', 'nationality__name',
-            'tenant_code', 'tenant_type',
+            'civil_id', 'passport_or_id', 'nationality__name', 'address',
+            'tenant_code', 'tenant_type', 'date_of_birth', 'gender', 'marital_status',
+            'emergency_contact_name', 'emergency_contact_number', 'profession', 'company_name',
         ).first() or {}
         return {
             'tenant_name': f"{row.get('first_name') or ''} {row.get('last_name') or ''}".strip() or None,
@@ -389,8 +419,16 @@ class CheckOut(models.Model):
             'tenant_civil_id': row.get('civil_id'),
             'tenant_passport_number': row.get('passport_or_id'),
             'tenant_nationality': row.get('nationality__name'),
+            'tenant_address': row.get('address'),
             'tenant_code': row.get('tenant_code'),
             'tenant_type': row.get('tenant_type'),
+            'date_of_birth': row.get('date_of_birth'),
+            'gender': row.get('gender'),
+            'marital_status': row.get('marital_status'),
+            'emergency_contact_name': row.get('emergency_contact_name'),
+            'emergency_contact_number': row.get('emergency_contact_number'),
+            'profession': row.get('profession'),
+            'company_name': row.get('company_name'),
         }
 
     @staticmethod
@@ -426,19 +464,19 @@ class CheckOut(models.Model):
     def get(check_out_id: int) -> dict:
         own_fields = [
             "check_out_id", "check_out_code", "check_out_date", "check_out_status", "remarks_notes",
-            "property_id", "property_assignment_id", "check_in_id", "tenant_id", "assigned_employee_id",
-            "assigned_employee__name",
+            "request_from", "property_id", "property_assignment_id", "check_in_id", "tenant_id",
+            "assigned_employee_id", "assigned_employee__name",
             "monthly_rent", "security_deposit", "advance_rent_received", "first_month_rent_paid",
             "payment_mode", "maintenance_charges",
             "inspection_required", "inspection_date", "technician_type", "manager_approval",
-            "issue_identified", "supervisor_remarks",
+            "inspection_priority", "issue_identified", "supervisor_remarks",
             "repair_required", "quotation_amount", "inventory_available", "gm_approval",
-            "landlord_consent", "finance_alert_generated", "rent_adjustment_amount",
+            "landlord_consent", "finance_alert_generated", "rent_adjustment_amount", "repair_priority",
             "electricity_meter_reading", "water_meter_reading", "gas_meter_reading",
             "charge_type", "total_amount", "payment_status", "payment_date", "transaction_id",
-            "payment_proof",
-            "key_number", "key_return", "expected_return_date", "confirmation_received",
-            "key_return_date", "key_return_status",
+            "settlement_status", "finance_description", "payment_proof",
+            "key_number", "key_type", "key_available", "key_return", "expected_return_date",
+            "confirmation_received", "key_return_date", "key_return_status",
             "internal_comments", "tenant_remarks", "special_instructions",
             "created_by_id", "created_by__name", "updated_by_id", "created_at", "updated_at",
             "status_history", "is_active",
@@ -453,6 +491,7 @@ class CheckOut(models.Model):
     EXACT_MATCH_FILTER_FIELDS = {
         "check_out_id", "property_id", "tenant_id", "assigned_employee_id",
         "check_out_status", "manager_approval", "key_return_status",
+        "payment_status", "request_from",
     }
 
     @staticmethod
@@ -493,9 +532,10 @@ class CheckOut(models.Model):
             query = query.order_by("-created_at")
 
         own_fields = [
-            "check_out_id", "tenant_id", "property_id",
-            "check_out_date", "monthly_rent", "manager_approval", "key_return_status",
-            "check_out_status", "assigned_employee_id", "assigned_employee__name",
+            "check_out_id", "check_out_code", "tenant_id", "property_id",
+            "check_out_date", "security_deposit", "manager_approval", "key_return_status",
+            "payment_status", "check_out_status", "request_from",
+            "assigned_employee_id", "assigned_employee__name",
         ]
         rows = list(query.values(*own_fields))
         if not rows:
@@ -509,9 +549,9 @@ class CheckOut(models.Model):
         property_ids = {r['property_id'] for r in rows if r.get('property_id')}
 
         tenant_map = {}
-        for t in LeadModel.objects.filter(lead_id__in=tenant_ids).values('lead_id', 'first_name', 'last_name'):
+        for t in LeadModel.objects.filter(lead_id__in=tenant_ids).values('lead_id', 'first_name', 'last_name', 'tenant_code'):
             name = f"{t.get('first_name') or ''} {t.get('last_name') or ''}".strip() or None
-            tenant_map[t['lead_id']] = name
+            tenant_map[t['lead_id']] = {'name': name, 'tenant_code': t.get('tenant_code')}
 
         prop_type_map = {p['property_id']: p['rental_type']
                          for p in PropertyModel.objects.filter(property_id__in=property_ids).values('property_id', 'rental_type')}
@@ -523,7 +563,9 @@ class CheckOut(models.Model):
             tid = row.pop('tenant_id', None)
             pid = row.pop('property_id', None)
             row['tenant_id'] = tid
-            row['tenant_name'] = tenant_map.get(tid)
+            tenant_info = tenant_map.get(tid) or {}
+            row['tenant_name'] = tenant_info.get('name')
+            row['tenant_code'] = tenant_info.get('tenant_code')
             d = detail_map.get(pid) or {}
             row['building_name'] = d.get('building_name')
             rtype = prop_type_map.get(pid)
@@ -549,6 +591,7 @@ class CheckOut(models.Model):
         check_out_date=None,
         check_out_status: str = None,
         remarks_notes: str = None,
+        request_from: str = None,
         updated_by: int = None,
     ) -> int:
         try:
@@ -568,6 +611,8 @@ class CheckOut(models.Model):
             check_out.check_out_status = check_out_status
         if remarks_notes is not None:
             check_out.remarks_notes = remarks_notes
+        if request_from is not None:
+            check_out.request_from = request_from
         if updated_by is not None:
             check_out.updated_by_id = updated_by
 
@@ -585,6 +630,7 @@ class CheckOut(models.Model):
         tenant_civil_id: str = None,
         tenant_passport_number: str = None,
         tenant_nationality: str = None,
+        tenant_address: str = None,
         updated_by: int = None,
     ) -> int:
         from pms_apps.lead.models.lead import Lead as LeadModel
@@ -615,6 +661,8 @@ class CheckOut(models.Model):
                     nat = Nationality.objects.filter(name__iexact=tenant_nationality).first()
                     if nat:
                         lead.nationality_id = nat.id
+                if tenant_address is not None:
+                    lead.address = tenant_address
                 lead.save()
 
                 user = User.objects.filter(user_id=check_out.tenant_id).first()
@@ -718,6 +766,7 @@ class CheckOut(models.Model):
         inspection_date=None,
         technician_type: str = None,
         manager_approval: str = None,
+        inspection_priority: str = None,
         issue_identified: str = None,
         supervisor_remarks: str = None,
         updated_by: int = None,
@@ -735,6 +784,8 @@ class CheckOut(models.Model):
             check_out.technician_type = technician_type
         if manager_approval is not None:
             check_out.manager_approval = manager_approval
+        if inspection_priority is not None:
+            check_out.inspection_priority = inspection_priority
         if issue_identified is not None:
             check_out.issue_identified = issue_identified
         if supervisor_remarks is not None:
@@ -755,6 +806,7 @@ class CheckOut(models.Model):
         landlord_consent: str = None,
         finance_alert_generated: str = None,
         rent_adjustment_amount=None,
+        repair_priority: str = None,
         updated_by: int = None,
     ) -> int:
         try:
@@ -776,6 +828,8 @@ class CheckOut(models.Model):
             check_out.finance_alert_generated = finance_alert_generated
         if rent_adjustment_amount is not None:
             check_out.rent_adjustment_amount = rent_adjustment_amount
+        if repair_priority is not None:
+            check_out.repair_priority = repair_priority
         if updated_by is not None:
             check_out.updated_by_id = updated_by
 
@@ -815,6 +869,8 @@ class CheckOut(models.Model):
         payment_status: str = None,
         payment_date=None,
         transaction_id: str = None,
+        settlement_status: str = None,
+        finance_description: str = None,
         payment_proof_processed=None,
         updated_by: int = None,
     ) -> int:
@@ -833,6 +889,10 @@ class CheckOut(models.Model):
             check_out.payment_date = payment_date
         if transaction_id is not None:
             check_out.transaction_id = transaction_id
+        if settlement_status is not None:
+            check_out.settlement_status = settlement_status
+        if finance_description is not None:
+            check_out.finance_description = finance_description
         if payment_proof_processed is not None:
             if isinstance(payment_proof_processed, tuple) and payment_proof_processed[0] == 'url':
                 check_out.payment_proof = payment_proof_processed[1]
@@ -850,6 +910,8 @@ class CheckOut(models.Model):
     def update_key_return(
         check_out_id: int,
         key_number: str = None,
+        key_type: str = None,
+        key_available: str = None,
         key_return: str = None,
         expected_return_date=None,
         confirmation_received: str = None,
@@ -864,6 +926,10 @@ class CheckOut(models.Model):
 
         if key_number is not None:
             check_out.key_number = key_number
+        if key_type is not None:
+            check_out.key_type = key_type
+        if key_available is not None:
+            check_out.key_available = key_available
         if key_return is not None:
             check_out.key_return = key_return
         if expected_return_date is not None:

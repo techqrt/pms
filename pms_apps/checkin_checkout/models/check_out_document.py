@@ -8,7 +8,21 @@ class CheckOutDocument(models.Model):
         ("Agreement Copy", "Agreement Copy"),
         ("Inspection Photo", "Inspection Photo"),
         ("Meter Reading Photo", "Meter Reading Photo"),
+        ("Key Return Photo", "Key Return Photo"),
+        ("Notice", "Notice"),
+        ("Other", "Other"),
     ]
+
+    CATEGORY_BY_TYPE = {
+        "Tenant ID Proof": "Tenant",
+        "Passport Copy": "Tenant",
+        "Agreement Copy": "Agreement",
+        "Inspection Photo": "Inspection",
+        "Meter Reading Photo": "Utility",
+        "Key Return Photo": "Key Return",
+        "Notice": "Notice",
+        "Other": "Other",
+    }
 
     check_out_document_id = models.AutoField(primary_key=True)
     check_out = models.ForeignKey(
@@ -18,6 +32,8 @@ class CheckOutDocument(models.Model):
     )
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
     file = models.FileField(upload_to="checkin_checkout/check_out_documents/", max_length=500)
+    linked_to_label = models.CharField(max_length=255, null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
     uploaded_by = models.ForeignKey(
         "authentication.User",
         on_delete=models.SET_NULL,

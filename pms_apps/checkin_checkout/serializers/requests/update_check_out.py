@@ -28,6 +28,9 @@ class CheckOutInformationUpdateSerializer(serializers.Serializer):
         choices=_choices(CheckOut.CHECK_OUT_STATUS_CHOICES), required=False, allow_null=True
     )
     remarks_notes = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    request_from = serializers.ChoiceField(
+        choices=_choices(CheckOut.REQUEST_FROM_CHOICES), required=False, allow_null=True
+    )
 
     def create(self, validated_data) -> CheckOutInformationUpdateRequest:
         return CheckOutInformationUpdateRequest(**validated_data)
@@ -45,6 +48,7 @@ class CheckOutTenantDetailsUpdateSerializer(serializers.Serializer):
     tenant_civil_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_passport_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_nationality = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    tenant_address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def create(self, validated_data) -> CheckOutTenantDetailsUpdateRequest:
         return CheckOutTenantDetailsUpdateRequest(**validated_data)
@@ -88,6 +92,9 @@ class CheckOutPropertyInspectionUpdateSerializer(serializers.Serializer):
     manager_approval = serializers.ChoiceField(
         choices=_choices(CheckOut.APPROVAL_STATUS_CHOICES), required=False, allow_null=True
     )
+    inspection_priority = serializers.ChoiceField(
+        choices=_choices(CheckOut.PRIORITY_CHOICES), required=False, allow_null=True
+    )
     issue_identified = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     supervisor_remarks = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
@@ -114,6 +121,9 @@ class CheckOutRepairDamageUpdateSerializer(serializers.Serializer):
         choices=_choices(CheckOut.YES_NO_CHOICES), required=False, allow_null=True
     )
     rent_adjustment_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    repair_priority = serializers.ChoiceField(
+        choices=_choices(CheckOut.PRIORITY_CHOICES), required=False, allow_null=True
+    )
 
     def create(self, validated_data) -> CheckOutRepairDamageUpdateRequest:
         return CheckOutRepairDamageUpdateRequest(**validated_data)
@@ -140,6 +150,10 @@ class CheckOutFinanceDetailsUpdateSerializer(serializers.Serializer):
     )
     payment_date = serializers.DateField(required=False, allow_null=True)
     transaction_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    settlement_status = serializers.ChoiceField(
+        choices=_choices(CheckOut.SETTLEMENT_STATUS_CHOICES), required=False, allow_null=True
+    )
+    finance_description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     payment_proof = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def create(self, validated_data) -> CheckOutFinanceDetailsUpdateRequest:
@@ -149,6 +163,10 @@ class CheckOutFinanceDetailsUpdateSerializer(serializers.Serializer):
 class CheckOutKeyReturnUpdateSerializer(serializers.Serializer):
     check_out_id = serializers.IntegerField()
     key_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    key_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    key_available = serializers.ChoiceField(
+        choices=_choices(CheckOut.YES_NO_CHOICES), required=False, allow_null=True
+    )
     key_return = serializers.ChoiceField(
         choices=_choices(CheckOut.YES_NO_CHOICES), required=False, allow_null=True
     )
