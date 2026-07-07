@@ -153,6 +153,7 @@ class Lead(models.Model):
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, null=True, blank=True)
+    alternate_mobile_number = models.CharField(max_length=20, null=True, blank=True)
     emergency_contact_name = models.CharField(max_length=200, null=True, blank=True)
     emergency_contact_number = models.CharField(max_length=20, null=True, blank=True)
     profession = models.CharField(max_length=200, null=True, blank=True)
@@ -261,6 +262,7 @@ class Lead(models.Model):
         date_of_birth=None,
         gender: str = None,
         marital_status: str = None,
+        alternate_mobile_number: str = None,
         emergency_contact_name: str = None,
         emergency_contact_number: str = None,
         profession: str = None,
@@ -311,6 +313,8 @@ class Lead(models.Model):
             lead.gender = gender
         if marital_status is not None:
             lead.marital_status = marital_status
+        if alternate_mobile_number is not None:
+            lead.alternate_mobile_number = alternate_mobile_number
         if emergency_contact_name is not None:
             lead.emergency_contact_name = emergency_contact_name
         if emergency_contact_number is not None:
@@ -332,10 +336,12 @@ class Lead(models.Model):
     @staticmethod
     def get(lead_id: int, include_profile_image: bool = False) -> dict:
         fields = [
-            "lead_id",  "first_name", "last_name", "lead_category", "lead_origin",
-            "address", "po_box", "feedback", "country__name","city__name","nationality__name","passport_or_id", "civil_id", "purpose",
-            "created_at", "updated_at", "is_active","lead_assign_to__name",
-            "lead_assign_to__user_id","lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number"
+            "lead_id", "first_name", "last_name", "lead_category", "lead_origin",
+            "address", "po_box", "feedback", "country__name", "city__name", "nationality__name", "passport_or_id", "civil_id", "purpose",
+            "created_at", "updated_at", "is_active", "lead_assign_to__name",
+            "lead_assign_to__user_id", "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "lead_id__email",
+            "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
+            "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
         ]
         if include_profile_image:
             fields.append("profile_image")
@@ -362,9 +368,11 @@ class Lead(models.Model):
         return list(
             data.values(
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
-                "address", "po_box", "feedback", "country__name","city__name","nationality__name", "passport_or_id", "civil_id", "purpose",
-                "created_at", "updated_at", "is_active","lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
+                "address", "po_box", "feedback", "country__name", "city__name", "nationality__name", "passport_or_id", "civil_id", "purpose",
+                "created_at", "updated_at", "is_active", "lead_assign_to__name",
+                "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "lead_id__email", "profile_image",
+                "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
+                "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
             )
             )
 
@@ -391,8 +399,10 @@ class Lead(models.Model):
         return list(
             data.values(
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
-                "address", "po_box", "feedback", "country__name","city__name","nationality__name", "passport_or_id", "civil_id", "purpose",
-                "created_at", "updated_at", "is_active","lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email","property_permissions__permission_id","property_permissions__property","lead_id__phone_number","profile_image"
+                "address", "po_box", "feedback", "country__name", "city__name", "nationality__name", "passport_or_id", "civil_id", "purpose",
+                "created_at", "updated_at", "is_active", "lead_assign_to__name",
+                "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "lead_id__email", "profile_image",
+                "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
+                "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
             )
             )

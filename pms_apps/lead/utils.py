@@ -29,7 +29,18 @@ class LeadUtils:
             'lead_id__phone_number': 'phoneNumber',
             'property_permissions__permission_id' : 'propertyPermission.permissionId',
             'property_permissions__property' : 'propertyPermission.property',
-            'profile_image': 'profileImage'
+            'profile_image': 'profileImage',
+            'lead_id__email': 'email',
+            'tenant_code': 'tenantCode',
+            'tenant_type': 'tenantType',
+            'date_of_birth': 'dateOfBirth',
+            'gender': 'gender',
+            'marital_status': 'maritalStatus',
+            'alternate_mobile_number': 'alternateMobileNumber',
+            'emergency_contact_name': 'emergencyContactName',
+            'emergency_contact_number': 'emergencyContactNumber',
+            'profession': 'profession',
+            'company_name': 'companyName',
         }
 
 
