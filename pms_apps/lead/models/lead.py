@@ -148,6 +148,7 @@ class Lead(models.Model):
         choices=PURPOSE_CHOICES,
         max_length=10,
     )
+    email = models.EmailField(null=True, blank=True)
     tenant_code = models.CharField(max_length=100, null=True, blank=True)
     tenant_type = models.CharField(max_length=20, choices=TENANT_TYPE_CHOICES, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -262,6 +263,7 @@ class Lead(models.Model):
         date_of_birth=None,
         gender: str = None,
         marital_status: str = None,
+        email: str = None,
         alternate_mobile_number: str = None,
         emergency_contact_name: str = None,
         emergency_contact_number: str = None,
@@ -303,6 +305,8 @@ class Lead(models.Model):
             lead.property_permissions_id = property_permission_id
         if profile_image is not None:
             lead.profile_image = profile_image
+        if email is not None:
+            lead.email = email
         if tenant_code is not None:
             lead.tenant_code = tenant_code
         if tenant_type is not None:
@@ -339,7 +343,7 @@ class Lead(models.Model):
             "lead_id", "first_name", "last_name", "lead_category", "lead_origin",
             "address", "po_box", "feedback", "country__name", "city__name", "nationality__name", "passport_or_id", "civil_id", "purpose",
             "created_at", "updated_at", "is_active", "lead_assign_to__name",
-            "lead_assign_to__user_id", "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "lead_id__email",
+            "lead_assign_to__user_id", "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "email",
             "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
             "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
         ]
@@ -370,7 +374,7 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
                 "address", "po_box", "feedback", "country__name", "city__name", "nationality__name", "passport_or_id", "civil_id", "purpose",
                 "created_at", "updated_at", "is_active", "lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "lead_id__email", "profile_image",
+                "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "profile_image", "email",
                 "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
                 "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
             )
@@ -401,7 +405,7 @@ class Lead(models.Model):
                 "lead_id", "lead_assign_to_id", "first_name", "last_name", "lead_category", "lead_origin",
                 "address", "po_box", "feedback", "country__name", "city__name", "nationality__name", "passport_or_id", "civil_id", "purpose",
                 "created_at", "updated_at", "is_active", "lead_assign_to__name",
-                "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "lead_id__email", "profile_image",
+                "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "profile_image", "email",
                 "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
                 "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
             )

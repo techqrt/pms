@@ -1,8 +1,23 @@
 from django.urls import path
 from pms_apps.checkin_checkout.controllers.check_in import CheckInViewController
 from pms_apps.checkin_checkout.controllers.check_out import CheckOutViewController
+from pms_apps.checkin_checkout.controllers.dashboard import (
+    DashboardViewController,
+    CheckInDashboardViewController,
+    CheckOutDashboardViewController,
+)
 
 urlpatterns = [
+    path("dashboard/summary/", DashboardViewController.summary, name="checkin_checkout_dashboard_summary"),
+    path("dashboard/pending_settlements/", DashboardViewController.pending_settlements, name="checkin_checkout_dashboard_pending_settlements"),
+
+    path("check_in/dashboard/summary/", CheckInDashboardViewController.summary, name="check_in_dashboard_summary"),
+    path("check_in/dashboard/upcoming/", CheckInDashboardViewController.upcoming, name="check_in_dashboard_upcoming"),
+
+    path("check_out/dashboard/summary/", CheckOutDashboardViewController.summary, name="check_out_dashboard_summary"),
+    path("check_out/dashboard/upcoming/", CheckOutDashboardViewController.upcoming, name="check_out_dashboard_upcoming"),
+    path("check_out/dashboard/widgets/", CheckOutDashboardViewController.widgets, name="check_out_dashboard_widgets"),
+
     path("check_in/create/", CheckInViewController.create, name="create_check_in"),
     path("check_in/get/", CheckInViewController.get, name="get_check_in"),
     path("check_in/get_all/", CheckInViewController.get_all, name="get_all_check_in"),
