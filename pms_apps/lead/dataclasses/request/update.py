@@ -22,4 +22,5 @@ class LeadUpdateRequest:
     lead_category : str | None = None
     is_active : bool | None = None
     property_permission : PropertyPermissionUpdateRequest | None = None
-    profile_picture : str | None = None 
+    email : str | None = None
+    profile_picture : str | None = None

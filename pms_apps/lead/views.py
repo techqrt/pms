@@ -139,7 +139,8 @@ class LeadView:
                 lead_category=params.lead_category,
                 is_active=params.is_active,
                 property_permission_id=property_permission_id,
-                profile_image=profile_image_obj
+                profile_image=profile_image_obj,
+                email=params.email,
             )
         return Response(
             status=status.HTTP_200_OK,
@@ -280,8 +281,8 @@ class LeadView:
             message = self.data_get
             if manager_id and not data:
                 message = "You don't have any leads assigned to you"
-
-            data = Utils.add_page_parameter(
+    
+            data = Utils.add_page_parameter(    
                 final_data=data,
                 page_num=params.page_num,
                 total_page=pages.num_pages,

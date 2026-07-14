@@ -30,7 +30,7 @@ class LeadUtils:
             'property_permissions__permission_id' : 'propertyPermission.permissionId',
             'property_permissions__property' : 'propertyPermission.property',
             'profile_image': 'profileImage',
-            'lead_id__email': 'email',
+            'email': 'email',
             'tenant_code': 'tenantCode',
             'tenant_type': 'tenantType',
             'date_of_birth': 'dateOfBirth',
