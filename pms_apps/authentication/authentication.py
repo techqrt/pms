@@ -84,6 +84,7 @@ class JWTAuthentication(BaseAuthentication):
             'general manager' : permissions.get('general manager',False),
             'hr' : permissions.get('hr',False),
             'owner' : permissions.get('owner',False),
+            'check-in check-out' : permissions.get('check-in check-out',False),
         }
         permissions_mapping.pop(depeartment)
 
