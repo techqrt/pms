@@ -9,9 +9,6 @@ from decimal import Decimal
 @dataclass
 class PropertyCommonData:
     building_name: str
-    total_floors: int
-    carpet_area_sqft: Decimal
-    builtup_area_sqft: Decimal
     monthly_rent: Decimal
     security_deposit_amount: Decimal
     late_fee_type: str
@@ -25,10 +22,13 @@ class PropertyCommonData:
     state: str
     country: str
     pincode: str
-    google_map_location: str
-    year_of_construction: int
-    address_line_2: str
-    internal_notes: str
+    total_floors: int | None = None
+    carpet_area_sqft: Decimal | None = None
+    builtup_area_sqft: Decimal | None = None
+    google_map_location: str | None = None
+    year_of_construction: int | None = None
+    address_line_2: str | None = None
+    internal_notes: str | None = None
     electricity_charge_type: str | None = None
     water_charge_type: str | None = None
     other_charges: dict | None = None
@@ -72,8 +72,8 @@ class CommercialPropertyData:
 
 @dataclass
 class FlatPropertyData:
-    flat_number: str
     flat_configuration: str
+    flat_number: str | None = None
     floor_number: int | None = None
     building_block: str | None = None
     no_of_bathrooms: int | None = None

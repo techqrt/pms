@@ -18,6 +18,7 @@ class LeadUtils:
             'city__name' : 'city',
             'nationality__name' : 'nationality',
             'passport_or_id': 'passportOrId',
+            'civil_id': 'civilId',
             'purpose': 'purpose',
             'created_at': 'createdAt',
             'updated_at': 'updatedAt',
@@ -41,6 +42,7 @@ class LeadUtils:
             'emergency_contact_number': 'emergencyContactNumber',
             'profession': 'profession',
             'company_name': 'companyName',
+            'estimated_closing_date': 'estimatedClosingDate',
         }
 
 

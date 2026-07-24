@@ -24,6 +24,11 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     passport_or_id = serializers.CharField(
         max_length = 50,required=False
     )
+    civil_id = serializers.CharField(
+        max_length = 50,
+        required = False,
+        allow_null = True
+    )
     purpose = serializers.CharField(
         max_length = 10,required=False
     )
@@ -38,6 +43,10 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     )
     lead_category = serializers.CharField(
         max_length = 15,
+        required = False,
+        allow_null = True
+    )
+    estimated_closing_date = serializers.DateField(
         required = False,
         allow_null = True
     )

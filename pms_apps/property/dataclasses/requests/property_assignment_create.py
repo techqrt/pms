@@ -10,7 +10,6 @@ class PropertyAssignmentCreateRequest:
     tenant_id: int
     assigned_by_id: int
     assignment_status: str = "Pending"
-    tenant_type: str = "Individual"
     company_name: Optional[str] = None
     rental_start_date: Optional[date] = None
     rental_end_date: Optional[date] = None

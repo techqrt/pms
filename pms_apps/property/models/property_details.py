@@ -33,16 +33,20 @@ class PropertyDetail(models.Model):
     )
 
     building_name = models.CharField(max_length=150)
-    total_floors = models.PositiveIntegerField()
-    year_of_construction = models.PositiveIntegerField()
+    total_floors = models.PositiveIntegerField(null=True, blank=True)
+    year_of_construction = models.PositiveIntegerField(null=True, blank=True)
 
     carpet_area_sqft = models.DecimalField(
         max_digits=10,
-        decimal_places=2
+        decimal_places=2,
+        null=True,
+        blank=True
     )
     builtup_area_sqft = models.DecimalField(
         max_digits=10,
-        decimal_places=2
+        decimal_places=2,
+        null=True,
+        blank=True
     )
 
     monthly_rent = models.DecimalField(
@@ -108,6 +112,7 @@ class PropertyDetail(models.Model):
     address_line_1 = models.TextField()
 
     address_line_2 = models.TextField(
+        null=True,
         blank=True
     )
 
@@ -131,10 +136,14 @@ class PropertyDetail(models.Model):
         max_length=10
     )
 
-    google_map_location = models.TextField()
+    google_map_location = models.TextField(
+        null=True,
+        blank=True
+    )
 
 
     internal_notes = models.TextField(
+        null=True,
         blank=True
     )
     created_by = models.ForeignKey(
@@ -690,9 +699,6 @@ class PropertyDetail(models.Model):
     def create(
         property_id: int,
         building_name: str,
-        total_floors: int,
-        carpet_area_sqft: float,
-        builtup_area_sqft: float,
         monthly_rent: float,
         security_deposit_amount: float,
         late_fee_type: str,
@@ -706,10 +712,13 @@ class PropertyDetail(models.Model):
         state: str,
         country: str,
         pincode: str,
-        google_map_location: str,
-        year_of_construction: int,
-        address_line_2: str,
-        internal_notes: str,
+        total_floors: int = None,
+        carpet_area_sqft: float = None,
+        builtup_area_sqft: float = None,
+        google_map_location: str = None,
+        year_of_construction: int = None,
+        address_line_2: str = None,
+        internal_notes: str = None,
         electricity_charge_type: str = None,
         water_charge_type: str = None,
         other_charges: dict = None,

@@ -143,6 +143,7 @@ class CheckOut(models.Model):
     )
     inspection_date = models.DateField(null=True, blank=True)
     technician_type = models.CharField(max_length=100, null=True, blank=True)
+    inspection_duration = models.CharField(max_length=20, null=True, blank=True)
     manager_approval = models.CharField(
         max_length=20,
         choices=APPROVAL_STATUS_CHOICES,
@@ -152,6 +153,7 @@ class CheckOut(models.Model):
     issue_identified = models.TextField(blank=True, default="")
     supervisor_remarks = models.TextField(blank=True, default="")
     inspection_priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, null=True, blank=True)
+    next_inspection_due = models.DateField(null=True, blank=True)
 
     # F. Repair & Damage
     repair_required = models.CharField(
@@ -187,6 +189,21 @@ class CheckOut(models.Model):
     )
     rent_adjustment_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     repair_priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, null=True, blank=True)
+    recommended_by = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="check_outs_recommended"
+    )
+    approved_by = models.ForeignKey(
+        "authentication.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="check_outs_approved"
+    )
+    approved_on = models.DateField(null=True, blank=True)
 
     # G. Check-Out Utility Meter Readings
     electricity_meter_reading = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -301,6 +318,7 @@ class CheckOut(models.Model):
         inspection_required: str = None,
         inspection_date=None,
         technician_type: str = None,
+        inspection_duration: str = None,
         manager_approval: str = None,
         issue_identified: str = "",
         supervisor_remarks: str = "",
@@ -354,6 +372,7 @@ class CheckOut(models.Model):
         self.inspection_required = inspection_required
         self.inspection_date = inspection_date
         self.technician_type = technician_type
+        self.inspection_duration = inspection_duration
         self.manager_approval = manager_approval
         self.issue_identified = issue_identified
         self.supervisor_remarks = supervisor_remarks
@@ -468,10 +487,11 @@ class CheckOut(models.Model):
             "assigned_employee_id", "assigned_employee__name",
             "monthly_rent", "security_deposit", "advance_rent_received", "first_month_rent_paid",
             "payment_mode", "maintenance_charges",
-            "inspection_required", "inspection_date", "technician_type", "manager_approval",
-            "inspection_priority", "issue_identified", "supervisor_remarks",
+            "inspection_required", "inspection_date", "technician_type", "inspection_duration", "manager_approval",
+            "inspection_priority", "issue_identified", "supervisor_remarks", "next_inspection_due",
             "repair_required", "quotation_amount", "inventory_available", "gm_approval",
             "landlord_consent", "finance_alert_generated", "rent_adjustment_amount", "repair_priority",
+            "recommended_by_id", "recommended_by__name", "approved_by_id", "approved_by__name", "approved_on",
             "electricity_meter_reading", "water_meter_reading", "gas_meter_reading",
             "charge_type", "total_amount", "payment_status", "payment_date", "transaction_id",
             "settlement_status", "finance_description", "payment_proof",
@@ -631,6 +651,13 @@ class CheckOut(models.Model):
         tenant_passport_number: str = None,
         tenant_nationality: str = None,
         tenant_address: str = None,
+        date_of_birth=None,
+        gender: str = None,
+        marital_status: str = None,
+        emergency_contact_name: str = None,
+        emergency_contact_number: str = None,
+        profession: str = None,
+        company_name: str = None,
         updated_by: int = None,
     ) -> int:
         from pms_apps.lead.models.lead import Lead as LeadModel
@@ -660,9 +687,23 @@ class CheckOut(models.Model):
                 if tenant_nationality is not None:
                     nat = Nationality.objects.filter(name__iexact=tenant_nationality).first()
                     if nat:
-                        lead.nationality_id = nat.id
+                        lead.nationality_id = nat.nationality_id
                 if tenant_address is not None:
                     lead.address = tenant_address
+                if date_of_birth is not None:
+                    lead.date_of_birth = date_of_birth
+                if gender is not None:
+                    lead.gender = gender
+                if marital_status is not None:
+                    lead.marital_status = marital_status
+                if emergency_contact_name is not None:
+                    lead.emergency_contact_name = emergency_contact_name
+                if emergency_contact_number is not None:
+                    lead.emergency_contact_number = emergency_contact_number
+                if profession is not None:
+                    lead.profession = profession
+                if company_name is not None:
+                    lead.company_name = company_name
                 lead.save()
 
                 user = User.objects.filter(user_id=check_out.tenant_id).first()
@@ -687,15 +728,22 @@ class CheckOut(models.Model):
         flat_unit_number: str = None,
         floor_number: str = None,
         property_status: str = None,
+        property_assignment_id: int = None,
         updated_by: int = None,
     ) -> int:
         from pms_apps.property.models.property_details import PropertyDetail
         from pms_apps.property.models.property import Property as PropertyModel
+        from pms_apps.property.models.property_assignment import PropertyAssignment
 
         try:
             check_out = CheckOut.objects.get(check_out_id=check_out_id)
         except CheckOut.DoesNotExist:
             raise ValueError(f"Invalid Check-Out Id: {check_out_id}")
+
+        if property_assignment_id is not None:
+            if not PropertyAssignment.objects.filter(property_assignment_id=property_assignment_id).exists():
+                raise ValueError(f"Invalid Property Assignment ID: {property_assignment_id}")
+            check_out.property_assignment_id = property_assignment_id
 
         if check_out.property_id:
             detail = PropertyDetail.objects.filter(property_id=check_out.property_id).first()
@@ -765,10 +813,12 @@ class CheckOut(models.Model):
         inspection_required: str = None,
         inspection_date=None,
         technician_type: str = None,
+        inspection_duration: str = None,
         manager_approval: str = None,
         inspection_priority: str = None,
         issue_identified: str = None,
         supervisor_remarks: str = None,
+        next_inspection_due=None,
         updated_by: int = None,
     ) -> int:
         try:
@@ -782,6 +832,8 @@ class CheckOut(models.Model):
             check_out.inspection_date = inspection_date
         if technician_type is not None:
             check_out.technician_type = technician_type
+        if inspection_duration is not None:
+            check_out.inspection_duration = inspection_duration
         if manager_approval is not None:
             check_out.manager_approval = manager_approval
         if inspection_priority is not None:
@@ -790,6 +842,8 @@ class CheckOut(models.Model):
             check_out.issue_identified = issue_identified
         if supervisor_remarks is not None:
             check_out.supervisor_remarks = supervisor_remarks
+        if next_inspection_due is not None:
+            check_out.next_inspection_due = next_inspection_due
         if updated_by is not None:
             check_out.updated_by_id = updated_by
 
@@ -807,6 +861,9 @@ class CheckOut(models.Model):
         finance_alert_generated: str = None,
         rent_adjustment_amount=None,
         repair_priority: str = None,
+        recommended_by_id: int = None,
+        approved_by_id: int = None,
+        approved_on=None,
         updated_by: int = None,
     ) -> int:
         try:
@@ -830,6 +887,12 @@ class CheckOut(models.Model):
             check_out.rent_adjustment_amount = rent_adjustment_amount
         if repair_priority is not None:
             check_out.repair_priority = repair_priority
+        if recommended_by_id is not None:
+            check_out.recommended_by_id = recommended_by_id
+        if approved_by_id is not None:
+            check_out.approved_by_id = approved_by_id
+        if approved_on is not None:
+            check_out.approved_on = approved_on
         if updated_by is not None:
             check_out.updated_by_id = updated_by
 

@@ -101,7 +101,7 @@ class PropertyView:
                 'late_fee_value': params.property_details.late_fee_value,
                 'current_status': params.property_details.current_status,
                 'landlord_id': params.property_details.landlord_id,
-                'created_by_id': params.property_details.created_by_id,
+                'created_by_id': params.user_id or params.property_details.created_by_id,
                 'address_line_1': params.property_details.address_line_1,
                 'area_zone': params.property_details.area_zone,
                 'city': params.property_details.city,
@@ -112,7 +112,7 @@ class PropertyView:
                 'year_of_construction': params.property_details.year_of_construction,
                 'other_charges': params.property_details.other_charges,
                 'available_from': params.property_details.available_from,
-                'current_tenant_id': params.property_details.current_tenant,
+                'current_tenant_id': params.property_details.current_tenant_id,
                 'address_line_2': params.property_details.address_line_2,
                 'internal_notes': params.property_details.internal_notes,
                 'furnishing_status': params.property_details.furnishing_status,
@@ -340,12 +340,37 @@ class PropertyView:
             if detail_update_kwargs:
                 PropertyDetail.update(property_id=params.property_id, **detail_update_kwargs)
 
-            if params.photos:
+            if params.photos is not None:
                 from pms_apps.property.models.property_photos import PropertyPhotos
                 from pms_apps.property.image_utils import ImageUtils
-                
-                # Add new photos (append to existing, don't delete old ones)
+
+                # `photos` is the full desired photo list: existing photos are represented
+                # by the URLs the GET endpoint returns, new uploads by base64 strings.
+                # Any existing photo whose URL is missing from this list was removed by
+                # the client and must be deleted (file + row), not just left orphaned.
+                existing_photos = list(PropertyPhotos.objects.filter(property_id=params.property_id))
+                existing_by_url = {}
+                for photo_obj in existing_photos:
+                    if not photo_obj.photo:
+                        continue
+                    photo_str = str(photo_obj.photo)
+                    url = photo_str if photo_str.startswith(('http://', 'https://')) else ImageUtils.get_photo_url(photo_str)
+                    if url:
+                        existing_by_url[url] = photo_obj
+
+                submitted_set = set(params.photos)
+
+                # Delete photos removed by the client (their URL is no longer submitted)
+                for url, photo_obj in existing_by_url.items():
+                    if url not in submitted_set:
+                        photo_obj.photo.delete(save=False)
+                        photo_obj.delete()
+
+                # Add photos that aren't references to an already-kept existing photo
                 for photo_data in params.photos:
+                    if photo_data in existing_by_url:
+                        continue
+
                     # Process the photo (convert base64 to file or use URL as-is)
                     processed_photo = ImageUtils.process_photo(photo_data)
                     if processed_photo:
@@ -589,6 +614,8 @@ class PropertyView:
 
     @Common().exception_handler
     def count_extract(self, params: GetAll):
+        from django.db.models import Count
+
         reversed_mapped = PropertyUtils.reverse_mapper([
             params.sort_by,
             params.filter_key
@@ -605,9 +632,34 @@ class PropertyView:
 
         property_count = len(property_list)
 
+        # Count by property type (rental_type), keeping every known type in the
+        # response even when its count is 0 so the frontend has a stable shape.
+        by_type = {choice: 0 for choice, _ in Property.RENTAL_TYPE_CHOICES}
+        for prop in property_list:
+            rental_type = prop.get('rental_type')
+            if rental_type in by_type:
+                by_type[rental_type] += 1
+
+        # Count by country (lives on PropertyDetail, not Property, so needs its own query)
+        property_ids = [prop['property_id'] for prop in property_list]
+        by_country = {}
+        if property_ids:
+            country_rows = PropertyDetail.objects.filter(
+                property_id__in=property_ids
+            ).values('country').annotate(count=Count('country'))
+            for row in country_rows:
+                by_country[row['country'] or 'Unknown'] = row['count']
+
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message="Total properties count", data={"count": property_count})
+            data=Utils.success_response_data(
+                message="Total properties count",
+                data={
+                    "count": property_count,
+                    "byType": by_type,
+                    "byCountry": by_country,
+                }
+            )
         )
 
     @Common().exception_handler
@@ -637,7 +689,6 @@ class PropertyView:
                 tenant_id=params.tenant_id,
                 assigned_by_id=params.assigned_by_id,
                 assignment_status=params.assignment_status,
-                tenant_type=params.tenant_type,
                 company_name=params.company_name,
                 rental_start_date=params.rental_start_date,
                 rental_end_date=params.rental_end_date,
@@ -714,7 +765,6 @@ class PropertyView:
                 "email": assignment.assigned_by.email if assignment.assigned_by else None,
             } if assignment.assigned_by else None,
             "assignmentStatus": assignment.assignment_status,
-            "tenantType": assignment.tenant_type,
             "companyName": assignment.company_name,
             "rentalStartDate": assignment.rental_start_date,
             "rentalEndDate": assignment.rental_end_date,
@@ -848,12 +898,14 @@ class PropertyView:
             is_active=True
         ).count()
         
-        # Properties with at least one assignment (tenant not null)
+        # Properties with a currently active tenancy (ended assignments keep their tenant FK, so
+        # status must be checked too, not just tenant__isnull)
         from pms_apps.property.models.property_assignment import PropertyAssignment
         assigned_properties = Property.objects.filter(
             assigned_to_id=params.user_id,
             is_active=True,
-            assignments__tenant__isnull=False
+            assignments__tenant__isnull=False,
+            assignments__assignment_status__in=["Active", "Approved"]
         ).distinct().count()
         
         # Unassigned properties

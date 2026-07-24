@@ -21,6 +21,7 @@ class LeadGetSerializer(serializers.Serializer):
     city = serializers.CharField(read_only=True)
     nationality = serializers.CharField(read_only=True)
     passportOrId = serializers.CharField(read_only = True)
+    civilId = serializers.CharField(read_only = True, required=False, allow_null=True)
     purpose = serializers.CharField(read_only = True)
     poBox = serializers.CharField(read_only = True, required=False)
     feedback = serializers.CharField(read_only = True, required=False)
@@ -40,6 +41,7 @@ class LeadGetSerializer(serializers.Serializer):
     emergencyContactNumber = serializers.CharField(read_only=True, required=False, allow_null=True)
     profession = serializers.CharField(read_only=True, required=False, allow_null=True)
     companyName = serializers.CharField(read_only=True, required=False, allow_null=True)
+    estimatedClosingDate = serializers.DateField(read_only=True, required=False, allow_null=True)
     profileImage = serializers.SerializerMethodField(read_only=True)
     permissions = LeadPermissionsGetSeriazlier(read_only = True)
 
