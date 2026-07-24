@@ -3,6 +3,7 @@ from django.db.models import Q
 from pms_apps.authentication.models import User
 from datetime import datetime
 from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 from pms_apps.activity_log.models.archive_log import ArchiveLog
 from django.core.exceptions import ValidationError
 
@@ -27,13 +28,13 @@ class ActivityLog(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    ip_address = models.CharField(max_length=25)
+    ip_address = models.CharField(max_length=45)
     user_agent = models.TextField()
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-    model = models.CharField(max_length=20)
+    model = models.CharField(max_length=50)
     method = models.CharField(max_length=10, choices=METHOD_CHOICES)
     end_point = models.CharField(max_length=125)
-    details = models.JSONField()
+    details = models.JSONField(encoder=DjangoJSONEncoder)
     created_on = models.DateTimeField(auto_now_add=True)
 
     class Meta:
