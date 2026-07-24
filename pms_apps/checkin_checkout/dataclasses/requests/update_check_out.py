@@ -26,6 +26,13 @@ class CheckOutTenantDetailsUpdateRequest:
     tenant_passport_number: Optional[str] = None
     tenant_nationality: Optional[str] = None
     tenant_address: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    marital_status: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_number: Optional[str] = None
+    profession: Optional[str] = None
+    company_name: Optional[str] = None
 
 
 @dataclass
@@ -37,6 +44,7 @@ class CheckOutPropertyDetailsUpdateRequest:
     flat_unit_number: Optional[str] = None
     floor_number: Optional[str] = None
     property_status: Optional[str] = None
+    property_assignment_id: Optional[int] = None
 
 
 @dataclass
@@ -56,10 +64,12 @@ class CheckOutPropertyInspectionUpdateRequest:
     inspection_required: Optional[str] = None
     inspection_date: Optional[date] = None
     technician_type: Optional[str] = None
+    inspection_duration: Optional[str] = None
     manager_approval: Optional[str] = None
     inspection_priority: Optional[str] = None
     issue_identified: Optional[str] = None
     supervisor_remarks: Optional[str] = None
+    next_inspection_due: Optional[date] = None
 
 
 @dataclass
@@ -73,6 +83,9 @@ class CheckOutRepairDamageUpdateRequest:
     finance_alert_generated: Optional[str] = None
     rent_adjustment_amount: Optional[Decimal] = None
     repair_priority: Optional[str] = None
+    recommended_by_id: Optional[int] = None
+    approved_by_id: Optional[int] = None
+    approved_on: Optional[date] = None
 
 
 @dataclass

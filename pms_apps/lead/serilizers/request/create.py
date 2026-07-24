@@ -41,22 +41,29 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
     city = CityRequestSerializer()
     nationality = NationalityRequestSerializer()
     passport_or_id = serializers.CharField(
-        max_length = 50
+        max_length = 50,
+        required = False,
+        allow_null = True
+    )
+    civil_id = serializers.CharField(
+        max_length = 50,
+        required = False,
+        allow_null = True
     )
     purpose = serializers.CharField(
         max_length = 10
     )
     po_box = serializers.CharField(
-        max_length = 20,
-        required = False,
-        allow_null = True
+        max_length = 20
     )
     feedback = serializers.CharField(
         required = False,
         allow_null = True
     )
     lead_category = serializers.CharField(
-        max_length = 15,
+        max_length = 15
+    )
+    estimated_closing_date = serializers.DateField(
         required = False,
         allow_null = True
     )

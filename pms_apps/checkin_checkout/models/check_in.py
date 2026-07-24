@@ -840,7 +840,7 @@ class CheckIn(models.Model):
                 if tenant_nationality is not None:
                     nat = Nationality.objects.filter(name__iexact=tenant_nationality).first()
                     if nat:
-                        lead.nationality_id = nat.id
+                        lead.nationality_id = nat.nationality_id
                 lead.save()
 
                 # phone/email live on the linked User

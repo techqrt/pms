@@ -49,6 +49,7 @@ class CheckOutCreateRequest:
     inspection_required: Optional[str] = None
     inspection_date: Optional[date] = None
     technician_type: Optional[str] = None
+    inspection_duration: Optional[str] = None
     manager_approval: Optional[str] = None
     issue_identified: Optional[str] = None
     supervisor_remarks: Optional[str] = None

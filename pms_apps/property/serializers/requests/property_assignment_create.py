@@ -10,10 +10,6 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
         choices=["Pending", "Approved", "Active", "Completed", "Cancelled"],
         default="Pending"
     )
-    tenant_type = serializers.ChoiceField(
-        choices=["Individual", "Corporate"],
-        default="Individual"
-    )
     company_name = serializers.CharField(max_length=255, required=False, allow_null=True)
     rental_start_date = serializers.DateField(required=False, allow_null=True)
     rental_end_date = serializers.DateField(required=False, allow_null=True)
@@ -99,7 +95,6 @@ class PropertyAssignmentCreateSerializer(serializers.Serializer):
             tenant_id=validated_data['tenant_id'],
             assigned_by_id=validated_data['assigned_by_id'],
             assignment_status=validated_data.get('assignment_status', 'Pending'),
-            tenant_type=validated_data.get('tenant_type', 'Individual'),
             company_name=validated_data.get('company_name'),
             rental_start_date=validated_data.get('rental_start_date'),
             rental_end_date=validated_data.get('rental_end_date'),

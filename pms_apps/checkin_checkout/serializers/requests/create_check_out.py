@@ -62,6 +62,7 @@ class CheckOutCreateSerializer(serializers.Serializer):
     )
     inspection_date = serializers.DateField(required=False, allow_null=True)
     technician_type = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    inspection_duration = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     manager_approval = serializers.ChoiceField(
         choices=[choice[0] for choice in CheckOut.APPROVAL_STATUS_CHOICES],
         required=False, allow_null=True
@@ -173,6 +174,7 @@ class CheckOutCreateSerializer(serializers.Serializer):
             inspection_required=validated_data.get('inspection_required'),
             inspection_date=validated_data.get('inspection_date'),
             technician_type=validated_data.get('technician_type'),
+            inspection_duration=validated_data.get('inspection_duration'),
             manager_approval=validated_data.get('manager_approval'),
             issue_identified=validated_data.get('issue_identified', ''),
             supervisor_remarks=validated_data.get('supervisor_remarks', ''),

@@ -8,6 +8,7 @@ class CheckOutDocumentUploadRequest:
     check_out_id: int
     document_type: str
     file: str
+    document_name: Optional[str] = None
     linked_to_label: Optional[str] = None
     expiry_date: Optional[date] = None
     user_id: int = None

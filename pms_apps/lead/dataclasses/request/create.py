@@ -13,10 +13,12 @@ class LeadCreateRequest:
     country_id : int
     city_id : int
     nationality_id : int
-    passport_or_id : str
     purpose : str
     permissions : Permissions
+    passport_or_id : str | None = None
     po_box : str | None = None
     feedback : str | None = None
     lead_category : str | None = None
     profile_picture : str | None = None
+    civil_id : str | None = None
+    estimated_closing_date : str | None = None

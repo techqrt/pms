@@ -10,9 +10,13 @@ class UserRequestSerilizer(serializers.Serializer):
 
 class PropertyCommonDataSerializer(serializers.Serializer):
     building_name = serializers.CharField()
-    total_floors = serializers.IntegerField()
-    carpet_area_sqft = serializers.DecimalField(max_digits=10, decimal_places=2)
-    builtup_area_sqft = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_floors = serializers.IntegerField(required=False, allow_null=True)
+    carpet_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
     monthly_rent = serializers.DecimalField(max_digits=12, decimal_places=2)
     security_deposit_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
 
@@ -36,7 +40,7 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     created_by_id = serializers.IntegerField()
 
     address_line_1 = serializers.CharField()
-    address_line_2 = serializers.CharField()
+    address_line_2 = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     area_zone = serializers.CharField()
     city = serializers.CharField()
@@ -44,13 +48,13 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     country = serializers.CharField()
     pincode = serializers.CharField(max_length=10)
 
-    google_map_location = serializers.CharField()
+    google_map_location = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
-    year_of_construction = serializers.IntegerField()
+    year_of_construction = serializers.IntegerField(required=False, allow_null=True)
     other_charges = serializers.JSONField(required=False, allow_null=True, default=dict)
     available_from = serializers.DateField(required=False, allow_null=True)
     current_tenant_id = serializers.CharField(max_length=250, required=False, allow_null=True)
-    internal_notes = serializers.CharField()
+    internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     furnishing_status = serializers.ChoiceField(
         choices=["Unfurnished", "Semi-Furnished", "Fully Furnished"], required=False, allow_null=True
     )
@@ -117,7 +121,7 @@ class CommercialPropertySerializer(serializers.Serializer):
 
 
 class FlatPropertySerializer(serializers.Serializer):
-    flat_number = serializers.CharField(max_length=50)
+    flat_number = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
     floor_number = serializers.IntegerField(required=False, allow_null=True)
     building_block = serializers.CharField(
         max_length=50, required=False, allow_null=True, allow_blank=True

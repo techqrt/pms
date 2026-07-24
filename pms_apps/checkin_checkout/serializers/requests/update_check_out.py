@@ -49,6 +49,17 @@ class CheckOutTenantDetailsUpdateSerializer(serializers.Serializer):
     tenant_passport_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_nationality = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     tenant_address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    gender = serializers.ChoiceField(
+        choices=_choices(Lead.GENDER_CHOICES), required=False, allow_null=True
+    )
+    marital_status = serializers.ChoiceField(
+        choices=_choices(Lead.MARITAL_STATUS_CHOICES), required=False, allow_null=True
+    )
+    emergency_contact_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    emergency_contact_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    profession = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    company_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def create(self, validated_data) -> CheckOutTenantDetailsUpdateRequest:
         return CheckOutTenantDetailsUpdateRequest(**validated_data)
@@ -62,6 +73,7 @@ class CheckOutPropertyDetailsUpdateSerializer(serializers.Serializer):
     flat_unit_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     floor_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     property_status = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    property_assignment_id = serializers.IntegerField(required=False, allow_null=True)
 
     def create(self, validated_data) -> CheckOutPropertyDetailsUpdateRequest:
         return CheckOutPropertyDetailsUpdateRequest(**validated_data)
@@ -89,6 +101,7 @@ class CheckOutPropertyInspectionUpdateSerializer(serializers.Serializer):
     )
     inspection_date = serializers.DateField(required=False, allow_null=True)
     technician_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    inspection_duration = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     manager_approval = serializers.ChoiceField(
         choices=_choices(CheckOut.APPROVAL_STATUS_CHOICES), required=False, allow_null=True
     )
@@ -97,6 +110,7 @@ class CheckOutPropertyInspectionUpdateSerializer(serializers.Serializer):
     )
     issue_identified = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     supervisor_remarks = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    next_inspection_due = serializers.DateField(required=False, allow_null=True)
 
     def create(self, validated_data) -> CheckOutPropertyInspectionUpdateRequest:
         return CheckOutPropertyInspectionUpdateRequest(**validated_data)
@@ -124,6 +138,9 @@ class CheckOutRepairDamageUpdateSerializer(serializers.Serializer):
     repair_priority = serializers.ChoiceField(
         choices=_choices(CheckOut.PRIORITY_CHOICES), required=False, allow_null=True
     )
+    recommended_by_id = serializers.IntegerField(required=False, allow_null=True)
+    approved_by_id = serializers.IntegerField(required=False, allow_null=True)
+    approved_on = serializers.DateField(required=False, allow_null=True)
 
     def create(self, validated_data) -> CheckOutRepairDamageUpdateRequest:
         return CheckOutRepairDamageUpdateRequest(**validated_data)

@@ -88,10 +88,12 @@ class Lead(models.Model):
     lead_origin = models.CharField(
         verbose_name="Lead Origin",
         choices=LEAD_TYPES,
-        max_length=50
+        max_length=50, null=True,
+        blank=True
     )
     address = models.TextField(
-        verbose_name="Address",
+        verbose_name="Address",null=True,
+        blank=True
     )
     country = models.ForeignKey(
         verbose_name='Country',
@@ -101,7 +103,8 @@ class Lead(models.Model):
     )
     po_box = models.CharField(
         verbose_name="PO Box",
-        max_length=20,
+        max_length=20, null=True,
+        blank=True
     )
     profile_image = models.ImageField(
         verbose_name="Profile Image",
@@ -124,7 +127,8 @@ class Lead(models.Model):
     )
     po_box = models.CharField(
         verbose_name="PO Box",
-        max_length=20,
+        max_length=20,null=True,
+        blank=True
     )
     profile_image = models.ImageField(
         verbose_name="Profile Image",
@@ -135,7 +139,8 @@ class Lead(models.Model):
     )
     passport_or_id = models.CharField(
         verbose_name="Passport/ID",
-        max_length=50,
+        max_length=50,null=True,
+        blank=True
     )
     civil_id = models.CharField(
         verbose_name="Civil ID",
@@ -159,6 +164,7 @@ class Lead(models.Model):
     emergency_contact_number = models.CharField(max_length=20, null=True, blank=True)
     profession = models.CharField(max_length=200, null=True, blank=True)
     company_name = models.CharField(max_length=200, null=True, blank=True)
+    estimated_closing_date = models.DateField(null=True, blank=True)
 
     created_at = models.DateTimeField(
         verbose_name="Created At",
@@ -215,6 +221,7 @@ class Lead(models.Model):
         feedback: str = None,
         lead_category: str = None,
         civil_id: str = None,
+        estimated_closing_date = None,
         profile_image = None
     ) -> int:
         self.lead_id_id = lead_id
@@ -232,6 +239,7 @@ class Lead(models.Model):
         self.po_box = po_box
         self.feedback = feedback
         self.lead_category = lead_category
+        self.estimated_closing_date = estimated_closing_date
         self.property_permissions_id = property_permissions_id
         if profile_image is not None:
             self.profile_image = profile_image
@@ -269,6 +277,7 @@ class Lead(models.Model):
         emergency_contact_number: str = None,
         profession: str = None,
         company_name: str = None,
+        estimated_closing_date = None,
     ) -> int:
         lead = Lead.objects.get(lead_id=lead_id)
         if lead_assign_to is not None:
@@ -327,6 +336,8 @@ class Lead(models.Model):
             lead.profession = profession
         if company_name is not None:
             lead.company_name = company_name
+        if estimated_closing_date is not None:
+            lead.estimated_closing_date = estimated_closing_date
         lead.save()
         return lead.lead_id
 
@@ -345,7 +356,7 @@ class Lead(models.Model):
             "created_at", "updated_at", "is_active", "lead_assign_to__name",
             "lead_assign_to__user_id", "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "email",
             "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
-            "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
+            "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name", "estimated_closing_date",
         ]
         if include_profile_image:
             fields.append("profile_image")
@@ -376,7 +387,7 @@ class Lead(models.Model):
                 "created_at", "updated_at", "is_active", "lead_assign_to__name",
                 "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "profile_image", "email",
                 "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
-                "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
+                "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name", "estimated_closing_date",
             )
             )
 
@@ -407,6 +418,6 @@ class Lead(models.Model):
                 "created_at", "updated_at", "is_active", "lead_assign_to__name",
                 "lead_assign_to__phone_number", "lead_assign_to__email", "property_permissions__permission_id", "property_permissions__property", "lead_id__phone_number", "profile_image", "email",
                 "tenant_code", "tenant_type", "date_of_birth", "gender", "marital_status",
-                "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name",
+                "alternate_mobile_number", "emergency_contact_name", "emergency_contact_number", "profession", "company_name", "estimated_closing_date",
             )
             )

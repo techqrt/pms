@@ -44,6 +44,8 @@ class CheckOutGetSerializer(serializers.Serializer):
     inspectionRequired = serializers.CharField(read_only=True, allow_null=True)
     inspectionDate = serializers.DateField(read_only=True, allow_null=True)
     technicianType = serializers.CharField(read_only=True, allow_null=True)
+    inspectionDuration = serializers.CharField(read_only=True, allow_null=True)
+    nextInspectionDue = serializers.DateField(read_only=True, allow_null=True)
     managerApproval = serializers.CharField(read_only=True, allow_null=True)
     issueIdentified = serializers.CharField(read_only=True, allow_blank=True)
     supervisorRemarks = serializers.CharField(read_only=True, allow_blank=True)

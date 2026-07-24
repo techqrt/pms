@@ -24,3 +24,5 @@ class LeadUpdateRequest:
     property_permission : PropertyPermissionUpdateRequest | None = None
     email : str | None = None
     profile_picture : str | None = None
+    civil_id : str | None = None
+    estimated_closing_date : str | None = None

@@ -32,7 +32,6 @@ class AssignmentGetSerializer(serializers.Serializer):
     
     # Assignment Status
     assignmentStatus = serializers.CharField(read_only=True)
-    tenantType = serializers.CharField(read_only=True)
     companyName = serializers.CharField(read_only=True, allow_null=True)
     
     # Rental Details

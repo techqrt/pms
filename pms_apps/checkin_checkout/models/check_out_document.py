@@ -9,9 +9,12 @@ class CheckOutDocument(models.Model):
         ("Inspection Photo", "Inspection Photo"),
         ("Meter Reading Photo", "Meter Reading Photo"),
         ("Key Return Photo", "Key Return Photo"),
+        ("Repair Document", "Repair Document"),
         ("Notice", "Notice"),
         ("Other", "Other"),
     ]
+
+    IMAGE_ONLY_DOCUMENT_TYPES = {"Inspection Photo"}
 
     CATEGORY_BY_TYPE = {
         "Tenant ID Proof": "Tenant",
@@ -20,6 +23,7 @@ class CheckOutDocument(models.Model):
         "Inspection Photo": "Inspection",
         "Meter Reading Photo": "Utility",
         "Key Return Photo": "Key Return",
+        "Repair Document": "Repair",
         "Notice": "Notice",
         "Other": "Other",
     }
@@ -31,6 +35,7 @@ class CheckOutDocument(models.Model):
         related_name="documents"
     )
     document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+    document_name = models.CharField(max_length=255, null=True, blank=True)
     file = models.FileField(upload_to="checkin_checkout/check_out_documents/", max_length=500)
     linked_to_label = models.CharField(max_length=255, null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)

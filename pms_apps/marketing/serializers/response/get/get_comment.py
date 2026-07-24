@@ -4,8 +4,8 @@ from rest_framework import serializers
 class UserCommentSerializer(serializers.Serializer):
     userId = serializers.IntegerField()
     name = serializers.CharField()
-    phoneNumber = serializers.CharField()
-    department = serializers.CharField()
+    phoneNumber = serializers.CharField(allow_null=True, required=False)
+    department = serializers.CharField(allow_null=True, required=False)
 
 
 class MarketingCommentReplySerializer(serializers.Serializer):

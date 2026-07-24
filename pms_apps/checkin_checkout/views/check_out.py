@@ -117,6 +117,7 @@ class CheckOutView:
                 inspection_required=params.inspection_required,
                 inspection_date=params.inspection_date,
                 technician_type=params.technician_type,
+                inspection_duration=params.inspection_duration,
                 manager_approval=params.manager_approval,
                 issue_identified=params.issue_identified or "",
                 supervisor_remarks=params.supervisor_remarks or "",
@@ -214,20 +215,19 @@ class CheckOutView:
         property_view = PropertyView()
         property_dict = {}
         property_view._categorize_property_details(property_dict, detail_dict, rental_type)
-        landlord_id = property_data.get('landlord_id') or property_data.get('owner_id')
         landlord_details = None
-        if landlord_id:
-            from pms_apps.owner.models.owner import Owner
-            owner = Owner.objects.filter(owner_id=landlord_id).values(
-                'owner_id', 'first_name', 'last_name', 'owner_id__phone_number', 'owner_id__email', 'address'
+        if detail_obj and detail_obj.landlord_id:
+            landlord_row = Lead.objects.filter(lead_id=detail_obj.landlord_id).values(
+                'lead_id', 'first_name', 'last_name', 'address',
+                'lead_id__phone_number', 'lead_id__email'
             ).first()
-            if owner:
+            if landlord_row:
                 landlord_details = {
-                    "landlordId": owner['owner_id'],
-                    "name": f"{owner.get('first_name') or ''} {owner.get('last_name') or ''}".strip(),
-                    "mobileNumber": owner.get('owner_id__phone_number'),
-                    "email": owner.get('owner_id__email'),
-                    "address": owner.get('address'),
+                    "landlordId": landlord_row.get('lead_id'),
+                    "name": f"{landlord_row.get('first_name') or ''} {landlord_row.get('last_name') or ''}".strip(),
+                    "mobileNumber": landlord_row.get('lead_id__phone_number'),
+                    "email": landlord_row.get('lead_id__email'),
+                    "address": landlord_row.get('address'),
                 }
         from pms_apps.property.models.property_photos import PropertyPhotos
         photos_urls = []
@@ -383,6 +383,7 @@ class CheckOutView:
                 {
                     "documentId": d.check_out_document_id,
                     "documentType": d.document_type,
+                    "documentName": d.document_name or (str(d.file).rsplit('/', 1)[-1] if d.file else None),
                     "file": self._resolve_file_url(str(d.file) if d.file else None),
                     "uploadedOn": d.created_at,
                 }
@@ -417,6 +418,35 @@ class CheckOutView:
             field = variant_fields.get(key)
             return detail_dict.get(field) if field else None
 
+        assignment = None
+        property_assignment_id = data.get('propertyAssignmentId')
+        if property_assignment_id:
+            assignment = PropertyAssignment.objects.filter(
+                property_assignment_id=property_assignment_id
+            ).first()
+        if assignment:
+            duration = (
+                f"{assignment.agreement_duration_months} Months"
+                if assignment.agreement_duration_months
+                else self._compute_duration_label(assignment.rental_start_date, assignment.rental_end_date)
+            )
+            rental_details = {
+                "rentStartDate": assignment.rental_start_date,
+                "rentEndDate": assignment.rental_end_date,
+                "agreementDuration": duration,
+                "maintenanceRequired": assignment.maintenance_required,
+                "maintenanceStatus": assignment.maintenance_status,
+                "paymentMode": assignment.payment_mode,
+            }
+            agreement_details = {
+                "agreementType": assignment.agreement_type,
+                "agreementPreparedBy": assignment.agreement_prepared_by.name if assignment.agreement_prepared_by_id else None,
+                "agreementStatus": assignment.agreement_status,
+            }
+        else:
+            rental_details = {}
+            agreement_details = {}
+
         project_or_society = variant('projectOrSociety') or common.get('buildingName')
         name_or_number = variant('nameOrNumber')
         property_name = " ".join(str(p) for p in [project_or_society, name_or_number] if p) or common.get('propertyCode')
@@ -441,6 +471,8 @@ class CheckOutView:
                 "electricity": common.get('electricityChargeType'), "waterCharges": common.get('waterChargeType'),
             },
             "ownership": {"landlordName": landlord_details.get('name') if landlord_details else None},
+            "rentalDetails": rental_details,
+            "agreementDetails": agreement_details,
             "amenitiesAndFacilities": [
                 f.replace('_', ' ').title()
                 for f in self._OVERVIEW_FEATURE_FIELDS.get(rental_type, [])
@@ -498,9 +530,9 @@ class CheckOutView:
             "inspectionOverview": {
                 "inspectionDate": data.get('inspectionDate'),
                 "inspector": (data.get('assignedEmployee') or {}).get('name'),
-                "inspectionDuration": data.get('technicianType'),
+                "inspectionDuration": data.get('inspectionDuration'),
                 "overallStatus": "Issues" if issues > 0 else "Good",
-                "nextInspectionDue": None,
+                "nextInspectionDue": data.get('nextInspectionDue'),
             },
             "inspectionNotes": data.get('supervisorRemarks'),
             "topIssuesCategories": top_issues,
@@ -536,9 +568,9 @@ class CheckOutView:
                 for i in issue_items
             ],
             "approvalSummary": {
-                "recommendedBy": None,
-                "approvedBy": None,
-                "approvedOn": None,
+                "recommendedBy": (data.get('recommendedBy') or {}).get('name'),
+                "approvedBy": (data.get('approvedBy') or {}).get('name'),
+                "approvedOn": data.get('approvedOn'),
                 "overallStatus": data.get('gmApproval'),
                 "landlordConsent": data.get('landlordConsent'),
                 "financeAlertGenerated": data.get('financeAlertGenerated'),
@@ -563,6 +595,18 @@ class CheckOutView:
                     "itemName": i['item_name'], "category": i['category'], "status": "Done",
                 }
                 for i in issue_items if i['repair_status'] == 'Repaired'
+            ],
+            "documents": [
+                {
+                    "documentId": d.check_out_document_id,
+                    "documentType": d.document_type,
+                    "documentName": d.document_name or (str(d.file).rsplit('/', 1)[-1] if d.file else None),
+                    "file": self._resolve_file_url(str(d.file) if d.file else None),
+                    "uploadedOn": d.created_at,
+                }
+                for d in CheckOutDocument.objects.filter(
+                    check_out_id=check_out_id, document_type="Repair Document", is_active=True
+                )
             ],
         }
 
@@ -918,6 +962,13 @@ class CheckOutView:
             tenant_passport_number=params.tenant_passport_number,
             tenant_nationality=params.tenant_nationality,
             tenant_address=params.tenant_address,
+            date_of_birth=params.date_of_birth,
+            gender=params.gender,
+            marital_status=params.marital_status,
+            emergency_contact_name=params.emergency_contact_name,
+            emergency_contact_number=params.emergency_contact_number,
+            profession=params.profession,
+            company_name=params.company_name,
             updated_by=params.user_id,
         )
         return self._update_response(check_out_id)
@@ -932,6 +983,7 @@ class CheckOutView:
             flat_unit_number=params.flat_unit_number,
             floor_number=params.floor_number,
             property_status=params.property_status,
+            property_assignment_id=params.property_assignment_id,
             updated_by=params.user_id,
         )
         return self._update_response(check_out_id)
@@ -957,10 +1009,12 @@ class CheckOutView:
             inspection_required=params.inspection_required,
             inspection_date=params.inspection_date,
             technician_type=params.technician_type,
+            inspection_duration=params.inspection_duration,
             manager_approval=params.manager_approval,
             inspection_priority=params.inspection_priority,
             issue_identified=params.issue_identified,
             supervisor_remarks=params.supervisor_remarks,
+            next_inspection_due=params.next_inspection_due,
             updated_by=params.user_id,
         )
         return self._update_response(check_out_id)
@@ -977,6 +1031,9 @@ class CheckOutView:
             finance_alert_generated=params.finance_alert_generated,
             rent_adjustment_amount=params.rent_adjustment_amount,
             repair_priority=params.repair_priority,
+            recommended_by_id=params.recommended_by_id,
+            approved_by_id=params.approved_by_id,
+            approved_on=params.approved_on,
             updated_by=params.user_id,
         )
         return self._update_response(check_out_id)
@@ -1067,9 +1124,16 @@ class CheckOutView:
         if processed is None:
             raise ValueError("Invalid file data")
 
+        if params.document_type in CheckOutDocument.IMAGE_ONLY_DOCUMENT_TYPES:
+            file_name = processed[1] if isinstance(processed, tuple) else processed.name
+            extension = file_name.rsplit('.', 1)[-1] if '.' in file_name else ''
+            if not ImageUtils.is_image_extension(extension):
+                raise ValueError(f"{params.document_type} must be an image file (jpg, png, gif, webp)")
+
         doc = CheckOutDocument()
         doc.check_out_id = params.check_out_id
         doc.document_type = params.document_type
+        doc.document_name = params.document_name
         doc.linked_to_label = params.linked_to_label
         doc.expiry_date = params.expiry_date
         doc.uploaded_by_id = params.user_id
