@@ -5,6 +5,7 @@ from pms_apps.helper_apis.models.nationality import Nationality
 from pms_apps.helper_apis.models.city import City
 from pms_apps.authentication.models import User
 from pms_apps.common.models.permissions import PropertyPermission
+from pms_apps.common.sentinels import NOT_PROVIDED
 
 class Lead(models.Model):
     
@@ -249,20 +250,20 @@ class Lead(models.Model):
     @staticmethod
     def update(
         lead_id: int,
-        lead_assign_to: int = None,
+        lead_assign_to: int = NOT_PROVIDED,
         first_name: str = None,
         last_name: str = None,
-        lead_origin: str = None,
-        address: str = None,
-        country_id: int = None,
-        city_id: int = None,
-        nationality_id : int = None,
-        passport_or_id: str = None,
+        lead_origin: str = NOT_PROVIDED,
+        address: str = NOT_PROVIDED,
+        country_id: int = NOT_PROVIDED,
+        city_id: int = NOT_PROVIDED,
+        nationality_id : int = NOT_PROVIDED,
+        passport_or_id: str = NOT_PROVIDED,
         purpose: str = None,
-        po_box: str = None,
-        feedback: str = None,
-        lead_category: str = None,
-        civil_id: str = None,
+        po_box: str = NOT_PROVIDED,
+        feedback: str = NOT_PROVIDED,
+        lead_category: str = NOT_PROVIDED,
+        civil_id: str = NOT_PROVIDED,
         is_active: bool = None,
         property_permission_id : int = None,
         profile_image = None,
@@ -271,42 +272,42 @@ class Lead(models.Model):
         date_of_birth=None,
         gender: str = None,
         marital_status: str = None,
-        email: str = None,
+        email: str = NOT_PROVIDED,
         alternate_mobile_number: str = None,
         emergency_contact_name: str = None,
         emergency_contact_number: str = None,
         profession: str = None,
         company_name: str = None,
-        estimated_closing_date = None,
+        estimated_closing_date = NOT_PROVIDED,
     ) -> int:
         lead = Lead.objects.get(lead_id=lead_id)
-        if lead_assign_to is not None:
+        if lead_assign_to is not NOT_PROVIDED:
             lead.lead_assign_to_id = lead_assign_to
         if first_name is not None:
             lead.first_name = first_name
         if last_name is not None:
             lead.last_name = last_name
-        if lead_origin is not None:
+        if lead_origin is not NOT_PROVIDED:
             lead.lead_origin = lead_origin
-        if address is not None:
+        if address is not NOT_PROVIDED:
             lead.address = address
-        if country_id is not None:
+        if country_id is not NOT_PROVIDED:
             lead.country_id = country_id
-        if city_id is not None:
+        if city_id is not NOT_PROVIDED:
             lead.city_id = city_id
-        if nationality_id is not None:
+        if nationality_id is not NOT_PROVIDED:
             lead.nationality_id = nationality_id
-        if passport_or_id is not None:
+        if passport_or_id is not NOT_PROVIDED:
             lead.passport_or_id = passport_or_id
-        if civil_id is not None:
+        if civil_id is not NOT_PROVIDED:
             lead.civil_id = civil_id
         if purpose is not None:
             lead.purpose = purpose
-        if po_box is not None:
+        if po_box is not NOT_PROVIDED:
             lead.po_box = po_box
-        if feedback is not None:
+        if feedback is not NOT_PROVIDED:
             lead.feedback = feedback
-        if lead_category is not None:
+        if lead_category is not NOT_PROVIDED:
             lead.lead_category = lead_category
         if is_active is not None:
             lead.is_active = is_active
@@ -314,7 +315,7 @@ class Lead(models.Model):
             lead.property_permissions_id = property_permission_id
         if profile_image is not None:
             lead.profile_image = profile_image
-        if email is not None:
+        if email is not NOT_PROVIDED:
             lead.email = email
         if tenant_code is not None:
             lead.tenant_code = tenant_code
@@ -336,7 +337,7 @@ class Lead(models.Model):
             lead.profession = profession
         if company_name is not None:
             lead.company_name = company_name
-        if estimated_closing_date is not None:
+        if estimated_closing_date is not NOT_PROVIDED:
             lead.estimated_closing_date = estimated_closing_date
         lead.save()
         return lead.lead_id

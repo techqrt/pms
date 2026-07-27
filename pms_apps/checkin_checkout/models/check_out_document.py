@@ -14,7 +14,7 @@ class CheckOutDocument(models.Model):
         ("Other", "Other"),
     ]
 
-    IMAGE_ONLY_DOCUMENT_TYPES = {"Inspection Photo"}
+    IMAGE_ONLY_DOCUMENT_TYPES = {"Inspection Photo", "Meter Reading Photo"}
 
     CATEGORY_BY_TYPE = {
         "Tenant ID Proof": "Tenant",

@@ -10,6 +10,7 @@ class CheckOutPaymentCreateRequest:
     amount: float
     tax: Optional[float] = None
     status: str = "Pending"
+    payment_method: Optional[str] = None
     payment_date: Optional[date] = None
     receipt_ref_no: Optional[str] = None
     remarks: str = ""

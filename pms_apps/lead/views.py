@@ -8,6 +8,7 @@ from pms_apps.common.utils import Utils
 from pms_apps.helper_apis.models.city import City
 from pms_apps.helper_apis.models.country import Country
 from pms_apps.common.dataclasses.request.get_all import GetAll
+from pms_apps.common.sentinels import NOT_PROVIDED
 from pms_apps.authentication.models import User
 from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
 from pms_apps.lead.dataclasses.request.update import LeadUpdateRequest
@@ -92,7 +93,6 @@ class LeadView:
             
             if params.user_id != params.lead_id and params.user_id != manager_id:
                 raise ValueError("Not allowed to access this resource")
-            user_data = User.get(user_id=params.lead_assign_to)
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
@@ -117,16 +117,26 @@ class LeadView:
 
             # Process profile picture if provided
             profile_image_obj = None
-            if params.profile_picture is not None:
+            if params.profile_picture:
                 processed_image = ImageUtils.process_photo(params.profile_picture, upload_path="lead_profiles/")
                 # Only set profile_image_obj if it's a valid ContentFile (not a tuple for URLs)
                 # Tuples indicate external URLs which shouldn't be stored in ImageField
                 if processed_image is not None and not isinstance(processed_image, tuple):
                     profile_image_obj = processed_image
 
+            resolved_lead_assign_to = NOT_PROVIDED
+            if params.lead_assign_to is not NOT_PROVIDED:
+                user_data = User.get(user_id=params.lead_assign_to)
+                resolved_lead_assign_to = user_data.get('user_id') if user_data else None
+
+            if params.phone_number is not NOT_PROVIDED:
+                if params.phone_number and User.objects.exclude(user_id=lead_data.get('lead_id')).filter(phone_number=params.phone_number).exists():
+                    raise ValueError("Phone number is already in use by another user")
+                User.objects.filter(user_id=lead_data.get('lead_id')).update(phone_number=params.phone_number or None)
+
             Lead.update(
                 lead_id=lead_data.get('lead_id'),
-                lead_assign_to=user_data.get('user_id') if user_data else None,
+                lead_assign_to=resolved_lead_assign_to,
                 first_name=params.first_name,
                 last_name=params.last_name,
                 lead_origin=params.lead_origin,

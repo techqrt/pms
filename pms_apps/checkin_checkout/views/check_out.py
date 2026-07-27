@@ -635,7 +635,8 @@ class CheckOutView:
                 "checkOutUtilityReadingId": r['check_out_utility_reading_id'],
                 "utility": r['utility_type'], "meterNo": r['meter_no'],
                 "checkInReading": check_in_readings_map.get(r['utility_type']),
-                "checkOutReading": r['reading_value'], "consumption": r['consumption'],
+                "checkOutReading": r['reading_value'], "readingValue": r['reading_value'],
+                "consumption": r['consumption'],
                 "unit": r['unit'], "ratePerUnit": r['rate_per_unit'],
                 "charges": r['charges'], "status": r['status'],
             }
@@ -646,7 +647,12 @@ class CheckOutView:
             key=lambda e: e["charges"], reverse=True,
         )
         meter_photos = [
-            self._resolve_file_url(str(d.file) if d.file else None)
+            {
+                "documentId": d.check_out_document_id,
+                "linkedTo": d.linked_to_label,
+                "file": self._resolve_file_url(str(d.file) if d.file else None),
+                "uploadedOn": d.created_at,
+            }
             for d in CheckOutDocument.objects.filter(check_out_id=check_out_id, document_type="Meter Reading Photo", is_active=True)
         ]
         return {
@@ -669,6 +675,14 @@ class CheckOutView:
             },
             "readingOverview": reading_overview,
             "meterPhotos": meter_photos,
+            "recentIssues": [
+                {
+                    "checkOutUtilityReadingId": r['check_out_utility_reading_id'],
+                    "utility": r['utility_type'], "meterNo": r['meter_no'],
+                    "remarks": r['remarks'], "reportedOn": r['created_at'],
+                }
+                for r in readings if r['status'] == 'Issues'
+            ],
         }
 
     def _build_finance_details(self, data: dict, check_out_id: int) -> dict:
@@ -706,6 +720,18 @@ class CheckOutView:
                     "status": p['status'],
                     "paymentDate": p['payment_date'],
                     "receiptRefNo": p['receipt_ref_no'],
+                }
+                for p in payments
+            ],
+            "payments": [
+                {
+                    "checkOutPaymentId": p['check_out_payment_id'],
+                    "paymentDate": p['payment_date'],
+                    "paymentMethod": p.get('payment_method'),
+                    "transactionId": p['receipt_ref_no'],
+                    "paidBy": p.get('created_by__name'),
+                    "amount": p['amount'],
+                    "status": p['status'],
                 }
                 for p in payments
             ],
@@ -1294,6 +1320,7 @@ class CheckOutView:
             amount=params.amount,
             tax=params.tax,
             status=params.status,
+            payment_method=params.payment_method,
             payment_date=params.payment_date,
             receipt_ref_no=params.receipt_ref_no,
             remarks=params.remarks,
@@ -1316,6 +1343,7 @@ class CheckOutView:
             amount=params.amount,
             tax=params.tax,
             status=params.status,
+            payment_method=params.payment_method,
             payment_date=params.payment_date,
             receipt_ref_no=params.receipt_ref_no,
             remarks=params.remarks,
