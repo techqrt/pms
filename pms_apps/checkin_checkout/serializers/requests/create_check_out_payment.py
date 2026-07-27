@@ -13,6 +13,10 @@ class CheckOutPaymentCreateSerializer(serializers.Serializer):
         choices=[choice[0] for choice in CheckOutPayment.STATUS_CHOICES],
         required=False, default="Pending"
     )
+    payment_method = serializers.ChoiceField(
+        choices=[choice[0] for choice in CheckOutPayment.PAYMENT_METHOD_CHOICES],
+        required=False, allow_null=True
+    )
     payment_date = serializers.DateField(required=False, allow_null=True)
     receipt_ref_no = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     remarks = serializers.CharField(required=False, default="", allow_blank=True)

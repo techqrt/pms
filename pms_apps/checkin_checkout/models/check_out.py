@@ -33,6 +33,9 @@ class CheckOut(models.Model):
         ("Security Deposit Refund", "Security Deposit Refund"),
         ("Deduction", "Deduction"),
         ("Pending Dues", "Pending Dues"),
+        ("Rent", "Rent"),
+        ("Maintenance", "Maintenance"),
+        ("Damage", "Damage"),
         ("Other", "Other"),
     ]
 
