@@ -249,6 +249,7 @@ class CheckOut(models.Model):
         blank=True
     )
     expected_return_date = models.DateField(null=True, blank=True)
+    key_booking_date = models.DateField(null=True, blank=True)
     confirmation_received = models.CharField(
         max_length=10,
         choices=YES_NO_CHOICES,
@@ -499,7 +500,7 @@ class CheckOut(models.Model):
             "charge_type", "total_amount", "payment_status", "payment_date", "transaction_id",
             "settlement_status", "finance_description", "payment_proof",
             "key_number", "key_type", "key_available", "key_return", "expected_return_date",
-            "confirmation_received", "key_return_date", "key_return_status",
+            "key_booking_date", "confirmation_received", "key_return_date", "key_return_status",
             "internal_comments", "tenant_remarks", "special_instructions",
             "created_by_id", "created_by__name", "updated_by_id", "created_at", "updated_at",
             "status_history", "is_active",
@@ -980,6 +981,7 @@ class CheckOut(models.Model):
         key_available: str = None,
         key_return: str = None,
         expected_return_date=None,
+        key_booking_date=None,
         confirmation_received: str = None,
         key_return_date=None,
         key_return_status: str = None,
@@ -1000,6 +1002,8 @@ class CheckOut(models.Model):
             check_out.key_return = key_return
         if expected_return_date is not None:
             check_out.expected_return_date = expected_return_date
+        if key_booking_date is not None:
+            check_out.key_booking_date = key_booking_date
         if confirmation_received is not None:
             check_out.confirmation_received = confirmation_received
         if key_return_date is not None:

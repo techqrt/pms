@@ -890,19 +890,27 @@ class PropertyView:
 
     @Common().exception_handler
     def assignment_count_extract(self, params: GetAll):
-        from django.db.models import Count
-        
-        # Total properties assigned to this user
+        from django.db.models import Count, Q
+
+        # Same "belongs to this user" scope as /property/count/ (created_by, assigned_to,
+        # or landlord), not just assigned_to_id, so the two endpoints agree on the total.
+        user_scope = (
+            Q(created_by__user_id=params.user_id) |
+            Q(assigned_to__user_id=params.user_id) |
+            Q(propertydetail__landlord__lead_id__user_id=params.user_id)
+        )
+
+        # Total properties belonging to this user
         total_properties = Property.objects.filter(
-            assigned_to_id=params.user_id,
+            user_scope,
             is_active=True
-        ).count()
-        
+        ).distinct().count()
+
         # Properties with a currently active tenancy (ended assignments keep their tenant FK, so
         # status must be checked too, not just tenant__isnull)
         from pms_apps.property.models.property_assignment import PropertyAssignment
         assigned_properties = Property.objects.filter(
-            assigned_to_id=params.user_id,
+            user_scope,
             is_active=True,
             assignments__tenant__isnull=False,
             assignments__assignment_status__in=["Active", "Approved"]

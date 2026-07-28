@@ -117,6 +117,7 @@ class CheckOutKeyReturnUpdateRequest:
     key_available: Optional[str] = None
     key_return: Optional[str] = None
     expected_return_date: Optional[date] = None
+    key_booking_date: Optional[date] = None
     confirmation_received: Optional[str] = None
     key_return_date: Optional[date] = None
     key_return_status: Optional[str] = None

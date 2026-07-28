@@ -14,6 +14,16 @@ class CheckOutPayment(models.Model):
         ("Cheque", "Cheque"),
     ]
 
+    CHARGE_TYPE_CHOICES = [
+        ("Security Deposit Refund", "Security Deposit Refund"),
+        ("Deduction", "Deduction"),
+        ("Pending Dues", "Pending Dues"),
+        ("Rent", "Rent"),
+        ("Maintenance", "Maintenance"),
+        ("Damage", "Damage"),
+        ("Other", "Other"),
+    ]
+
     check_out_payment_id = models.AutoField(primary_key=True)
     check_out = models.ForeignKey(
         "checkin_checkout.CheckOut",
@@ -24,6 +34,7 @@ class CheckOutPayment(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     tax = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+    charge_type = models.CharField(max_length=30, choices=CHARGE_TYPE_CHOICES, null=True, blank=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, null=True, blank=True)
     payment_date = models.DateField(null=True, blank=True)
     receipt_ref_no = models.CharField(max_length=100, null=True, blank=True)
@@ -55,6 +66,7 @@ class CheckOutPayment(models.Model):
         amount,
         tax=None,
         status: str = "Pending",
+        charge_type: str = None,
         payment_method: str = None,
         payment_date=None,
         receipt_ref_no: str = None,
@@ -66,6 +78,7 @@ class CheckOutPayment(models.Model):
         self.amount = amount
         self.tax = tax
         self.status = status
+        self.charge_type = charge_type
         self.payment_method = payment_method
         self.payment_date = payment_date
         self.receipt_ref_no = receipt_ref_no
@@ -79,8 +92,8 @@ class CheckOutPayment(models.Model):
         return CheckOutPayment.objects.filter(
             check_out_id=check_out_id, is_active=True
         ).values(
-            "check_out_payment_id", "description", "amount", "tax", "status", "payment_method",
-            "payment_date", "receipt_ref_no", "remarks", "created_at",
+            "check_out_payment_id", "description", "amount", "tax", "status", "charge_type",
+            "payment_method", "payment_date", "receipt_ref_no", "remarks", "created_at",
             "created_by_id", "created_by__name",
         )
 
@@ -91,6 +104,7 @@ class CheckOutPayment(models.Model):
         amount=None,
         tax=None,
         status: str = None,
+        charge_type: str = None,
         payment_method: str = None,
         payment_date=None,
         receipt_ref_no: str = None,
@@ -110,6 +124,8 @@ class CheckOutPayment(models.Model):
             payment.tax = tax
         if status is not None:
             payment.status = status
+        if charge_type is not None:
+            payment.charge_type = charge_type
         if payment_method is not None:
             payment.payment_method = payment_method
         if payment_date is not None:
