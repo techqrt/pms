@@ -13,6 +13,10 @@ class CheckOutPaymentCreateSerializer(serializers.Serializer):
         choices=[choice[0] for choice in CheckOutPayment.STATUS_CHOICES],
         required=False, default="Pending"
     )
+    charge_type = serializers.ChoiceField(
+        choices=[choice[0] for choice in CheckOutPayment.CHARGE_TYPE_CHOICES],
+        required=False, allow_null=True
+    )
     payment_method = serializers.ChoiceField(
         choices=[choice[0] for choice in CheckOutPayment.PAYMENT_METHOD_CHOICES],
         required=False, allow_null=True

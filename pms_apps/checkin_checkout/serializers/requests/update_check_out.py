@@ -188,6 +188,7 @@ class CheckOutKeyReturnUpdateSerializer(serializers.Serializer):
         choices=_choices(CheckOut.YES_NO_CHOICES), required=False, allow_null=True
     )
     expected_return_date = serializers.DateField(required=False, allow_null=True)
+    key_booking_date = serializers.DateField(required=False, allow_null=True)
     confirmation_received = serializers.ChoiceField(
         choices=_choices(CheckOut.YES_NO_CHOICES), required=False, allow_null=True
     )

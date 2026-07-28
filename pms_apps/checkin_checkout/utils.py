@@ -267,6 +267,7 @@ class CheckOutUtils:
             'key_available': 'keyAvailable',
             'key_return': 'keyReturn',
             'expected_return_date': 'expectedReturnDate',
+            'key_booking_date': 'keyBookingDate',
             'confirmation_received': 'confirmationReceived',
             'key_return_date': 'keyReturnDate',
             'key_return_status': 'keyReturnStatus',
