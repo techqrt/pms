@@ -13,6 +13,7 @@ from pms_apps.property.serializers.requests.delete import PropertyDeleteSerializ
 from pms_apps.property.serializers.requests.delete_many import PropertyDeleteManySerializer
 from pms_apps.property.serializers.requests.get import PropertyGetSerializer
 from pms_apps.property.serializers.requests.property_assignment_create import PropertyAssignmentCreateSerializer
+from pms_apps.property.serializers.requests.property_assignment_update import PropertyAssignmentUpdateSerializer
 from pms_apps.property.serializers.requests.property_assignment_get import PropertyAssignmentGetSerializer
 
 from pms_apps.property.serializers.response.get import PropertyResponseGetSerializer
@@ -112,6 +113,16 @@ class PropertyViewController:
     @SerializerValidations(serializer=PropertyAssignmentCreateSerializer).validate
     def assign(request: Request) -> Response:
         return PropertyView().assign_extract(params=request.params)
+
+    @extend_schema(
+        description="Update a Property Assignment",
+        request=PropertyAssignmentUpdateSerializer,
+        responses=SwaggerPage.response(description=PropertyView().data_update)
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=PropertyAssignmentUpdateSerializer).validate
+    def update_assignment(request: Request) -> Response:
+        return PropertyView().update_assignment_extract(params=request.params)
 
     @extend_schema(
         description="Get Single Property Assignment",

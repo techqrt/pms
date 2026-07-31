@@ -16,6 +16,7 @@ from pms_apps.property.dataclasses.requests.delete import PropertyDeleteRequest
 from pms_apps.property.dataclasses.requests.delete_many import PropertyDeleteManyRequest
 from pms_apps.property.dataclasses.requests.get import PropertyGetRequest
 from pms_apps.property.dataclasses.requests.property_assignment_create import PropertyAssignmentCreateRequest
+from pms_apps.property.dataclasses.requests.property_assignment_update import PropertyAssignmentUpdateRequest
 from pms_apps.property.utils import PropertyUtils
 
 from pms_apps.property.models.property import Property
@@ -726,6 +727,47 @@ class PropertyView:
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(
                 message=self.data_assign,
+                data={"property_assignment_id": assignment_id}
+            )
+        )
+
+    @Common().exception_handler
+    def update_assignment_extract(self, params: PropertyAssignmentUpdateRequest):
+        assignment_id = PropertyAssignment.update(
+            property_assignment_id=params.property_assignment_id,
+            assignment_status=params.assignment_status,
+            tenant_type=params.tenant_type,
+            company_name=params.company_name,
+            rental_start_date=params.rental_start_date,
+            rental_end_date=params.rental_end_date,
+            agreement_duration_months=params.agreement_duration_months,
+            maintenance_charges=params.maintenance_charges,
+            advance_rent_paid=params.advance_rent_paid,
+            payment_mode=params.payment_mode,
+            agreement_type=params.agreement_type,
+            agreement_status=params.agreement_status,
+            agreement_prepared_by_id=params.agreement_prepared_by_id,
+            key_available_in_office=params.key_available_in_office,
+            key_code=params.key_code,
+            key_handover_date=params.key_handover_date,
+            key_handover_status=params.key_handover_status,
+            electricity_meter_number=params.electricity_meter_number,
+            electricity_meter_reading_start=params.electricity_meter_reading_start,
+            water_meter_reading_start=params.water_meter_reading_start,
+            gas_meter_reading_start=params.gas_meter_reading_start,
+            finance_approval_status=params.finance_approval_status,
+            rent_entry_created=params.rent_entry_created,
+            invoice_generated=params.invoice_generated,
+            maintenance_required=params.maintenance_required,
+            maintenance_ticket_id=params.maintenance_ticket_id,
+            maintenance_status=params.maintenance_status,
+            internal_notes=params.internal_notes,
+            tenant_special_requirements=params.tenant_special_requirements,
+        )
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message=self.data_update,
                 data={"property_assignment_id": assignment_id}
             )
         )

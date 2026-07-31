@@ -10,6 +10,10 @@ from pms_apps.checkin_checkout.serializers.requests.create_check_out import Chec
 from pms_apps.checkin_checkout.serializers.requests.get_check_out import CheckOutGetSerializer
 from pms_apps.checkin_checkout.serializers.requests.delete_check_out import CheckOutDeleteSerializer
 from pms_apps.checkin_checkout.serializers.requests.upload_check_out_document import CheckOutDocumentUploadSerializer
+from pms_apps.checkin_checkout.serializers.requests.update_check_out_document import (
+    CheckOutDocumentUpdateSerializer,
+    CheckOutDocumentDeleteSerializer,
+)
 from pms_apps.checkin_checkout.serializers.requests.create_check_out_inspection_item import CheckOutInspectionItemCreateSerializer
 from pms_apps.checkin_checkout.serializers.requests.update_check_out_inspection_item import (
     CheckOutInspectionItemUpdateSerializer,
@@ -41,6 +45,7 @@ from pms_apps.checkin_checkout.serializers.requests.update_check_out import (
     CheckOutFinanceDetailsUpdateSerializer,
     CheckOutKeyReturnUpdateSerializer,
     CheckOutCommentsUpdateSerializer,
+    CheckOutDocumentsUpdateSerializer,
 )
 from pms_apps.checkin_checkout.serializers.response.get_check_out import CheckOutResponseGetSerializer
 from pms_apps.checkin_checkout.serializers.response.get_all_check_out import CheckOutResponseGetAllSerializer
@@ -183,6 +188,16 @@ class CheckOutViewController:
         return CheckOutView().update_comments_extract(params=request.params)
 
     @extend_schema(
+        description="Update Check-Out Documents Notes",
+        request=CheckOutDocumentsUpdateSerializer,
+        responses=SwaggerPage.response(description=CheckOutView().data_update)
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckOutDocumentsUpdateSerializer).validate
+    def update_documents(request: Request) -> Response:
+        return CheckOutView().update_documents_extract(params=request.params)
+
+    @extend_schema(
         description="Delete a Check-Out (soft delete)",
         parameters=CheckOutDeleteSerializer.get_parameters(),
         responses=SwaggerPage.response(description=CheckOutView().data_delete)
@@ -201,6 +216,26 @@ class CheckOutViewController:
     @SerializerValidations(serializer=CheckOutDocumentUploadSerializer).validate
     def upload_document(request: Request) -> Response:
         return CheckOutView().upload_document_extract(params=request.params)
+
+    @extend_schema(
+        description="Update a Check-Out Document (name, linked_to_label, expiry_date)",
+        request=CheckOutDocumentUpdateSerializer,
+        responses=SwaggerPage.response(description="Document updated successfully")
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckOutDocumentUpdateSerializer).validate
+    def update_document(request: Request) -> Response:
+        return CheckOutView().update_document_extract(params=request.params)
+
+    @extend_schema(
+        description="Delete a Check-Out Document",
+        parameters=CheckOutDocumentDeleteSerializer.get_parameters(),
+        responses=SwaggerPage.response(description="Document deleted successfully")
+    )
+    @api_view(["DELETE"])
+    @SerializerValidations(serializer=CheckOutDocumentDeleteSerializer).validate
+    def delete_document(request: Request) -> Response:
+        return CheckOutView().delete_document_extract(params=request.params)
 
     @extend_schema(
         description="Create a Check-Out Inspection Item",

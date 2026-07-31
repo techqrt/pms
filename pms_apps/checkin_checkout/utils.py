@@ -274,6 +274,7 @@ class CheckOutUtils:
             'internal_comments': 'internalComments',
             'tenant_remarks': 'tenantRemarks',
             'special_instructions': 'specialInstructions',
+            'documents_notes': 'documentsNotes',
             'created_by_id': 'createdById',
             'created_by__name': 'createdBy.name',
             'updated_by_id': 'updatedById',

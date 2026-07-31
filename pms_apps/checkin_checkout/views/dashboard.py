@@ -199,10 +199,11 @@ class CheckInDashboardView:
                 "cancelled": {"count": cancelled, "percentage": _percentage(cancelled, total)},
             }
 
-            property_type_overview = {
-                (row["property__rental_type"] or "Unknown"): row["count"]
-                for row in base.values("property__rental_type").annotate(count=Count("check_in_id"))
-            }
+            from pms_apps.property.models.property import Property
+            property_type_overview = {choice: 0 for choice, _ in Property.RENTAL_TYPE_CHOICES}
+            for row in base.values("property__rental_type").annotate(count=Count("check_in_id")):
+                rental_type = row["property__rental_type"] or "Unknown"
+                property_type_overview[rental_type] = row["count"]
 
             # Best-effort mapping of the check-in workflow funnel onto existing fields;
             # there is no dedicated stage field, so each step approximates a milestone.

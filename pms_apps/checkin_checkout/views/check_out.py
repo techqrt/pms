@@ -26,9 +26,14 @@ from pms_apps.checkin_checkout.dataclasses.requests.update_check_out import (
     CheckOutFinanceDetailsUpdateRequest,
     CheckOutKeyReturnUpdateRequest,
     CheckOutCommentsUpdateRequest,
+    CheckOutDocumentsUpdateRequest,
 )
 from pms_apps.checkin_checkout.dataclasses.requests.delete_check_out import CheckOutDeleteRequest
 from pms_apps.checkin_checkout.dataclasses.requests.upload_check_out_document import CheckOutDocumentUploadRequest
+from pms_apps.checkin_checkout.dataclasses.requests.update_check_out_document import (
+    CheckOutDocumentUpdateRequest,
+    CheckOutDocumentDeleteRequest,
+)
 from pms_apps.checkin_checkout.dataclasses.requests.create_check_out_inspection_item import CheckOutInspectionItemCreateRequest
 from pms_apps.checkin_checkout.dataclasses.requests.update_check_out_inspection_item import (
     CheckOutInspectionItemUpdateRequest,
@@ -830,7 +835,7 @@ class CheckOutView:
         all_documents = [
             {
                 "documentId": d.check_out_document_id,
-                "documentName": str(d.file).rsplit('/', 1)[-1] if d.file else None,
+                "documentName": d.document_name or (str(d.file).rsplit('/', 1)[-1] if d.file else None),
                 "documentType": d.document_type,
                 "category": CheckOutDocument.CATEGORY_BY_TYPE.get(d.document_type, "Other"),
                 "linkedTo": d.linked_to_label,
@@ -879,7 +884,7 @@ class CheckOutView:
             "missingDocuments": missing_documents,
             "documentsSummary": category_summary,
             "recentUploads": recent_uploads,
-            "notes": data.get('tenantRemarks'),
+            "notes": data.get('documentsNotes'),
         }
 
     @Common(response_handler=CheckOutResponseGetSerializer).exception_handler
@@ -1129,6 +1134,15 @@ class CheckOutView:
         return self._update_response(check_out_id)
 
     @Common().exception_handler
+    def update_documents_extract(self, params: CheckOutDocumentsUpdateRequest):
+        check_out_id = CheckOut.update_documents(
+            check_out_id=params.check_out_id,
+            documents_notes=params.documents_notes,
+            updated_by=params.user_id,
+        )
+        return self._update_response(check_out_id)
+
+    @Common().exception_handler
     def delete_extract(self, params: CheckOutDeleteRequest):
         if not CheckOut.get(params.check_out_id):
             raise ValueError(self.data_no_match)
@@ -1179,6 +1193,31 @@ class CheckOutView:
                 message="Document uploaded successfully",
                 data={"check_out_document_id": doc.check_out_document_id}
             )
+        )
+
+    @Common().exception_handler
+    def update_document_extract(self, params: CheckOutDocumentUpdateRequest):
+        document_id = CheckOutDocument.update(
+            check_out_document_id=params.check_out_document_id,
+            document_name=params.document_name,
+            linked_to_label=params.linked_to_label,
+            expiry_date=params.expiry_date,
+            updated_by=params.user_id,
+        )
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message="Document updated successfully",
+                data={"check_out_document_id": document_id}
+            )
+        )
+
+    @Common().exception_handler
+    def delete_document_extract(self, params: CheckOutDocumentDeleteRequest):
+        CheckOutDocument.delete(params.check_out_document_id)
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message="Document deleted successfully", data={})
         )
 
     @Common().exception_handler

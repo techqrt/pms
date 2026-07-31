@@ -13,6 +13,7 @@ from pms_apps.checkin_checkout.dataclasses.requests.update_check_out import (
     CheckOutFinanceDetailsUpdateRequest,
     CheckOutKeyReturnUpdateRequest,
     CheckOutCommentsUpdateRequest,
+    CheckOutDocumentsUpdateRequest,
 )
 
 
@@ -209,3 +210,11 @@ class CheckOutCommentsUpdateSerializer(serializers.Serializer):
 
     def create(self, validated_data) -> CheckOutCommentsUpdateRequest:
         return CheckOutCommentsUpdateRequest(**validated_data)
+
+
+class CheckOutDocumentsUpdateSerializer(serializers.Serializer):
+    check_out_id = serializers.IntegerField()
+    documents_notes = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    def create(self, validated_data) -> CheckOutDocumentsUpdateRequest:
+        return CheckOutDocumentsUpdateRequest(**validated_data)

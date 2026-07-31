@@ -691,7 +691,7 @@ class CheckIn(models.Model):
             query = query.order_by("-created_at")
 
         own_fields = [
-            "check_in_id", "tenant_id", "property_id",
+            "check_in_id", "check_in_code", "tenant_id", "property_id",
             "check_in_date", "monthly_rent", "manager_approval", "key_handover_status",
             "check_in_status", "assigned_employee_id", "assigned_employee__name",
         ]
