@@ -129,3 +129,9 @@ class CheckOutCommentsUpdateRequest:
     internal_comments: Optional[str] = None
     tenant_remarks: Optional[str] = None
     special_instructions: Optional[str] = None
+
+
+@dataclass
+class CheckOutDocumentsUpdateRequest:
+    check_out_id: int
+    documents_notes: Optional[str] = None

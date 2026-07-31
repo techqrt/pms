@@ -272,6 +272,9 @@ class CheckOut(models.Model):
     tenant_remarks = models.TextField(blank=True, default="")
     special_instructions = models.TextField(blank=True, default="")
 
+    # J. Documents
+    documents_notes = models.TextField(blank=True, default="")
+
     # L. System Fields
     created_by = models.ForeignKey(
         "authentication.User",
@@ -501,7 +504,7 @@ class CheckOut(models.Model):
             "settlement_status", "finance_description", "payment_proof",
             "key_number", "key_type", "key_available", "key_return", "expected_return_date",
             "key_booking_date", "confirmation_received", "key_return_date", "key_return_status",
-            "internal_comments", "tenant_remarks", "special_instructions",
+            "internal_comments", "tenant_remarks", "special_instructions", "documents_notes",
             "created_by_id", "created_by__name", "updated_by_id", "created_at", "updated_at",
             "status_history", "is_active",
         ]
@@ -1035,6 +1038,25 @@ class CheckOut(models.Model):
             check_out.tenant_remarks = tenant_remarks
         if special_instructions is not None:
             check_out.special_instructions = special_instructions
+        if updated_by is not None:
+            check_out.updated_by_id = updated_by
+
+        check_out.save()
+        return check_out.check_out_id
+
+    @staticmethod
+    def update_documents(
+        check_out_id: int,
+        documents_notes: str = None,
+        updated_by: int = None,
+    ) -> int:
+        try:
+            check_out = CheckOut.objects.get(check_out_id=check_out_id)
+        except CheckOut.DoesNotExist:
+            raise ValueError(f"Invalid Check-Out Id: {check_out_id}")
+
+        if documents_notes is not None:
+            check_out.documents_notes = documents_notes
         if updated_by is not None:
             check_out.updated_by_id = updated_by
 

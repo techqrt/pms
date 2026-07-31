@@ -1,4 +1,6 @@
+from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.response import Response
 from pms.constants import Constants
 from pms_apps.common.utils import Utils
 
@@ -13,6 +15,15 @@ class SerializerValidations:
     def validate(self, func):
         def validator(*args, **kwargs):
             request: Request = args[0]
+
+            if not request.user or not request.user.is_authenticated:
+                return Response(
+                    status=status.HTTP_401_UNAUTHORIZED,
+                    data=Utils.error_response_data(
+                        message="Unauthorized",
+                        error=["Authentication credentials were not provided or are invalid"]
+                    )
+                )
 
             data = request.data
             if hasattr(data, '_mutable'):
