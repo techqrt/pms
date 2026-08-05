@@ -267,7 +267,7 @@ class Lead(models.Model):
         is_active: bool = None,
         property_permission_id : int = None,
         profile_image = None,
-        tenant_code: str = None,
+        tenant_code: str = NOT_PROVIDED,
         tenant_type: str = None,
         date_of_birth=None,
         gender: str = None,
@@ -317,7 +317,7 @@ class Lead(models.Model):
             lead.profile_image = profile_image
         if email is not NOT_PROVIDED:
             lead.email = email
-        if tenant_code is not None:
+        if tenant_code is not NOT_PROVIDED:
             lead.tenant_code = tenant_code
         if tenant_type is not None:
             lead.tenant_type = tenant_type

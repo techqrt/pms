@@ -764,6 +764,9 @@ class CheckIn(models.Model):
                 if check_in.status_history else f"{check_in.check_in_status} -> {check_in_status}"
             )
             check_in.check_in_status = check_in_status
+            if check_in_status in ("Active", "Completed") and check_in.property_id:
+                from pms_apps.property.models.property_details import PropertyDetail
+                PropertyDetail.objects.filter(property_id=check_in.property_id).update(current_status="Occupied")
         if remarks_notes is not None:
             check_in.remarks_notes = remarks_notes
         if updated_by is not None:

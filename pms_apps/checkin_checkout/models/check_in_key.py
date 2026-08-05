@@ -3,8 +3,8 @@ from django.db import models
 
 class CheckInKey(models.Model):
     STATUS_CHOICES = [
-        ("Handovered", "Handovered"),
         ("Pending", "Pending"),
+        ("Handed Over", "Handed Over"),
     ]
 
     check_in_key_id = models.AutoField(primary_key=True)

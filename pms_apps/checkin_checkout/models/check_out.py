@@ -636,6 +636,9 @@ class CheckOut(models.Model):
                 if check_out.status_history else f"{check_out.check_out_status} -> {check_out_status}"
             )
             check_out.check_out_status = check_out_status
+            if check_out_status == "Completed" and check_out.property_id:
+                from pms_apps.property.models.property_details import PropertyDetail
+                PropertyDetail.objects.filter(property_id=check_out.property_id).update(current_status="Vacant")
         if remarks_notes is not None:
             check_out.remarks_notes = remarks_notes
         if request_from is not None:

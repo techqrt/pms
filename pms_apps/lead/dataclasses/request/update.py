@@ -28,3 +28,4 @@ class LeadUpdateRequest:
     civil_id : str | None = NOT_PROVIDED
     estimated_closing_date : str | None = NOT_PROVIDED
     phone_number : str | None = NOT_PROVIDED
+    tenant_code : str | None = NOT_PROVIDED
