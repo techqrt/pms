@@ -78,6 +78,12 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     profile_picture = Base64ImageField(
         required=False, allow_null=True
     )
+    tenant_code = serializers.CharField(
+        max_length = 100,
+        required = False,
+        allow_null = True,
+        allow_blank = True
+    )
     created_at = serializers.DateTimeField(
         read_only = True,required=False
     )

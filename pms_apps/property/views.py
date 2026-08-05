@@ -17,6 +17,7 @@ from pms_apps.property.dataclasses.requests.delete_many import PropertyDeleteMan
 from pms_apps.property.dataclasses.requests.get import PropertyGetRequest
 from pms_apps.property.dataclasses.requests.property_assignment_create import PropertyAssignmentCreateRequest
 from pms_apps.property.dataclasses.requests.property_assignment_update import PropertyAssignmentUpdateRequest
+from pms_apps.property.dataclasses.requests.occupancy_report import OccupancyReportRequest
 from pms_apps.property.utils import PropertyUtils
 
 from pms_apps.property.models.property import Property
@@ -30,6 +31,25 @@ from pms_apps.property.models.property_details import PropertyDetail
 from pms_apps.property.models.property_assignment import PropertyAssignment
 from pms_apps.marketing.models.marketing_manager import MarketingManager
 
+
+def _percentage(part: int, total: int) -> float:
+    return round((part / total) * 100, 2) if total else 0.0
+
+
+def _month_over_month_change(queryset, date_field: str = "created_at") -> float:
+    from datetime import date, timedelta
+
+    today = date.today()
+    this_month = queryset.filter(**{f"{date_field}__year": today.year, f"{date_field}__month": today.month}).count()
+    prev_month_date = today.replace(day=1) - timedelta(days=1)
+    last_month = queryset.filter(
+        **{f"{date_field}__year": prev_month_date.year, f"{date_field}__month": prev_month_date.month}
+    ).count()
+    if last_month == 0:
+        return 100.0 if this_month else 0.0
+    return round(((this_month - last_month) / last_month) * 100, 2)
+
+
 class PropertyView:
     def __init__(self) -> None:
         super().__init__()
@@ -39,6 +59,8 @@ class PropertyView:
         self.data_get = "Property fetched successfully"
         self.data_no_match = "No matching property found"
         self.data_assign = "Property assigned to tenant successfully"
+        self.data_occupancy_summary = "Occupancy summary fetched successfully"
+        self.data_occupancy_list = "Occupancy report fetched successfully"
         self.data_assignment_count = "Assignment count fetched successfully"
         self.db_error = "Database Error"
         self.error = "Something went wrong"
@@ -664,6 +686,174 @@ class PropertyView:
         )
 
     @Common().exception_handler
+    def occupancy_summary_extract(self, params: GetAll):
+        from django.db.models import Count
+
+        detail_query = PropertyDetail.objects.filter(property__is_active=True)
+        total_properties = detail_query.count()
+
+        status_counts = dict(
+            detail_query.values("current_status").annotate(count=Count("property_detail_id"))
+            .values_list("current_status", "count")
+        )
+        rented = status_counts.get("Occupied", 0)
+        vacant = status_counts.get("Vacant", 0)
+        booked = status_counts.get("Booked", 0)
+
+        rented_change_percentage = _month_over_month_change(
+            detail_query.filter(current_status="Occupied"), date_field="updated_at"
+        )
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message=self.data_occupancy_summary,
+                data={
+                    "totalProperties": total_properties,
+                    "rented": rented,
+                    "rentedChangePercentage": rented_change_percentage,
+                    "vacant": vacant,
+                    "booked": booked,
+                }
+            )
+        )
+
+    @Common().exception_handler
+    def occupancy_list_extract(self, params: OccupancyReportRequest):
+        from pms_apps.checkin_checkout.models.check_in import CheckIn
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+
+        TYPE_DISPLAY_ALIAS = {"Flat": "Apartment"}
+        TYPE_ALIAS_TO_DB = {"Apartment": "Flat"}
+        STATUS_DISPLAY_ALIAS = {"Occupied": "Rented"}
+        STATUS_ALIAS_TO_DB = {"Rented": "Occupied"}
+
+        query = Property.objects.filter(is_active=True)
+
+        if params.property_types:
+            db_types = [TYPE_ALIAS_TO_DB.get(t, t) for t in params.property_types]
+            query = query.filter(rental_type__in=db_types)
+
+        if params.statuses:
+            db_statuses = [STATUS_ALIAS_TO_DB.get(s, s) for s in params.statuses]
+            query = query.filter(propertydetail__current_status__in=db_statuses)
+
+        if params.search:
+            search_filter = (
+                Q(building_details__icontains=params.search) |
+                Q(propertydetail__building_name__icontains=params.search) |
+                Q(propertydetail__flat_number__icontains=params.search) |
+                Q(propertydetail__villa_name__icontains=params.search) |
+                Q(propertydetail__warehouse_name__icontains=params.search) |
+                Q(propertydetail__commercial_category__icontains=params.search)
+            )
+            if params.search.isdigit():
+                search_filter |= Q(property_id=int(params.search))
+            query = query.filter(search_filter)
+
+        rows = list(query.values(
+            "property_id", "rental_type"
+        ).distinct())
+        property_ids = [row["property_id"] for row in rows]
+
+        detail_map = {
+            d["property_id"]: d
+            for d in PropertyDetail.objects.filter(property_id__in=property_ids).values(
+                "property_id", "building_name", "current_status",
+                "flat_number", "flat_configuration",
+                "villa_name", "villa_configuration",
+                "warehouse_name", "plot_shed_number",
+                "commercial_category",
+            )
+        }
+
+        check_in_map = {}
+        for ci in CheckIn.objects.filter(
+            is_active=True, property_id__in=property_ids
+        ).order_by("property_id", "-check_in_date").values(
+            "property_id", "agreement_start_date", "agreement_end_date", "monthly_rent"
+        ):
+            check_in_map.setdefault(ci["property_id"], ci)
+
+        assignment_map = {}
+        for a in PropertyAssignment.objects.filter(
+            is_active=True, property_id__in=property_ids
+        ).exclude(assignment_status__in=["Completed", "Cancelled"]).order_by(
+            "property_id", "-assigned_on"
+        ).values(
+            "property_id", "rental_start_date", "rental_end_date", "maintenance_charges"
+        ):
+            assignment_map.setdefault(a["property_id"], a)
+
+        data_rows = []
+        for row in rows:
+            pid = row["property_id"]
+            rental_type = row["rental_type"]
+            detail = detail_map.get(pid) or {}
+            display_type = TYPE_DISPLAY_ALIAS.get(rental_type, rental_type)
+
+            if rental_type == "Flat":
+                unit_no = detail.get("flat_number")
+                configuration = detail.get("flat_configuration")
+            elif rental_type == "Villa":
+                unit_no = detail.get("villa_name")
+                configuration = detail.get("villa_configuration")
+            elif rental_type == "Warehouse":
+                unit_no = detail.get("warehouse_name") or detail.get("plot_shed_number")
+                configuration = None
+            else:
+                unit_no = detail.get("commercial_category")
+                configuration = None
+
+            property_name = f"{configuration} {display_type}" if configuration else display_type
+
+            ci = check_in_map.get(pid)
+            assignment = assignment_map.get(pid)
+            if ci:
+                start_date, end_date, rent = ci["agreement_start_date"], ci["agreement_end_date"], ci["monthly_rent"]
+            elif assignment:
+                start_date, end_date, rent = (
+                    assignment["rental_start_date"], assignment["rental_end_date"], assignment["maintenance_charges"]
+                )
+            else:
+                start_date, end_date, rent = None, None, None
+
+            if params.from_date and (not start_date or start_date < params.from_date.date()):
+                continue
+            if params.to_date and (not start_date or start_date > params.to_date.date()):
+                continue
+
+            data_rows.append({
+                "propertyId": pid,
+                "propertyName": property_name,
+                "type": display_type,
+                "buildingProject": detail.get("building_name"),
+                "unitNo": unit_no,
+                "startDate": start_date,
+                "endDate": end_date,
+                "rent": rent,
+                "status": STATUS_DISPLAY_ALIAS.get(detail.get("current_status"), detail.get("current_status")),
+            })
+
+        pages = Paginator(data_rows, per_page=params.limit)
+        if pages.num_pages and pages.num_pages < params.page_num:
+            raise ValueError("Page limit exceed!")
+        page_data = list(pages.page(params.page_num)) if pages.num_pages else []
+
+        data = Utils.add_page_parameter(
+            final_data=page_data,
+            page_num=params.page_num,
+            total_page=pages.num_pages,
+            present_url=params.present_url,
+            next_page_required=True if pages.num_pages != params.page_num else False,
+        )
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message=self.data_occupancy_list, data=data)
+        )
+
+    @Common().exception_handler
     def assign_extract(self, params: PropertyAssignmentCreateRequest):
         from pms_apps.lead.models.lead import Lead
         
@@ -720,7 +910,7 @@ class PropertyView:
             
             # Update PropertyDetail with current tenant and status
             property_detail.current_tenant = params.tenant_id
-            property_detail.current_status = "Occupied"
+            property_detail.current_status = "Booked"
             property_detail.save()
         
         return Response(

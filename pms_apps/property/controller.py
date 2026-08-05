@@ -1,4 +1,5 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ from pms_apps.property.serializers.requests.get import PropertyGetSerializer
 from pms_apps.property.serializers.requests.property_assignment_create import PropertyAssignmentCreateSerializer
 from pms_apps.property.serializers.requests.property_assignment_update import PropertyAssignmentUpdateSerializer
 from pms_apps.property.serializers.requests.property_assignment_get import PropertyAssignmentGetSerializer
+from pms_apps.property.serializers.requests.occupancy_report import OccupancyReportSerializer
 
 from pms_apps.property.serializers.response.get import PropertyResponseGetSerializer
 from pms_apps.property.serializers.response.get_all import PropertyResponseGetAllSerializer
@@ -103,6 +105,36 @@ class PropertyViewController:
     @SerializerValidations(serializer=GetAllSerializer).validate
     def count(request: Request) -> Response:
         return PropertyView().count_extract(params=request.params)
+
+    @extend_schema(
+        description="Get Occupancy Summary - Total, Rented, Vacant, and Booked properties",
+        parameters=SwaggerPage.get_all_parameters(),
+        responses=SwaggerPage.response(description=PropertyView().data_occupancy_summary)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=GetAllSerializer).validate
+    def occupancy_summary(request: Request) -> Response:
+        return PropertyView().occupancy_summary_extract(params=request.params)
+
+    @extend_schema(
+        description="Get Occupancy Report list (Paginated) - filter by search, property_types, statuses, date range",
+        parameters=[
+            OpenApiParameter(name='page_num', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='limit', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='search', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='property_types', description='Comma separated: Apartment,Villa,Warehouse,Commercial',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='statuses', description='Comma separated: Vacant,Booked,Rented,Under Maintenance',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
+        responses=SwaggerPage.response(description=PropertyView().data_occupancy_list)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=OccupancyReportSerializer).validate
+    def occupancy_list(request: Request) -> Response:
+        return PropertyView().occupancy_list_extract(params=request.params)
 
     @extend_schema(
         description="Assign Property to Tenant with Full Details",

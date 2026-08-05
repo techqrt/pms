@@ -155,6 +155,7 @@ class LeadView:
                 property_permission_id=property_permission_id,
                 profile_image=profile_image_obj,
                 email=params.email,
+                tenant_code=params.tenant_code,
             )
         return Response(
             status=status.HTTP_200_OK,
