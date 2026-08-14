@@ -648,17 +648,15 @@ class CheckIn(models.Model):
         row.update(CheckIn._property_data(row.get('property_id')))
         return row
 
-    EXACT_MATCH_FILTER_FIELDS = {
-        "check_in_id", "property_id", "tenant_id", "assigned_employee_id",
-        "check_in_status", "manager_approval", "key_handover_status",
-    }
-
     @staticmethod
     def get_all(
         sort_by: str = None,
         sort_order: str = "asc",
-        filter_key: str = None,
-        filter_value: str = None,
+        status: list = None,
+        building: str = None,
+        assigned_employee_id: list = None,
+        manager_approval: list = None,
+        key_handover_status: list = None,
         search_key: str = None,
         from_date=None,
         to_date=None,
@@ -667,11 +665,16 @@ class CheckIn(models.Model):
 
         query = CheckIn.objects.filter(is_active=True)
 
-        if filter_key and filter_value:
-            if filter_key in CheckIn.EXACT_MATCH_FILTER_FIELDS:
-                query = query.filter(**{filter_key: filter_value})
-            else:
-                query = query.filter(**{f"{filter_key}__icontains": filter_value})
+        if status:
+            query = query.filter(check_in_status__in=status)
+        if assigned_employee_id:
+            query = query.filter(assigned_employee_id__in=assigned_employee_id)
+        if manager_approval:
+            query = query.filter(manager_approval__in=manager_approval)
+        if key_handover_status:
+            query = query.filter(key_handover_status__in=key_handover_status)
+        if building:
+            query = query.filter(property__propertydetail__building_name__icontains=building)
 
         if search_key:
             query = query.filter(
@@ -725,6 +728,7 @@ class CheckIn(models.Model):
             d = detail_map.get(pid) or {}
             row['building_name'] = d.get('building_name')
             rtype = prop_type_map.get(pid)
+            row['property_type'] = rtype
             if rtype == 'Flat':
                 row['flat_unit_number'] = d.get('flat_number')
             elif rtype == 'Commercial':

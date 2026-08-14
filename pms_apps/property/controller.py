@@ -17,6 +17,8 @@ from pms_apps.property.serializers.requests.property_assignment_create import Pr
 from pms_apps.property.serializers.requests.property_assignment_update import PropertyAssignmentUpdateSerializer
 from pms_apps.property.serializers.requests.property_assignment_get import PropertyAssignmentGetSerializer
 from pms_apps.property.serializers.requests.occupancy_report import OccupancyReportSerializer
+from pms_apps.property.serializers.requests.get_all_property import PropertyGetAllSerializer
+from pms_apps.property.serializers.requests.rental_report import RentalReportSerializer
 
 from pms_apps.property.serializers.response.get import PropertyResponseGetSerializer
 from pms_apps.property.serializers.response.get_all import PropertyResponseGetAllSerializer
@@ -75,12 +77,36 @@ class PropertyViewController:
 
 
     @extend_schema(
-        description="Get all Properties (Paginated)",
-        parameters=SwaggerPage.get_all_parameters(),
+        description="Get all Properties (Paginated) - filter by property_types, rental_for, bedrooms, "
+                     "features, city, rent range, and date range (created_at)",
+        parameters=[
+            OpenApiParameter(name='values', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='page_num', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='limit', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_by', description='camelCase field name, e.g. rentalType, expectedRent, createdAt',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_order', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='search_key', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='property_types', description='Comma separated: Apartment,Villa,Warehouse,Commercial',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='rental_for', description='Comma separated: Bachelor,Family,Labour',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='bedrooms', description='Comma separated: 1BHK,2BHK,3BHK',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='features', description='Comma separated: Balcony,Parking,Pool',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='city', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='min_rent', required=False, type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='max_rent', required=False, type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', description='Filters on property created_at date',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', description='Filters on property created_at date',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
         responses=SwaggerPage.response(response=PropertyResponseGetAllSerializer)
     )
     @api_view(["GET"])
-    @SerializerValidations(serializer=GetAllSerializer).validate
+    @SerializerValidations(serializer=PropertyGetAllSerializer).validate
     def get_all(request: Request) -> Response:
         return PropertyView().get_all_extract(params=request.params)
 
@@ -135,6 +161,63 @@ class PropertyViewController:
     @SerializerValidations(serializer=OccupancyReportSerializer).validate
     def occupancy_list(request: Request) -> Response:
         return PropertyView().occupancy_list_extract(params=request.params)
+
+    @extend_schema(
+        description="Get Rental Report summary - total properties matching current filters",
+        parameters=[
+            OpenApiParameter(name='search', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='property_types', description='Comma separated: Apartment,Villa,Warehouse,Commercial',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='rental_for', description='Comma separated: Bachelor,Family,Labour',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='statuses', description='Comma separated: Active,Inactive',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='bedrooms', description='Comma separated: 1BHK,2BHK,3BHK',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='features', description='Comma separated: Balcony,Parking,Pool',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='city', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='min_rent', required=False, type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='max_rent', required=False, type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
+        responses=SwaggerPage.response(description=PropertyView().data_rental_report_summary)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=RentalReportSerializer).validate
+    def rental_report_summary(request: Request) -> Response:
+        return PropertyView().rental_report_summary_extract(params=request.params)
+
+    @extend_schema(
+        description="Get Rental Report list (Paginated) - filter by search, property_types, rental_for, "
+                     "statuses, bedrooms, features, city, rent range, and date range",
+        parameters=[
+            OpenApiParameter(name='page_num', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='limit', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='search', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='property_types', description='Comma separated: Apartment,Villa,Warehouse,Commercial',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='rental_for', description='Comma separated: Bachelor,Family,Labour',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='statuses', description='Comma separated: Active,Inactive',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='bedrooms', description='Comma separated: 1BHK,2BHK,3BHK',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='features', description='Comma separated: Balcony,Parking,Pool',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='city', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='min_rent', required=False, type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='max_rent', required=False, type=OpenApiTypes.NUMBER, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
+        responses=SwaggerPage.response(description=PropertyView().data_rental_report_list)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=RentalReportSerializer).validate
+    def rental_report_list(request: Request) -> Response:
+        return PropertyView().rental_report_list_extract(params=request.params)
 
     @extend_schema(
         description="Assign Property to Tenant with Full Details",

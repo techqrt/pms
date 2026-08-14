@@ -515,18 +515,17 @@ class CheckOut(models.Model):
         row.update(CheckOut._property_data(row.get('property_id')))
         return row
 
-    EXACT_MATCH_FILTER_FIELDS = {
-        "check_out_id", "property_id", "tenant_id", "assigned_employee_id",
-        "check_out_status", "manager_approval", "key_return_status",
-        "payment_status", "request_from",
-    }
-
     @staticmethod
     def get_all(
         sort_by: str = None,
         sort_order: str = "asc",
-        filter_key: str = None,
-        filter_value: str = None,
+        status: list = None,
+        building: str = None,
+        assigned_employee_id: list = None,
+        manager_approval: list = None,
+        key_return_status: list = None,
+        payment_status: list = None,
+        request_from: list = None,
         search_key: str = None,
         from_date=None,
         to_date=None,
@@ -535,11 +534,20 @@ class CheckOut(models.Model):
 
         query = CheckOut.objects.filter(is_active=True)
 
-        if filter_key and filter_value:
-            if filter_key in CheckOut.EXACT_MATCH_FILTER_FIELDS:
-                query = query.filter(**{filter_key: filter_value})
-            else:
-                query = query.filter(**{f"{filter_key}__icontains": filter_value})
+        if status:
+            query = query.filter(check_out_status__in=status)
+        if assigned_employee_id:
+            query = query.filter(assigned_employee_id__in=assigned_employee_id)
+        if manager_approval:
+            query = query.filter(manager_approval__in=manager_approval)
+        if key_return_status:
+            query = query.filter(key_return_status__in=key_return_status)
+        if payment_status:
+            query = query.filter(payment_status__in=payment_status)
+        if request_from:
+            query = query.filter(request_from__in=request_from)
+        if building:
+            query = query.filter(property__propertydetail__building_name__icontains=building)
 
         if search_key:
             query = query.filter(
@@ -596,6 +604,7 @@ class CheckOut(models.Model):
             d = detail_map.get(pid) or {}
             row['building_name'] = d.get('building_name')
             rtype = prop_type_map.get(pid)
+            row['property_type'] = rtype
             if rtype == 'Flat':
                 row['flat_unit_number'] = d.get('flat_number')
             elif rtype == 'Commercial':

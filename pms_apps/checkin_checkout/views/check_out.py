@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from pms_apps.common.common import Common
-from pms_apps.common.dataclasses.get_all import GetAll
 from pms_apps.common.utils import Utils
 
 from pms_apps.checkin_checkout.utils import CheckOutUtils
@@ -15,6 +14,7 @@ from pms_apps.checkin_checkout.serializers.response.get_all_check_out import Che
 
 from pms_apps.checkin_checkout.dataclasses.requests.create_check_out import CheckOutCreateRequest
 from pms_apps.checkin_checkout.dataclasses.requests.get_check_out import CheckOutGetRequest
+from pms_apps.checkin_checkout.dataclasses.requests.get_all_check_out import CheckOutGetAllRequest
 from pms_apps.checkin_checkout.dataclasses.requests.update_check_out import (
     CheckOutInformationUpdateRequest,
     CheckOutTenantDetailsUpdateRequest,
@@ -922,14 +922,19 @@ class CheckOutView:
         )
 
     @Common(response_handler=CheckOutResponseGetAllSerializer).exception_handler
-    def get_all_extract(self, params: GetAll):
-        reversed_mapped = CheckOutUtils.reverse_mapper([params.sort_by, params.filter_key])
+    def get_all_extract(self, params: CheckOutGetAllRequest):
+        reversed_mapped = CheckOutUtils.reverse_mapper([params.sort_by])
 
         check_out_list = CheckOut.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
-            filter_key=reversed_mapped.get(params.filter_key),
-            filter_value=params.filter_value,
+            status=params.status,
+            building=params.building,
+            assigned_employee_id=params.assigned_employee_id,
+            manager_approval=params.manager_approval,
+            key_return_status=params.key_return_status,
+            payment_status=params.payment_status,
+            request_from=params.request_from,
             search_key=params.search_key,
             from_date=params.from_date,
             to_date=params.to_date,

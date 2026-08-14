@@ -15,9 +15,11 @@ from pms_apps.property.dataclasses.requests.update import PropertyUpdateRequest
 from pms_apps.property.dataclasses.requests.delete import PropertyDeleteRequest
 from pms_apps.property.dataclasses.requests.delete_many import PropertyDeleteManyRequest
 from pms_apps.property.dataclasses.requests.get import PropertyGetRequest
+from pms_apps.property.dataclasses.requests.get_all_property import PropertyGetAllRequest
 from pms_apps.property.dataclasses.requests.property_assignment_create import PropertyAssignmentCreateRequest
 from pms_apps.property.dataclasses.requests.property_assignment_update import PropertyAssignmentUpdateRequest
 from pms_apps.property.dataclasses.requests.occupancy_report import OccupancyReportRequest
+from pms_apps.property.dataclasses.requests.rental_report import RentalReportRequest
 from pms_apps.property.utils import PropertyUtils
 
 from pms_apps.property.models.property import Property
@@ -61,6 +63,8 @@ class PropertyView:
         self.data_assign = "Property assigned to tenant successfully"
         self.data_occupancy_summary = "Occupancy summary fetched successfully"
         self.data_occupancy_list = "Occupancy report fetched successfully"
+        self.data_rental_report_summary = "Rental report summary fetched successfully"
+        self.data_rental_report_list = "Rental report fetched successfully"
         self.data_assignment_count = "Assignment count fetched successfully"
         self.db_error = "Database Error"
         self.error = "Something went wrong"
@@ -534,19 +538,23 @@ class PropertyView:
         )
 
     @Common(response_handler=PropertyResponseGetAllSerializer).exception_handler
-    def get_all_extract(self, params: GetAll):
-        reversed_mapped = PropertyUtils.reverse_mapper([
-            params.sort_by,
-            params.filter_key
-        ])
+    def get_all_extract(self, params: PropertyGetAllRequest):
+        reversed_mapped = PropertyUtils.reverse_mapper([params.sort_by])
 
         property_list = Property.get_all_by_user(
             user_id=params.user_id,
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
-            filter_key=reversed_mapped.get(params.filter_key),
-            filter_value=params.filter_value,
-            search_key=params.search_key
+            search_key=params.search_key,
+            property_types=params.property_types,
+            rental_for=params.rental_for,
+            bedrooms=params.bedrooms,
+            features=params.features,
+            city=params.city,
+            min_rent=params.min_rent,
+            max_rent=params.max_rent,
+            from_date=params.from_date,
+            to_date=params.to_date,
         )
         
         pages = Paginator(property_list, per_page=params.limit)
@@ -851,6 +859,172 @@ class PropertyView:
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_occupancy_list, data=data)
+        )
+
+    def _build_rental_report_rows(self, params) -> list:
+        import re
+        from pms_apps.checkin_checkout.models.check_in import CheckIn
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+
+        TYPE_DISPLAY_ALIAS = {"Flat": "Apartment"}
+        TYPE_ALIAS_TO_DB = {"Apartment": "Flat"}
+        STATUS_ALIAS_TO_DB = {"Active": ["Occupied"], "Inactive": ["Vacant", "Booked", "Under Maintenance"]}
+        FEATURE_FIELDS = {"Balcony": ("balcony", "balcony_or_sitout"), "Parking": ("parking",), "Pool": ("swimming_pool",)}
+
+        query = Property.objects.filter(is_active=True)
+
+        if params.property_types:
+            db_types = [TYPE_ALIAS_TO_DB.get(t, t) for t in params.property_types]
+            query = query.filter(rental_type__in=db_types)
+
+        if params.rental_for:
+            query = query.filter(rental_for__in=params.rental_for)
+
+        if params.statuses:
+            db_statuses = []
+            for s in params.statuses:
+                db_statuses.extend(STATUS_ALIAS_TO_DB.get(s, [s]))
+            query = query.filter(propertydetail__current_status__in=db_statuses)
+
+        if params.city:
+            query = query.filter(propertydetail__city__icontains=params.city)
+
+        if params.search:
+            search_filter = (
+                Q(building_details__icontains=params.search) |
+                Q(propertydetail__building_name__icontains=params.search) |
+                Q(propertydetail__flat_number__icontains=params.search) |
+                Q(propertydetail__villa_name__icontains=params.search) |
+                Q(propertydetail__warehouse_name__icontains=params.search) |
+                Q(propertydetail__commercial_category__icontains=params.search)
+            )
+            if params.search.isdigit():
+                search_filter |= Q(property_id=int(params.search))
+            query = query.filter(search_filter)
+
+        rows = list(query.values(
+            "property_id", "rental_type", "rental_for", "expected_rent", "created_by__name"
+        ).distinct())
+        property_ids = [row["property_id"] for row in rows]
+
+        detail_map = {
+            d["property_id"]: d
+            for d in PropertyDetail.objects.filter(property_id__in=property_ids).values(
+                "property_id", "current_status", "builtup_area_sqft",
+                "flat_configuration", "villa_configuration",
+                "balcony", "balcony_or_sitout", "parking", "swimming_pool",
+            )
+        }
+
+        check_in_map = {}
+        for ci in CheckIn.objects.filter(
+            is_active=True, property_id__in=property_ids
+        ).order_by("property_id", "-check_in_date").values(
+            "property_id", "agreement_start_date", "monthly_rent"
+        ):
+            check_in_map.setdefault(ci["property_id"], ci)
+
+        assignment_map = {}
+        for a in PropertyAssignment.objects.filter(
+            is_active=True, property_id__in=property_ids
+        ).exclude(assignment_status__in=["Completed", "Cancelled"]).order_by(
+            "property_id", "-assigned_on"
+        ).values("property_id", "rental_start_date", "maintenance_charges"):
+            assignment_map.setdefault(a["property_id"], a)
+
+        data_rows = []
+        for row in rows:
+            pid = row["property_id"]
+            rental_type = row["rental_type"]
+            detail = detail_map.get(pid) or {}
+            display_type = TYPE_DISPLAY_ALIAS.get(rental_type, rental_type)
+
+            configuration = detail.get("flat_configuration") if rental_type == "Flat" else (
+                detail.get("villa_configuration") if rental_type == "Villa" else None
+            )
+            title = f"{configuration} {display_type}" if configuration else display_type
+            rooms_match = re.match(r"^(\d+)", configuration) if configuration else None
+            rooms = int(rooms_match.group(1)) if rooms_match else None
+
+            features = []
+            if detail.get("balcony") or detail.get("balcony_or_sitout"):
+                features.append("Balcony")
+            if detail.get("parking"):
+                features.append("Parking")
+            if detail.get("swimming_pool") and detail.get("swimming_pool") != "No":
+                features.append("Pool")
+
+            ci = check_in_map.get(pid)
+            assignment = assignment_map.get(pid)
+            if ci:
+                start_date, rent = ci["agreement_start_date"], ci["monthly_rent"]
+            elif assignment:
+                start_date, rent = assignment["rental_start_date"], assignment["maintenance_charges"]
+            else:
+                start_date, rent = None, None
+            if rent is None:
+                rent = row["expected_rent"]
+
+            if params.from_date and (not start_date or start_date < params.from_date.date()):
+                continue
+            if params.to_date and (not start_date or start_date > params.to_date.date()):
+                continue
+            if params.bedrooms and configuration not in params.bedrooms:
+                continue
+            if params.features and not (set(params.features) & set(features)):
+                continue
+            if params.min_rent is not None and (rent is None or rent < params.min_rent):
+                continue
+            if params.max_rent is not None and (rent is None or rent > params.max_rent):
+                continue
+
+            data_rows.append({
+                "propertyId": pid,
+                "title": title,
+                "type": display_type,
+                "target": row["rental_for"],
+                "addedBy": row["created_by__name"],
+                "areaSqft": detail.get("builtup_area_sqft"),
+                "rooms": rooms,
+                "features": features,
+                "rent": rent,
+                "status": "Active" if detail.get("current_status") == "Occupied" else "Inactive",
+            })
+
+        return data_rows
+
+    @Common().exception_handler
+    def rental_report_summary_extract(self, params: RentalReportRequest):
+        data_rows = self._build_rental_report_rows(params)
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message=self.data_rental_report_summary,
+                data={"totalProperties": len(data_rows)}
+            )
+        )
+
+    @Common().exception_handler
+    def rental_report_list_extract(self, params: RentalReportRequest):
+        data_rows = self._build_rental_report_rows(params)
+
+        pages = Paginator(data_rows, per_page=params.limit)
+        if pages.num_pages and pages.num_pages < params.page_num:
+            raise ValueError("Page limit exceed!")
+        page_data = list(pages.page(params.page_num)) if pages.num_pages else []
+
+        data = Utils.add_page_parameter(
+            final_data=page_data,
+            page_num=params.page_num,
+            total_page=pages.num_pages,
+            present_url=params.present_url,
+            next_page_required=True if pages.num_pages != params.page_num else False,
+        )
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message=self.data_rental_report_list, data=data)
         )
 
     @Common().exception_handler
