@@ -1,11 +1,12 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from pms_apps.common.swagger import SwaggerPage
-from pms_apps.common.serializers.request.get_all import GetAllSerializer
 
+from pms_apps.checkin_checkout.serializers.requests.get_all_check_in import CheckInGetAllSerializer
 from pms_apps.checkin_checkout.serializers.requests.create_check_in import CheckInCreateSerializer
 from pms_apps.checkin_checkout.serializers.requests.get_check_in import CheckInGetSerializer
 from pms_apps.checkin_checkout.serializers.requests.update_check_in import (
@@ -81,12 +82,31 @@ class CheckInViewController:
         return CheckInView().get_extract(params=request.params)
 
     @extend_schema(
-        description="Get all Check-Ins",
-        parameters=SwaggerPage.get_all_parameters(),
+        description="Get all Check-Ins - filter by status, building, assigned employee, "
+                     "manager approval, key handover status, search, and date range",
+        parameters=[
+            OpenApiParameter(name='values', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='page_num', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='limit', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_by', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_order', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='search_key', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='status', description='Comma separated: Pending,In Progress,Key Pending,Active,Completed,Cancelled',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='building', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='assigned_employee_id', description='Comma separated employee IDs',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='manager_approval', description='Comma separated: Pending,Approved,Rejected',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='key_handover_status', description='Comma separated: Pending,Booked,Handed Over,Returned',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
         responses=SwaggerPage.response(description=CheckInView().data_get, response=CheckInResponseGetAllSerializer)
     )
     @api_view(["GET"])
-    @SerializerValidations(serializer=GetAllSerializer).validate
+    @SerializerValidations(serializer=CheckInGetAllSerializer).validate
     def get_all(request: Request) -> Response:
         return CheckInView().get_all_extract(params=request.params)
 

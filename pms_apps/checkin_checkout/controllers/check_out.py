@@ -1,11 +1,12 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from pms_apps.common.swagger import SwaggerPage
-from pms_apps.common.serializers.request.get_all import GetAllSerializer
 
+from pms_apps.checkin_checkout.serializers.requests.get_all_check_out import CheckOutGetAllSerializer
 from pms_apps.checkin_checkout.serializers.requests.create_check_out import CheckOutCreateSerializer
 from pms_apps.checkin_checkout.serializers.requests.get_check_out import CheckOutGetSerializer
 from pms_apps.checkin_checkout.serializers.requests.delete_check_out import CheckOutDeleteSerializer
@@ -78,12 +79,35 @@ class CheckOutViewController:
         return CheckOutView().get_extract(params=request.params)
 
     @extend_schema(
-        description="Get all Check-Outs",
-        parameters=SwaggerPage.get_all_parameters(),
+        description="Get all Check-Outs - filter by status, building, assigned employee, "
+                     "manager approval, key return status, payment status, request source, search, and date range",
+        parameters=[
+            OpenApiParameter(name='values', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='page_num', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='limit', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_by', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_order', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='search_key', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='status', description='Comma separated: Pending,Inspection Pending,Approved,Active,Completed,Cancelled',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='building', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='assigned_employee_id', description='Comma separated employee IDs',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='manager_approval', description='Comma separated: Pending,Approved,Rejected',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='key_return_status', description='Comma separated: Pending,Returned,Not Returned,Lost',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='payment_status', description='Comma separated: Pending,Paid,Partially Paid,Refunded',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='request_from', description='Comma separated: Tenant,Admin',
+                             required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
         responses=SwaggerPage.response(description=CheckOutView().data_get, response=CheckOutResponseGetAllSerializer)
     )
     @api_view(["GET"])
-    @SerializerValidations(serializer=GetAllSerializer).validate
+    @SerializerValidations(serializer=CheckOutGetAllSerializer).validate
     def get_all(request: Request) -> Response:
         return CheckOutView().get_all_extract(params=request.params)
 

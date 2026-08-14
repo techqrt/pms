@@ -201,20 +201,65 @@ class Property(models.Model):
         user_id: int,
         sort_by: str = '',
         sort_order: str = '',
-        filter_key: str = '',
-        filter_value: str = '',
         search_key: str = '',
+        property_types: list = None,
+        rental_for: list = None,
+        bedrooms: list = None,
+        features: list = None,
+        city: str = '',
+        min_rent=None,
+        max_rent=None,
+        from_date=None,
+        to_date=None,
     ) -> list:
+        TYPE_ALIAS_TO_DB = {"Apartment": "Flat"}
+        FEATURE_FILTERS = {
+            "Balcony": Q(propertydetail__balcony=True) | Q(propertydetail__balcony_or_sitout=True),
+            "Parking": Q(propertydetail__parking=True),
+            "Pool": ~Q(propertydetail__swimming_pool="No") & Q(propertydetail__swimming_pool__isnull=False),
+        }
+
         data = Property.objects.filter(
             is_active=True
         ).filter(
-            Q(created_by__user_id=user_id) | 
+            Q(created_by__user_id=user_id) |
             Q(assigned_to__user_id=user_id) |
             Q(propertydetail__landlord__lead_id__user_id=user_id)
         ).distinct()
 
-        if filter_key and filter_value:
-            data = data.filter(**{filter_key+"__icontains": filter_value})
+        if property_types:
+            db_types = [TYPE_ALIAS_TO_DB.get(t, t) for t in property_types]
+            data = data.filter(rental_type__in=db_types)
+
+        if rental_for:
+            data = data.filter(rental_for__in=rental_for)
+
+        if bedrooms:
+            data = data.filter(
+                Q(propertydetail__flat_configuration__in=bedrooms) |
+                Q(propertydetail__villa_configuration__in=bedrooms)
+            )
+
+        if features:
+            feature_filter = Q()
+            for feature in features:
+                if feature in FEATURE_FILTERS:
+                    feature_filter |= FEATURE_FILTERS[feature]
+            if feature_filter:
+                data = data.filter(feature_filter)
+
+        if city:
+            data = data.filter(propertydetail__city__icontains=city)
+
+        if min_rent is not None:
+            data = data.filter(expected_rent__gte=min_rent)
+        if max_rent is not None:
+            data = data.filter(expected_rent__lte=max_rent)
+
+        if from_date:
+            data = data.filter(created_at__gte=from_date)
+        if to_date:
+            data = data.filter(created_at__lte=to_date)
 
         if search_key:
             data = data.filter(
