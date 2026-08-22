@@ -201,6 +201,8 @@ class Property(models.Model):
         user_id: int,
         sort_by: str = '',
         sort_order: str = '',
+        filter_key: str = '',
+        filter_value: str = '',
         search_key: str = '',
         property_types: list = None,
         rental_for: list = None,
@@ -226,6 +228,9 @@ class Property(models.Model):
             Q(assigned_to__user_id=user_id) |
             Q(propertydetail__landlord__lead_id__user_id=user_id)
         ).distinct()
+
+        if filter_key and filter_value:
+            data = data.filter(**{filter_key: filter_value})
 
         if property_types:
             db_types = [TYPE_ALIAS_TO_DB.get(t, t) for t in property_types]
