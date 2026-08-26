@@ -19,6 +19,10 @@ class Property(models.Model):
     ]
 
     property_id = models.AutoField(primary_key=True)
+    building = models.ForeignKey(
+        "property.Building", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="units"
+    )
     block = models.CharField(max_length=50, null=True, blank=True)
     building_details = models.CharField(max_length=255, null=True, blank=True)
     floor = models.CharField(max_length=50, null=True, blank=True)
@@ -39,8 +43,8 @@ class Property(models.Model):
     created_by = models.ForeignKey(
         User, on_delete=models.DO_NOTHING, null=True, blank=True, related_name="property_created_by"
     )
-    assigned_to = models.ForeignKey(
-        User, on_delete=models.DO_NOTHING, null=True, blank=True, related_name="property_assigned_to"
+    assigned_to = models.ManyToManyField(
+        User, related_name="property_assigned_to", blank=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -70,7 +74,9 @@ class Property(models.Model):
         expected_rent: float,
         agreement_id: int,
         created_by: int,
+        building_id: int = None,
     ) -> int:
+        self.building_id = building_id
         self.block = block
         self.building_details = building_details
         self.floor = floor
@@ -105,13 +111,16 @@ class Property(models.Model):
         advance_amount_rent: int = None,
         expected_rent: float = None,
         agreement_id: int = None,
-        assigned_to: int = None
+        assigned_to: list = None,
+        building_id: int = None,
     ) -> int:
         try:
             property = Property.objects.get(property_id=property_id)
         except Property.DoesNotExist:
             raise ValueError(f"Invalid Property Id: {property_id}")
 
+        if building_id is not None:
+            property.building_id = building_id
         if block is not None:
             property.block = block
         if building_details is not None:
@@ -136,10 +145,12 @@ class Property(models.Model):
             property.expected_rent = expected_rent
         if agreement_id is not None:
             property.agreement_id = agreement_id
-        if assigned_to is not None:
-            property.assigned_to_id = assigned_to
-        
+
         property.save()
+
+        if assigned_to is not None:
+            property.assigned_to.set(assigned_to)
+
         return property.property_id
 
 
@@ -151,8 +162,8 @@ class Property(models.Model):
             property_id=property_id,
             is_active=True
         ).values(
-            'property_id','block','building_details','floor','flat_number',
-            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','assigned_to__user_id','assigned_to__name','assigned_to__phone_number','assigned_to__email','created_at','updated_at','is_active'
+            'property_id','building_id','building__name','block','building_details','floor','flat_number',
+            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','created_at','updated_at','is_active'
         ).first()
 
 
@@ -180,8 +191,8 @@ class Property(models.Model):
             data = data.order_by("-created_at")
 
         data = data.values(
-            'property_id','block','building_details','floor','flat_number',
-            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','assigned_to__user_id','assigned_to__name','assigned_to__phone_number','assigned_to__email','created_at','updated_at','is_active'
+            'property_id','building_id','building__name','block','building_details','floor','flat_number',
+            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','created_at','updated_at','is_active'
         )
 
         return list(data)
@@ -208,6 +219,7 @@ class Property(models.Model):
         rental_for: list = None,
         bedrooms: list = None,
         features: list = None,
+        building_id: int = None,
         city: str = '',
         min_rent=None,
         max_rent=None,
@@ -231,6 +243,9 @@ class Property(models.Model):
 
         if filter_key and filter_value:
             data = data.filter(**{filter_key: filter_value})
+
+        if building_id:
+            data = data.filter(building_id=building_id)
 
         if property_types:
             db_types = [TYPE_ALIAS_TO_DB.get(t, t) for t in property_types]
@@ -277,11 +292,28 @@ class Property(models.Model):
             data = data.order_by("-created_at")
 
         data = data.values(
-            'property_id','block','building_details','floor','flat_number',
-            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','assigned_to__user_id','assigned_to__name','assigned_to__phone_number','assigned_to__email','created_at','updated_at','is_active'
+            'property_id','building_id','building__name','block','building_details','floor','flat_number',
+            'dimension_length_ft','dimension_breadth_ft','dimension_area_sqft','rental_type','rental_for','advance_amount_rent','expected_rent','agreement_id','created_by__user_id','created_by__name','created_by__phone_number','created_by__email','created_at','updated_at','is_active'
         )
 
         return list(data)
+
+    @staticmethod
+    def get_assignees_map(property_ids: list) -> dict:
+        """Bulk-fetch assigned users per property_id, keyed as {property_id: [user_dict, ...]}."""
+        from collections import defaultdict
+        rows = Property.assigned_to.through.objects.filter(
+            property_id__in=property_ids
+        ).values('property_id', 'user__user_id', 'user__name', 'user__phone_number', 'user__email')
+        result = defaultdict(list)
+        for row in rows:
+            result[row['property_id']].append({
+                'userId': row['user__user_id'],
+                'name': row['user__name'],
+                'phoneNumber': row['user__phone_number'],
+                'email': row['user__email'],
+            })
+        return result
 
 class CommercialProperty(models.Model):
     property = models.OneToOneField(Property, on_delete=models.CASCADE, primary_key=True)

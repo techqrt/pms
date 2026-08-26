@@ -15,6 +15,7 @@ class PropertyGetAllRequest:
     rental_for: List[str]
     bedrooms: List[str]
     features: List[str]
+    building_id: Optional[int] = None
     city: str = ''
     min_rent: Optional[float] = None
     max_rent: Optional[float] = None

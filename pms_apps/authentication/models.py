@@ -61,6 +61,8 @@ class User(AbstractBaseUser):
         from pms_apps.maintenance.models.maintenance_employee import MaintenanceEmployee
         from pms_apps.maintenance.models.maintenance_manager import MaintenanceManager
         from pms_apps.maintenance.models.maintenance_technician import MaintenanceTechnician
+        from pms_apps.checkin_checkout.models.check_in_check_out_manager import CheckInCheckOutManager
+        from pms_apps.checkin_checkout.models.check_in_check_out_employee import CheckInCheckOutEmployee
 
         permission_map = {
             "Tenant": lambda: Lead.get_permissions(user_id=self.user_id),
@@ -75,6 +77,11 @@ class User(AbstractBaseUser):
                 else MaintenanceManager.get_permissions(user_id=self.user_id)
                 if self.role == "Manager"
                 else MaintenanceEmployee.get_permissions(user_id=self.user_id)
+            ),
+            "Check-In Check-Out": lambda: (
+                CheckInCheckOutManager.get_permissions(user_id=self.user_id)
+                if self.role == "Manager"
+                else CheckInCheckOutEmployee.get_permissions(user_id=self.user_id)
             ),
         }
 

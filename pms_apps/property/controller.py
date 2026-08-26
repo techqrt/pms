@@ -77,7 +77,7 @@ class PropertyViewController:
 
 
     @extend_schema(
-        description="Get all Properties (Paginated) - filter by property_types, rental_for, bedrooms, "
+        description="Get all Properties (Paginated) - filter by building_id, property_types, rental_for, bedrooms, "
                      "features, city, rent range, and date range (created_at)",
         parameters=[
             OpenApiParameter(name='values', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
@@ -87,6 +87,8 @@ class PropertyViewController:
                              required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
             OpenApiParameter(name='sort_order', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
             OpenApiParameter(name='search_key', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='building_id', description='List only units belonging to this building',
+                             required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
             OpenApiParameter(name='property_types', description='Comma separated: Apartment,Villa,Warehouse,Commercial',
                              required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
             OpenApiParameter(name='rental_for', description='Comma separated: Bachelor,Family,Labour',

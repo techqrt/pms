@@ -117,6 +117,7 @@ class MainDashboardView:
         with transaction.atomic():
             from pms_apps.lead.models.lead import Lead
             from pms_apps.property.models.property_details import PropertyDetail
+            from pms_apps.property.models.property import Property
 
             query = CheckOut.objects.filter(
                 is_active=True, settlement_status="Pending"
@@ -136,6 +137,14 @@ class MainDashboardView:
                     "property_id", "building_name", "property_code"
                 )
             }
+            # Prefer the live Building name over the denormalized PropertyDetail
+            # copy, which can go stale after a Building rename (see Building.update).
+            building_name_map = {
+                p["property_id"]: p["building__name"]
+                for p in Property.objects.filter(property_id__in=property_ids).values(
+                    "property_id", "building__name"
+                )
+            }
 
             data_rows = []
             for row in rows:
@@ -145,7 +154,7 @@ class MainDashboardView:
                     "tenantId": row["tenant_id"],
                     "tenantName": tenant_map.get(row["tenant_id"]),
                     "propertyId": row["property_id"],
-                    "propertyName": detail.get("building_name") or detail.get("property_code"),
+                    "propertyName": building_name_map.get(row["property_id"]) or detail.get("building_name") or detail.get("property_code"),
                     "amount": row["total_amount"],
                 })
 
@@ -237,6 +246,7 @@ class CheckInDashboardView:
         with transaction.atomic():
             from pms_apps.lead.models.lead import Lead
             from pms_apps.property.models.property_details import PropertyDetail
+            from pms_apps.property.models.property import Property
 
             today = date.today()
             query = CheckIn.objects.filter(
@@ -260,6 +270,14 @@ class CheckInDashboardView:
                     "property_id", "building_name", "property_code"
                 )
             }
+            # Prefer the live Building name over the denormalized PropertyDetail
+            # copy, which can go stale after a Building rename (see Building.update).
+            building_name_map = {
+                p["property_id"]: p["building__name"]
+                for p in Property.objects.filter(property_id__in=property_ids).values(
+                    "property_id", "building__name"
+                )
+            }
 
             data_rows = []
             for row in rows:
@@ -270,7 +288,7 @@ class CheckInDashboardView:
                     "tenantId": row["tenant_id"],
                     "tenantName": tenant_map.get(row["tenant_id"]),
                     "propertyId": row["property_id"],
-                    "propertyName": detail.get("building_name") or detail.get("property_code"),
+                    "propertyName": building_name_map.get(row["property_id"]) or detail.get("building_name") or detail.get("property_code"),
                     "assignedEmployeeId": row["assigned_employee_id"],
                     "assignedEmployeeName": row["assigned_employee__name"],
                 })
@@ -373,6 +391,7 @@ class CheckOutDashboardView:
         with transaction.atomic():
             from pms_apps.lead.models.lead import Lead
             from pms_apps.property.models.property_details import PropertyDetail
+            from pms_apps.property.models.property import Property
 
             today = date.today()
             query = CheckOut.objects.filter(
@@ -396,6 +415,14 @@ class CheckOutDashboardView:
                     "property_id", "building_name", "property_code"
                 )
             }
+            # Prefer the live Building name over the denormalized PropertyDetail
+            # copy, which can go stale after a Building rename (see Building.update).
+            building_name_map = {
+                p["property_id"]: p["building__name"]
+                for p in Property.objects.filter(property_id__in=property_ids).values(
+                    "property_id", "building__name"
+                )
+            }
 
             data_rows = []
             for row in rows:
@@ -408,7 +435,7 @@ class CheckOutDashboardView:
                     "tenantId": row["tenant_id"],
                     "tenantName": tenant_map.get(row["tenant_id"]),
                     "propertyId": row["property_id"],
-                    "propertyName": detail.get("building_name") or detail.get("property_code"),
+                    "propertyName": building_name_map.get(row["property_id"]) or detail.get("building_name") or detail.get("property_code"),
                     "assignedEmployeeId": row["assigned_employee_id"],
                     "assignedEmployeeName": row["assigned_employee__name"],
                 })

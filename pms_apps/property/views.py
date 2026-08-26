@@ -28,7 +28,6 @@ from pms_apps.property.serializers.response.get_all import PropertyResponseGetAl
 from pms_apps.property.serializers.response.assignment_get import PropertyAssignmentResponseGetSerializer
 from pms_apps.property.serializers.response.assignment_get_all import PropertyAssignmentResponseGetAllSerializer
 
-from pms_apps.authentication.models import User
 from pms_apps.property.models.property_details import PropertyDetail
 from pms_apps.property.models.property_assignment import PropertyAssignment
 from pms_apps.marketing.models.marketing_manager import MarketingManager
@@ -72,10 +71,20 @@ class PropertyView:
     @Common().exception_handler
     def create_extract(self, params: PropertyCreateRequest):
         PropertyUtils.check_constraints(params=params)
-        
+
+        building_data = None
+        if params.building_id:
+            from pms_apps.property.models.building import Building
+            building_data = Building.get(building_id=params.building_id)
+            if not building_data:
+                raise ValueError(f"Invalid Building Id: {params.building_id}")
+
+        def _from_building(key):
+            return building_data.get(key) if building_data else None
+
         # Mirror nested data to root Property fields for cleaner visibility
         block = params.block or params.property_details.address_line_2
-        building_details = params.building_details or params.property_details.building_name
+        building_details = params.building_details or params.property_details.building_name or _from_building('name')
         floor = params.floor
         if not floor:
             if params.rental_type == 'Flat' and params.flat_data:
@@ -110,13 +119,14 @@ class PropertyView:
                 expected_rent=params.expected_rent,
                 agreement_id=params.agreement_id,
                 created_by=params.user_id or params.property_details.created_by_id,
+                building_id=params.building_id,
             )
 
             from pms_apps.property.models.property_details import PropertyDetail
-            
+
             property_detail_kwargs = {
                 'property_id': property_id,
-                'building_name': params.property_details.building_name,
+                'building_name': params.property_details.building_name or _from_building('name'),
                 'total_floors': params.property_details.total_floors,
                 'carpet_area_sqft': params.property_details.carpet_area_sqft,
                 'builtup_area_sqft': params.property_details.builtup_area_sqft,
@@ -129,13 +139,13 @@ class PropertyView:
                 'current_status': params.property_details.current_status,
                 'landlord_id': params.property_details.landlord_id,
                 'created_by_id': params.user_id or params.property_details.created_by_id,
-                'address_line_1': params.property_details.address_line_1,
-                'area_zone': params.property_details.area_zone,
-                'city': params.property_details.city,
-                'state': params.property_details.state,
-                'country': params.property_details.country,
-                'pincode': params.property_details.pincode,
-                'google_map_location': params.property_details.google_map_location,
+                'address_line_1': params.property_details.address_line_1 or _from_building('address_line_1'),
+                'area_zone': params.property_details.area_zone or _from_building('area_zone'),
+                'city': params.property_details.city or _from_building('city'),
+                'state': params.property_details.state or _from_building('state'),
+                'country': params.property_details.country or _from_building('country'),
+                'pincode': params.property_details.pincode or _from_building('pincode'),
+                'google_map_location': params.property_details.google_map_location or _from_building('google_map_location'),
                 'year_of_construction': params.property_details.year_of_construction,
                 'other_charges': params.property_details.other_charges,
                 'available_from': params.property_details.available_from,
@@ -321,21 +331,23 @@ class PropertyView:
     @Common().exception_handler
     def update_extract(self, params: PropertyUpdateRequest):
         PropertyUtils.check_constraints(params=params)
-        assigned_to_user = None
-        if params.assigned_to:
-            assigned_to_user = User.get(user_id=params.assigned_to)
-        
-    
+
         property_obj = Property.get(property_id=params.property_id)
         if not property_obj:
             raise ValueError(self.data_no_match)
-        
+
+        new_building_data = None
+        if params.building_id:
+            from pms_apps.property.models.building import Building
+            new_building_data = Building.get(building_id=params.building_id)
+            if not new_building_data:
+                raise ValueError(f"Invalid Building Id: {params.building_id}")
 
         with transaction.atomic():
             Property.update(
                 property_id=params.property_id,
                 block=params.block,
-                building_details=params.building_details,
+                building_details=params.building_details or (new_building_data.get('name') if new_building_data else None),
                 floor=params.floor,
                 flat_number=params.flat_number,
                 dimension_length_ft=params.dimension_length_ft,
@@ -346,14 +358,20 @@ class PropertyView:
                 advance_amount_rent=params.advance_amount_rent,
                 expected_rent=params.expected_rent,
                 agreement_id=params.agreement_id,
-                assigned_to=assigned_to_user.get('user_id') if assigned_to_user else None,
+                assigned_to=params.assigned_to,
+                building_id=params.building_id,
             )
 
-           
-            
+
+
             detail_update_kwargs = {}
             if params.property_details:
                 detail_update_kwargs.update({k: v for k, v in params.property_details.__dict__.items() if v is not None})
+
+            # Moving a unit to a different building refreshes the denormalized
+            # building_name unless the caller explicitly set one on this call.
+            if new_building_data and 'building_name' not in detail_update_kwargs:
+                detail_update_kwargs['building_name'] = new_building_data.get('name')
             
             rental_type = params.rental_type or property_obj.get('rental_type')
             
@@ -488,9 +506,13 @@ class PropertyView:
             raise ValueError(self.data_no_match)
         
         # Check if user has access to this property
+        is_assigned = Property.objects.filter(
+            property_id=params.property_id,
+            assigned_to__user_id=params.user_id
+        ).exists()
         has_access = (
-            property_data.get('created_by__user_id') == params.user_id or 
-            property_data.get('assigned_to__user_id') == params.user_id
+            property_data.get('created_by__user_id') == params.user_id or
+            is_assigned
         )
         
         # Check if user is the landlord through PropertyDetail
@@ -531,6 +553,7 @@ class PropertyView:
                     # It's a file path managed by Django
                     photos_urls.append(ImageUtils.get_photo_url(str(photo.photo)))
         property_dict['photos'] = photos_urls
+        property_dict['assignedTo'] = Property.get_assignees_map([params.property_id]).get(params.property_id, [])
 
         return Response(
             status=status.HTTP_200_OK,
@@ -550,13 +573,14 @@ class PropertyView:
             rental_for=params.rental_for,
             bedrooms=params.bedrooms,
             features=params.features,
+            building_id=params.building_id,
             city=params.city,
             min_rent=params.min_rent,
             max_rent=params.max_rent,
             from_date=params.from_date,
             to_date=params.to_date,
         )
-        
+
         pages = Paginator(property_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
@@ -591,6 +615,8 @@ class PropertyView:
                     if photo_url:
                         photos_map[photo.property_id].append(photo_url)
 
+        assignees_map = Property.get_assignees_map(property_ids)
+
         for property_dict in serialized_properties:
             pid = property_dict.get('propertyId')
             # Categorize details
@@ -598,6 +624,8 @@ class PropertyView:
             self._categorize_property_details(property_dict, detail_dict, property_dict.get('rentalType'))
             # Add photos
             property_dict['photos'] = photos_map.get(pid, [])
+            # Add assigned users
+            property_dict['assignedTo'] = assignees_map.get(pid, [])
 
         final_data = Utils.add_page_parameter(
             final_data=serialized_properties,

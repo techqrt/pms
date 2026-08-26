@@ -582,7 +582,7 @@ class CheckIn(models.Model):
         from pms_apps.property.models.property_details import PropertyDetail
         if not property_id:
             return {}
-        prop = PropertyModel.objects.filter(property_id=property_id).values('rental_type').first() or {}
+        prop = PropertyModel.objects.filter(property_id=property_id).values('rental_type', 'building__name').first() or {}
         detail = PropertyDetail.objects.filter(property_id=property_id).values(
             'property_code', 'building_name', 'floor_number', 'current_status',
             'flat_number', 'commercial_category', 'villa_name',
@@ -599,7 +599,9 @@ class CheckIn(models.Model):
         return {
             'property_type': rental_type,
             'property_code': str(detail['property_code']) if detail.get('property_code') else None,
-            'building_name': detail.get('building_name'),
+            # Prefer the live Building name over the denormalized PropertyDetail
+            # copy, which can go stale after a Building rename (see Building.update).
+            'building_name': prop.get('building__name') or detail.get('building_name'),
             'flat_unit_number': unit,
             'floor_number': str(detail['floor_number']) if detail.get('floor_number') is not None else None,
             'property_status': detail.get('current_status'),
@@ -674,7 +676,7 @@ class CheckIn(models.Model):
         if key_handover_status:
             query = query.filter(key_handover_status__in=key_handover_status)
         if building:
-            query = query.filter(property__propertydetail__building_name__icontains=building)
+            query = query.filter(property__building__name__icontains=building)
 
         if search_key:
             query = query.filter(
@@ -714,8 +716,9 @@ class CheckIn(models.Model):
             name = f"{t.get('first_name') or ''} {t.get('last_name') or ''}".strip() or None
             tenant_map[t['lead_id']] = name
 
-        prop_type_map = {p['property_id']: p['rental_type']
-                         for p in PropertyModel.objects.filter(property_id__in=property_ids).values('property_id', 'rental_type')}
+        prop_map = {p['property_id']: p for p in PropertyModel.objects.filter(property_id__in=property_ids).values(
+            'property_id', 'rental_type', 'building__name'
+        )}
         detail_map = {d['property_id']: d for d in PropertyDetail.objects.filter(property_id__in=property_ids).values(
             'property_id', 'building_name', 'flat_number', 'commercial_category', 'villa_name'
         )}
@@ -726,8 +729,11 @@ class CheckIn(models.Model):
             row['tenant_id'] = tid
             row['tenant_name'] = tenant_map.get(tid)
             d = detail_map.get(pid) or {}
-            row['building_name'] = d.get('building_name')
-            rtype = prop_type_map.get(pid)
+            p = prop_map.get(pid) or {}
+            # Prefer the live Building name over the denormalized PropertyDetail
+            # copy, which can go stale after a Building rename (see Building.update).
+            row['building_name'] = p.get('building__name') or d.get('building_name')
+            rtype = p.get('rental_type')
             row['property_type'] = rtype
             if rtype == 'Flat':
                 row['flat_unit_number'] = d.get('flat_number')

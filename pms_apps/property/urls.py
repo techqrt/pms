@@ -1,7 +1,14 @@
 from django.urls import path
 from pms_apps.property.controller import PropertyViewController
+from pms_apps.property.building_controller import BuildingViewController
 
 urlpatterns = [
+
+    path("building/create/", BuildingViewController.create, name="create_building"),
+    path("building/update/", BuildingViewController.update, name="update_building"),
+    path("building/delete/", BuildingViewController.delete, name="delete_building"),
+    path("building/get/", BuildingViewController.get, name="get_building"),
+    path("building/get_all/", BuildingViewController.get_all, name="get_all_buildings"),
 
     path("create/", PropertyViewController.create, name="create_property"),
     path("update/", PropertyViewController.update, name="update_property"),
