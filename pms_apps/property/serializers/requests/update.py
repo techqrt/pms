@@ -9,10 +9,6 @@ from pms_apps.property.dataclasses.requests.update import (
 from pms_apps.property.serializers.fields import Base64ImageField
 
 
-class UserRequestSerilizer(serializers.Serializer):
-    user_id = serializers.IntegerField(required=False, allow_null=True)
-
-
 class PropertyDetailUpdateSerializer(serializers.Serializer):
     """Serializer for updating common property detail fields"""
     building_name = serializers.CharField(required=False, allow_null=True)
@@ -221,6 +217,7 @@ class VillaPropertyUpdateSerializer(serializers.Serializer):
 
 class PropertyUpdateSerializer(serializers.Serializer):
     property_id = serializers.IntegerField()
+    building_id = serializers.IntegerField(required=False, allow_null=True)
     block = serializers.CharField(max_length=50, required=False, allow_null=True)
     building_details = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     floor = serializers.CharField(required=False, allow_null=True, allow_blank=True)
@@ -235,7 +232,7 @@ class PropertyUpdateSerializer(serializers.Serializer):
     agreement_id = serializers.IntegerField(required=False, allow_null=True)
     photos = serializers.ListField(child=Base64ImageField(), required=False, allow_null=True)
     videos = serializers.ListField(child=serializers.URLField(), required=False, allow_null=True)
-    assigned_to = UserRequestSerilizer(required=False, allow_null=True)
+    assigned_to = serializers.ListField(child=serializers.IntegerField(), required=False, allow_null=True)
 
     property_details = PropertyDetailUpdateSerializer(required=False, allow_null=True)
     commercial_data = CommercialPropertyUpdateSerializer(required=False, allow_null=True)
@@ -247,8 +244,7 @@ class PropertyUpdateSerializer(serializers.Serializer):
         commercial_data_dict = validated_data.pop('commercial_data', None)
         flat_data_dict = validated_data.pop('flat_data', None)
         villa_data_dict = validated_data.pop('villa_data', None)
-        assigned_user_data = validated_data.pop('assigned_to', None)
-        
+
         property_details = None
         if property_details_dict:
             property_details = PropertyDetailUpdateData(**property_details_dict)
@@ -265,13 +261,10 @@ class PropertyUpdateSerializer(serializers.Serializer):
         if villa_data_dict:
             villa_data = VillaPropertyUpdateData(**villa_data_dict)
 
-        assigned_to_user_id = assigned_user_data.get('user_id') if assigned_user_data else None
-        
         return PropertyUpdateRequest(
             **validated_data,
             property_details=property_details,
             commercial_data=commercial_data,
             flat_data=flat_data,
             villa_data=villa_data,
-            assigned_to=assigned_to_user_id
         )

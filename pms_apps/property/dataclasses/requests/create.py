@@ -8,7 +8,6 @@ from decimal import Decimal
 
 @dataclass
 class PropertyCommonData:
-    building_name: str
     monthly_rent: Decimal
     security_deposit_amount: Decimal
     late_fee_type: str
@@ -16,12 +15,15 @@ class PropertyCommonData:
     current_status: str
     landlord_id: int
     created_by_id: int
-    address_line_1: str
-    area_zone: str
-    city: str
-    state: str
-    country: str
-    pincode: str
+    # Required when building_id is not supplied at the top level; otherwise
+    # auto-populated from the linked Building (see PropertyCreateSerializer.validate).
+    building_name: str | None = None
+    address_line_1: str | None = None
+    area_zone: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+    pincode: str | None = None
     total_floors: int | None = None
     carpet_area_sqft: Decimal | None = None
     builtup_area_sqft: Decimal | None = None
@@ -184,6 +186,7 @@ class PropertyCreateRequest:
     rental_type: str
     rental_for: str
     property_details: PropertyCommonData
+    building_id: int | None = None
     block: str | None = None
     building_details: str | None = None
     floor: str | None = None

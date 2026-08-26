@@ -9,7 +9,9 @@ class UserRequestSerilizer(serializers.Serializer):
 
 
 class PropertyCommonDataSerializer(serializers.Serializer):
-    building_name = serializers.CharField()
+    # Required when the request has no building_id; otherwise auto-filled from
+    # the linked Building (see PropertyCreateSerializer.validate).
+    building_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     total_floors = serializers.IntegerField(required=False, allow_null=True)
     carpet_area_sqft = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
@@ -39,14 +41,16 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     landlord_id = serializers.IntegerField()
     created_by_id = serializers.IntegerField()
 
-    address_line_1 = serializers.CharField()
+    # Required when the request has no building_id; otherwise auto-filled from
+    # the linked Building (see PropertyCreateSerializer.validate).
+    address_line_1 = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     address_line_2 = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
-    area_zone = serializers.CharField()
-    city = serializers.CharField()
-    state = serializers.CharField()
-    country = serializers.CharField()
-    pincode = serializers.CharField(max_length=10)
+    area_zone = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    city = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    state = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    country = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    pincode = serializers.CharField(max_length=10, required=False, allow_null=True, allow_blank=True)
 
     google_map_location = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
@@ -299,6 +303,7 @@ class WarehousePropertySerializer(serializers.Serializer):
 
 
 class PropertyCreateSerializer(serializers.Serializer):
+    building_id = serializers.IntegerField(required=False, allow_null=True)
     block = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     building_details = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     floor = serializers.CharField(required=False, allow_null=True, allow_blank=True)
@@ -379,7 +384,21 @@ class PropertyCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'property_type_data': 'Only warehouse_data should be provided for Warehouse rental type.'
                 })
-        
+
+        # building_name/address are only auto-filled from a linked Building when
+        # building_id is supplied; without it, they must be provided explicitly
+        # (this preserves the original standalone-property creation behavior).
+        if not data.get('building_id'):
+            property_details = data.get('property_details') or {}
+            required_without_building = [
+                'building_name', 'address_line_1', 'area_zone', 'city', 'state', 'country', 'pincode'
+            ]
+            missing = [f for f in required_without_building if not property_details.get(f)]
+            if missing:
+                raise serializers.ValidationError({
+                    field: 'This field is required when building_id is not provided.' for field in missing
+                })
+
         return data
 
     def create(self, validated_data) -> PropertyCreateRequest:

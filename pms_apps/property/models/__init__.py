@@ -1,3 +1,4 @@
+from .building import Building
 from .property import Property
 from .property_details import PropertyDetail
 from .property_photos import PropertyPhotos

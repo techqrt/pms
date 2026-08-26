@@ -127,6 +127,7 @@ class VillaPropertyUpdateData:
 @dataclass
 class PropertyUpdateRequest:
     property_id: int
+    building_id: Optional[int] = None
     block: Optional[str] = None
     building_details: Optional[str] = None
     floor: Optional[str] = None
@@ -143,6 +144,6 @@ class PropertyUpdateRequest:
     commercial_data: Optional[CommercialPropertyUpdateData] = None
     flat_data: Optional[FlatPropertyUpdateData] = None
     villa_data: Optional[VillaPropertyUpdateData] = None
-    assigned_to: Optional[int] = None
+    assigned_to: Optional[List[int]] = None
     photos: Optional[List[str]] = None
     videos: Optional[List[str]] = None

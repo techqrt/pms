@@ -30,6 +30,7 @@ class PropertyGetAllSerializer(serializers.Serializer):
         required=False, default='',
         help_text='Comma separated: Balcony,Parking,Pool'
     )
+    building_id = serializers.IntegerField(required=False, allow_null=True, default=None)
     city = serializers.CharField(max_length=100, required=False, default='')
     min_rent = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True, default=None)
     max_rent = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True, default=None)

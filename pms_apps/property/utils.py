@@ -12,6 +12,8 @@ class PropertyUtils:
         self.columns_required = columns_required
         self.mapped_columns_name = {
             'property_id': 'propertyId',
+            'building_id': 'buildingId',
+            'building__name': 'buildingName',
             'block': 'block',
             'building_details': 'buildingDetails',
             'floor': 'floor',
@@ -28,10 +30,6 @@ class PropertyUtils:
             'created_by__name': 'createdBy.name',
             'created_by__phone_number': 'createdBy.phoneNumber',
             'created_by__email': 'createdBy.email',
-            'assigned_to__user_id': 'assignedTo.userId',
-            'assigned_to__name': 'assignedTo.name',
-            'assigned_to__phone_number': 'assignedTo.phoneNumber',
-            'assigned_to__email': 'assignedTo.email',
             'created_at': 'createdAt',
             'updated_at': 'updatedAt',
             'is_active': 'isActive',

@@ -11,6 +11,8 @@ class UserGetSerializer(serializers.Serializer):
 class PropertyGetSerializer(serializers.Serializer):
     block = serializers.CharField(read_only=True)
     propertyId = serializers.IntegerField(read_only=True)
+    buildingId = serializers.IntegerField(read_only=True, required=False)
+    buildingName = serializers.CharField(read_only=True, required=False)
     buildingDetails = serializers.CharField(read_only=True)
     floor = serializers.CharField(read_only=True)
     flatNumber = serializers.IntegerField(read_only=True)
@@ -25,7 +27,7 @@ class PropertyGetSerializer(serializers.Serializer):
     photos = serializers.ListField(child=serializers.URLField(), read_only=True)
     videos = serializers.ListField(child=serializers.URLField(), read_only=True)
     createdBy = UserGetSerializer(read_only=True)
-    assignedTo = UserGetSerializer(read_only=True)
+    assignedTo = UserGetSerializer(many=True, read_only=True)
     createdAt = serializers.DateTimeField(read_only=True)
     updatedAt = serializers.DateTimeField(read_only=True)
     isActive = serializers.BooleanField(read_only=True)
