@@ -78,6 +78,12 @@ class PropertyView:
             building_data = Building.get(building_id=params.building_id)
             if not building_data:
                 raise ValueError(f"Invalid Building Id: {params.building_id}")
+            building_property_type = building_data.get('property_type')
+            if building_property_type and building_property_type != params.rental_type:
+                raise ValueError(
+                    f"Building '{building_data.get('name')}' only accepts '{building_property_type}' "
+                    f"units, but '{params.rental_type}' was requested."
+                )
 
         def _from_building(key):
             return building_data.get(key) if building_data else None
@@ -127,6 +133,8 @@ class PropertyView:
             property_detail_kwargs = {
                 'property_id': property_id,
                 'building_name': params.property_details.building_name or _from_building('name'),
+                'unit_number': params.property_details.unit_number,
+                'rental_purpose': params.property_details.rental_purpose,
                 'total_floors': params.property_details.total_floors,
                 'carpet_area_sqft': params.property_details.carpet_area_sqft,
                 'builtup_area_sqft': params.property_details.builtup_area_sqft,
@@ -212,6 +220,8 @@ class PropertyView:
                     'water_charge_amount': params.commercial_data.water_charge_amount,
                     'cctv': params.commercial_data.cctv,
                     'super_builtup_area_sqft': params.commercial_data.super_builtup_area_sqft,
+                    'pantry': params.commercial_data.pantry,
+                    'store_room': params.commercial_data.store_room,
                 })
             elif params.rental_type == 'Villa' and params.villa_data:
                 property_detail_kwargs.update({
@@ -292,6 +302,7 @@ class PropertyView:
                     'has_dg_backup': params.warehouse_data.has_dg_backup,
                     'power_load_kw': params.warehouse_data.power_load_kw,
                     'plot_area_sqft': params.warehouse_data.plot_area_sqft,
+                    'loading_area': params.warehouse_data.loading_area,
                 })
 
             PropertyDetail.create(**property_detail_kwargs)
@@ -342,6 +353,21 @@ class PropertyView:
             new_building_data = Building.get(building_id=params.building_id)
             if not new_building_data:
                 raise ValueError(f"Invalid Building Id: {params.building_id}")
+
+        # Enforce the building's property_type lock against whichever building/
+        # rental_type is in effect after this update (either could be unchanged).
+        effective_rental_type = params.rental_type or property_obj.get('rental_type')
+        effective_building_data = new_building_data
+        if effective_building_data is None and property_obj.get('building_id'):
+            from pms_apps.property.models.building import Building
+            effective_building_data = Building.get(building_id=property_obj.get('building_id'))
+        if effective_building_data:
+            building_property_type = effective_building_data.get('property_type')
+            if building_property_type and building_property_type != effective_rental_type:
+                raise ValueError(
+                    f"Building '{effective_building_data.get('name')}' only accepts "
+                    f"'{building_property_type}' units, but '{effective_rental_type}' was requested."
+                )
 
         with transaction.atomic():
             Property.update(
@@ -451,7 +477,7 @@ class PropertyView:
         """Helper to structure detail_dict into categorized fields within property_dict."""
         # Common details
         common_fields = [
-            'property_code', 'building_name', 'total_floors', 'carpet_area_sqft', 'builtup_area_sqft',
+            'property_code', 'building_name', 'unit_number', 'rental_purpose', 'total_floors', 'carpet_area_sqft', 'builtup_area_sqft',
             'monthly_rent', 'security_deposit_amount', 'electricity_charge_type',
             'water_charge_type', 'late_fee_type', 'late_fee_value', 'current_status',
             'landlord_id', 'address_line_1', 'address_line_2', 'area_zone', 'city',
@@ -482,7 +508,8 @@ class PropertyView:
                 'parking_availability', 'commercial_maintenance_charge_type',
                 'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount',
                 'gst_applicable', 'gst_percentage', 'security_deposit_months', 'lease_type',
-                'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business'
+                'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business',
+                'pantry', 'store_room'
             ]
             property_dict['commercialData'] = {self._to_camel_case(k): detail_dict.get(k) for k in commercial_fields if k in detail_dict}
         elif rental_type == 'Villa':

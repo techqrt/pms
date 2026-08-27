@@ -12,6 +12,10 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     # Required when the request has no building_id; otherwise auto-filled from
     # the linked Building (see PropertyCreateSerializer.validate).
     building_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    unit_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    rental_purpose = serializers.ChoiceField(
+        choices=["Residential", "Commercial"], required=False, allow_null=True
+    )
     total_floors = serializers.IntegerField(required=False, allow_null=True)
     carpet_area_sqft = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
@@ -122,6 +126,8 @@ class CommercialPropertySerializer(serializers.Serializer):
     super_builtup_area_sqft = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    pantry = serializers.BooleanField(required=False, allow_null=True, default=False)
+    store_room = serializers.BooleanField(required=False, allow_null=True, default=False)
 
 
 class FlatPropertySerializer(serializers.Serializer):
@@ -299,6 +305,9 @@ class WarehousePropertySerializer(serializers.Serializer):
     )
     security_deposit_type = serializers.ChoiceField(
         choices=["Months", "Amount"], required=False, allow_null=True
+    )
+    loading_area = serializers.ChoiceField(
+        choices=["Warehouse", "Godown"], required=False, allow_null=True
     )
 
 

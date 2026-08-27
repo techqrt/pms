@@ -6,6 +6,8 @@ from decimal import Decimal
 @dataclass
 class PropertyDetailUpdateData:
     building_name: Optional[str] = None
+    unit_number: Optional[str] = None
+    rental_purpose: Optional[str] = None
     total_floors: Optional[int] = None
     carpet_area_sqft: Optional[Decimal] = None
     builtup_area_sqft: Optional[Decimal] = None
@@ -61,6 +63,8 @@ class CommercialPropertyUpdateData:
     lock_in_period_months: Optional[int] = None
     allowed_business: Optional[str] = None
     prohibited_business: Optional[str] = None
+    pantry: Optional[bool] = None
+    store_room: Optional[bool] = None
 
 @dataclass
 class FlatPropertyUpdateData:

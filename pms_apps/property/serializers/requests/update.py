@@ -12,6 +12,10 @@ from pms_apps.property.serializers.fields import Base64ImageField
 class PropertyDetailUpdateSerializer(serializers.Serializer):
     """Serializer for updating common property detail fields"""
     building_name = serializers.CharField(required=False, allow_null=True)
+    unit_number = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    rental_purpose = serializers.ChoiceField(
+        choices=["Residential", "Commercial"], required=False, allow_null=True
+    )
     total_floors = serializers.IntegerField(required=False, allow_null=True)
     carpet_area_sqft = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     builtup_area_sqft = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
@@ -111,6 +115,8 @@ class CommercialPropertyUpdateSerializer(serializers.Serializer):
     lock_in_period_months = serializers.IntegerField(required=False, allow_null=True)
     allowed_business = serializers.CharField(required=False, allow_null=True)
     prohibited_business = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    pantry = serializers.BooleanField(required=False, allow_null=True)
+    store_room = serializers.BooleanField(required=False, allow_null=True)
 
 
 class FlatPropertyUpdateSerializer(serializers.Serializer):
