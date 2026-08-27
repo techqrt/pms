@@ -24,6 +24,11 @@ class PropertyDetail(models.Model):
         ("Under Maintenance", "Under Maintenance"),
     ]
 
+    RENTAL_PURPOSE_CHOICES = [
+        ("Residential", "Residential"),
+        ("Commercial", "Commercial"),
+    ]
+
     property_detail_id = models.AutoField(primary_key=True)
     property = models.ForeignKey("property.Property", on_delete=models.CASCADE)
     property_code = models.UUIDField(
@@ -33,6 +38,10 @@ class PropertyDetail(models.Model):
     )
 
     building_name = models.CharField(max_length=150)
+    unit_number = models.CharField(max_length=100, null=True, blank=True)
+    rental_purpose = models.CharField(
+        max_length=20, choices=RENTAL_PURPOSE_CHOICES, null=True, blank=True
+    )
     total_floors = models.PositiveIntegerField(null=True, blank=True)
     year_of_construction = models.PositiveIntegerField(null=True, blank=True)
 
@@ -712,6 +721,8 @@ class PropertyDetail(models.Model):
         state: str,
         country: str,
         pincode: str,
+        unit_number: str = None,
+        rental_purpose: str = None,
         total_floors: int = None,
         carpet_area_sqft: float = None,
         builtup_area_sqft: float = None,
@@ -867,6 +878,8 @@ class PropertyDetail(models.Model):
         property_detail = PropertyDetail(
             property=property_obj,
             building_name=building_name,
+            unit_number=unit_number,
+            rental_purpose=rental_purpose,
             total_floors=total_floors,
             year_of_construction=year_of_construction,
             carpet_area_sqft=carpet_area_sqft,

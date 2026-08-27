@@ -18,6 +18,8 @@ class PropertyCommonData:
     # Required when building_id is not supplied at the top level; otherwise
     # auto-populated from the linked Building (see PropertyCreateSerializer.validate).
     building_name: str | None = None
+    unit_number: str | None = None
+    rental_purpose: str | None = None
     address_line_1: str | None = None
     area_zone: str | None = None
     city: str | None = None
@@ -70,6 +72,8 @@ class CommercialPropertyData:
     prohibited_business: str | None = None
     cctv: bool | None = None
     super_builtup_area_sqft: Decimal | None = None
+    pantry: bool | None = None
+    store_room: bool | None = None
 
 
 @dataclass
@@ -179,6 +183,7 @@ class WarehousePropertyData:
     security_deposit_months: int | None = None
     security_deposit_amount: Decimal | None = None
     security_deposit_type: str | None = None
+    loading_area: str | None = None
 
 
 @dataclass
