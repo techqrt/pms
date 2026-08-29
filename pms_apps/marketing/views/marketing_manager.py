@@ -85,6 +85,14 @@ class MarketingManagerView:
                 if user_update_data:
                     User.objects.filter(user_id=params.manager_id).update(**user_update_data)
 
+            # Change password if old_password and new_password were provided
+            if params.old_password and params.new_password:
+                user = User.objects.get(user_id=params.manager_id)
+                if not user.check_password(params.old_password):
+                    raise ValueError("Old password is incorrect")
+                user.set_password(params.new_password)
+                user.save()
+
             # Process profile picture if provided
             profile_picture_obj = None
             if params.profile_picture is not None:
