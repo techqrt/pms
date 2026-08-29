@@ -64,6 +64,7 @@ class BuildingGetSerializer(serializers.Serializer):
     pincode = serializers.CharField(read_only=True)
     googleMapLocation = serializers.CharField(read_only=True)
     internalNotes = serializers.CharField(read_only=True)
+    photos = serializers.ListField(child=serializers.URLField(), read_only=True)
     createdBy = BuildingUserSerializer(read_only=True)
     createdAt = serializers.DateTimeField(read_only=True)
     updatedAt = serializers.DateTimeField(read_only=True)

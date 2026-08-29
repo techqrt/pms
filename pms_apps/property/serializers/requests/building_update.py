@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from pms_apps.property.dataclasses.requests.building_update import BuildingUpdateRequest
+from pms_apps.property.serializers.fields import Base64ImageField
 
 
 class BuildingUpdateSerializer(serializers.Serializer):
@@ -96,6 +97,10 @@ class BuildingUpdateSerializer(serializers.Serializer):
     pincode = serializers.CharField(max_length=10, required=False, allow_null=True, allow_blank=True)
     google_map_location = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+    photos = serializers.ListField(
+        child=Base64ImageField(), required=False, allow_null=True
+    )
 
     def create(self, validated_data) -> BuildingUpdateRequest:
         return BuildingUpdateRequest(**validated_data)

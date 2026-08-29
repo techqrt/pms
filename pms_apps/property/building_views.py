@@ -160,6 +160,25 @@ class BuildingView:
                 created_by=params.user_id,
             )
 
+            if params.photos:
+                from pms_apps.property.models.building_photos import BuildingPhotos
+                from pms_apps.property.image_utils import ImageUtils
+
+                for photo_data in params.photos:
+                    processed_photo = ImageUtils.process_photo(photo_data, upload_path="building_photos/")
+                    if processed_photo:
+                        if isinstance(processed_photo, tuple) and processed_photo[0] == 'url':
+                            photo_obj = BuildingPhotos.objects.create(building_id=building_id)
+                            photo_obj.photo = processed_photo[1]
+                            photo_obj.save()
+                        else:
+                            photo_obj = BuildingPhotos.objects.create(building_id=building_id)
+                            photo_obj.photo.save(
+                                processed_photo.name,
+                                processed_photo,
+                                save=True
+                            )
+
         return Response(
             status=status.HTTP_201_CREATED,
             data=Utils.success_response_data(message=self.data_create, data={'building_id': building_id})
@@ -243,6 +262,49 @@ class BuildingView:
                 internal_notes=params.internal_notes,
             )
 
+            if params.photos is not None:
+                from pms_apps.property.models.building_photos import BuildingPhotos
+                from pms_apps.property.image_utils import ImageUtils
+
+                # `photos` is the full desired photo list: existing photos are represented
+                # by the URLs the GET endpoint returns, new uploads by base64 strings. Any
+                # existing photo whose URL is missing from this list was removed by the
+                # client and must be deleted (file + row), not just left orphaned.
+                existing_photos = list(BuildingPhotos.objects.filter(building_id=params.building_id))
+                existing_by_url = {}
+                for photo_obj in existing_photos:
+                    if not photo_obj.photo:
+                        continue
+                    photo_str = str(photo_obj.photo)
+                    url = photo_str if photo_str.startswith(('http://', 'https://')) else ImageUtils.get_photo_url(photo_str)
+                    if url:
+                        existing_by_url[url] = photo_obj
+
+                submitted_set = set(params.photos)
+
+                for url, photo_obj in existing_by_url.items():
+                    if url not in submitted_set:
+                        photo_obj.photo.delete(save=False)
+                        photo_obj.delete()
+
+                for photo_data in params.photos:
+                    if photo_data in existing_by_url:
+                        continue
+
+                    processed_photo = ImageUtils.process_photo(photo_data, upload_path="building_photos/")
+                    if processed_photo:
+                        if isinstance(processed_photo, tuple) and processed_photo[0] == 'url':
+                            photo_obj = BuildingPhotos.objects.create(building_id=params.building_id)
+                            photo_obj.photo = processed_photo[1]
+                            photo_obj.save()
+                        else:
+                            photo_obj = BuildingPhotos.objects.create(building_id=params.building_id)
+                            photo_obj.photo.save(
+                                processed_photo.name,
+                                processed_photo,
+                                save=True
+                            )
+
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_update, data={'building_id': params.building_id})
@@ -254,9 +316,26 @@ class BuildingView:
         if not building_data:
             raise ValueError(self.data_no_match)
 
+        from pms_apps.property.models.building_photos import BuildingPhotos
+        from pms_apps.property.image_utils import ImageUtils
+
+        photos_urls = []
+        for photo in BuildingPhotos.objects.filter(building_id=params.building_id, is_active=True):
+            if photo.photo:
+                photo_str = str(photo.photo)
+                if photo_str.startswith(('http://', 'https://')):
+                    photos_urls.append(photo_str)
+                else:
+                    url = ImageUtils.get_photo_url(photo_str)
+                    if url:
+                        photos_urls.append(url)
+
+        response_data = _building_to_camel_case(building_data)
+        response_data['photos'] = photos_urls
+
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message=self.data_get, data=_building_to_camel_case(building_data))
+            data=Utils.success_response_data(message=self.data_get, data=response_data)
         )
 
     @Common(response_handler=BuildingResponseGetAllSerializer).exception_handler
@@ -270,6 +349,25 @@ class BuildingView:
 
         page_data = pages.page(params.page_num) if pages.num_pages else []
         serialized = [_building_to_camel_case(row) for row in page_data]
+
+        from pms_apps.property.models.building_photos import BuildingPhotos
+        from pms_apps.property.image_utils import ImageUtils
+        from collections import defaultdict
+
+        building_ids = [row.get('buildingId') for row in serialized]
+        photos_map = defaultdict(list)
+        for photo in BuildingPhotos.objects.filter(building_id__in=building_ids, is_active=True):
+            if photo.photo:
+                photo_str = str(photo.photo)
+                if photo_str.startswith(('http://', 'https://')):
+                    photos_map[photo.building_id].append(photo_str)
+                else:
+                    url = ImageUtils.get_photo_url(photo_str)
+                    if url:
+                        photos_map[photo.building_id].append(url)
+
+        for row in serialized:
+            row['photos'] = photos_map.get(row.get('buildingId'), [])
 
         return Response(
             status=status.HTTP_200_OK,

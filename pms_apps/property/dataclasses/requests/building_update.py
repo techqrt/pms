@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 
 @dataclass
@@ -61,4 +61,5 @@ class BuildingUpdateRequest:
     pincode: Optional[str] = None
     google_map_location: Optional[str] = None
     internal_notes: Optional[str] = None
+    photos: Optional[List[str]] = None
     user_id: Optional[int] = None
