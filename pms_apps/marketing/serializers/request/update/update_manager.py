@@ -16,6 +16,17 @@ class MarketingManagerUpdateRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
     profile_picture = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     permissions = MarketingPermissionRequestSerializer(required=False)
+    old_password = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
+    new_password = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
+
+    def validate(self, attrs):
+        old_password = attrs.get('old_password')
+        new_password = attrs.get('new_password')
+        if bool(old_password) != bool(new_password):
+            raise serializers.ValidationError(
+                "Both old_password and new_password are required to change the password"
+            )
+        return attrs
 
     def create(self, validated_data) -> MarketingManagerUpdateRequest:
         if 'permissions' in validated_data and validated_data['permissions']:
