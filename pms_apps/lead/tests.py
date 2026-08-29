@@ -1,5 +1,8 @@
 from django.test import TestCase
+from rest_framework.test import APIClient
 
+from pms_apps.authentication.models import User
+from pms_apps.lead.models.lead import Lead
 from pms_apps.lead.serilizers.request.create import LeadCreateRequestSerilizer
 
 
@@ -100,3 +103,42 @@ class LeadCreateRequestSerilizerTests(TestCase):
         self.assertIsNone(request.address)
         self.assertIsNone(request.country_id)
         self.assertIsNone(request.city_id)
+
+
+class LeadCreateEndpointTests(TestCase):
+    """End-to-end smoke test hitting POST /lead/create/ through the real
+    view/controller stack, not just the serializer in isolation."""
+
+    def setUp(self):
+        self.client = APIClient(HTTP_USER_AGENT="pytest")
+        self.auth_user = User.objects.create(name="Auth User", phone_number="0000000000")
+        self.client.force_authenticate(user=self.auth_user)
+
+    def minimal_payload(self):
+        return {
+            "first_name": "John",
+            "last_name": "Doe",
+            "phone_number": "1234567890",
+            "purpose": "Tenant",
+            "lead_category": "Bachelor",
+        }
+
+    def test_create_lead_with_only_mandatory_fields_returns_201(self):
+        response = self.client.post("/lead/create/", data=self.minimal_payload(), format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+
+        lead = Lead.objects.get(first_name="John", last_name="Doe")
+        self.assertEqual(lead.purpose, "Tenant")
+        self.assertEqual(lead.lead_category, "Bachelor")
+        self.assertIsNone(lead.lead_origin)
+        self.assertIsNone(lead.nationality_id)
+        self.assertIsNone(lead.passport_or_id)
+        self.assertIsNone(lead.civil_id)
+        self.assertIsNone(lead.po_box)
+        self.assertIsNone(lead.feedback)
+
+    def test_create_lead_missing_mandatory_field_returns_400(self):
+        payload = self.minimal_payload()
+        del payload["first_name"]
+        response = self.client.post("/lead/create/", data=payload, format="json")
+        self.assertEqual(response.status_code, 400)

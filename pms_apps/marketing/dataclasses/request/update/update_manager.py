@@ -17,3 +17,5 @@ class MarketingManagerUpdateRequest:
     email: str | None = None
     profile_picture: str | None = None
     permissions: MarketingPermissionUpdateRequest | None = None
+    old_password: str | None = None
+    new_password: str | None = None
