@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 
 
 @dataclass
@@ -59,4 +60,5 @@ class BuildingCreateRequest:
     address_line_2: str | None = None
     google_map_location: str | None = None
     internal_notes: str | None = None
+    photos: List[str] = field(default_factory=list)
     user_id: int | None = None
