@@ -68,6 +68,12 @@ class PropertyCommonDataSerializer(serializers.Serializer):
     )
     payment_due_date = serializers.DateField(required=False, allow_null=True)
     rent_increase_date = serializers.DateField(required=False, allow_null=True)
+    facing = serializers.ChoiceField(
+        choices=["East", "West", "North", "South"], required=False, allow_null=True
+    )
+    kitchen_type = serializers.ChoiceField(
+        choices=["Open", "Closed"], required=False, allow_null=True
+    )
 
 
 class CommercialPropertySerializer(serializers.Serializer):
@@ -128,6 +134,19 @@ class CommercialPropertySerializer(serializers.Serializer):
     )
     pantry = serializers.BooleanField(required=False, allow_null=True, default=False)
     store_room = serializers.BooleanField(required=False, allow_null=True, default=False)
+    carpet_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    facing = serializers.ChoiceField(
+        choices=["East", "West", "North", "South"], required=False, allow_null=True
+    )
+    kitchen_type = serializers.ChoiceField(
+        choices=["Open", "Closed"], required=False, allow_null=True
+    )
+    internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class FlatPropertySerializer(serializers.Serializer):
@@ -169,6 +188,13 @@ class FlatPropertySerializer(serializers.Serializer):
     water_charge_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    carpet_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class VillaPropertySerializer(serializers.Serializer):
@@ -242,6 +268,13 @@ class VillaPropertySerializer(serializers.Serializer):
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
     pantry = serializers.BooleanField(required=False, allow_null=True, default=False)
+    carpet_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class WarehousePropertySerializer(serializers.Serializer):
@@ -309,6 +342,19 @@ class WarehousePropertySerializer(serializers.Serializer):
     loading_area = serializers.ChoiceField(
         choices=["Warehouse", "Godown"], required=False, allow_null=True
     )
+    carpet_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    builtup_area_sqft = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    facing = serializers.ChoiceField(
+        choices=["East", "West", "North", "South"], required=False, allow_null=True
+    )
+    kitchen_type = serializers.ChoiceField(
+        choices=["Open", "Closed"], required=False, allow_null=True
+    )
+    internal_notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class PropertyCreateSerializer(serializers.Serializer):

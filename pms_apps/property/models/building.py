@@ -287,7 +287,7 @@ class Building(models.Model):
         self.area_zone = area_zone
         self.city = city
         self.state = state
-        self.country = country
+        self.country = country.strip().title() if country else country
         self.pincode = pincode
         self.google_map_location = google_map_location
         self.internal_notes = internal_notes
@@ -466,7 +466,7 @@ class Building(models.Model):
         if state is not None:
             building.state = state
         if country is not None:
-            building.country = country
+            building.country = country.strip().title()
         if pincode is not None:
             building.pincode = pincode
         if google_map_location is not None:

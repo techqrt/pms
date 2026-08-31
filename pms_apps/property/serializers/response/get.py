@@ -8,6 +8,13 @@ class UserGetSerializer(serializers.Serializer):
     email = serializers.EmailField(read_only=True)
 
 
+class LandlordGetSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    phoneNumber = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+
+
 class PropertyGetSerializer(serializers.Serializer):
     block = serializers.CharField(read_only=True)
     propertyId = serializers.IntegerField(read_only=True)
@@ -28,6 +35,7 @@ class PropertyGetSerializer(serializers.Serializer):
     videos = serializers.ListField(child=serializers.URLField(), read_only=True)
     createdBy = UserGetSerializer(read_only=True)
     assignedTo = UserGetSerializer(many=True, read_only=True)
+    landlord = LandlordGetSerializer(read_only=True, required=False, allow_null=True)
     createdAt = serializers.DateTimeField(read_only=True)
     updatedAt = serializers.DateTimeField(read_only=True)
     isActive = serializers.BooleanField(read_only=True)
@@ -37,6 +45,7 @@ class PropertyGetSerializer(serializers.Serializer):
     commercialData = serializers.DictField(read_only=True)
     flatData = serializers.DictField(read_only=True)
     villaData = serializers.DictField(read_only=True)
+    warehouseData = serializers.DictField(read_only=True)
 
 
 class PropertyResponseGetSerializer(serializers.Serializer):
