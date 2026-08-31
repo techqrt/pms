@@ -900,7 +900,7 @@ class PropertyDetail(models.Model):
             area_zone=area_zone,
             city=city,
             state=state,
-            country=country,
+            country=country.strip().title() if country else country,
             pincode=pincode,
             google_map_location=google_map_location,
             internal_notes=internal_notes,
@@ -1042,6 +1042,26 @@ class PropertyDetail(models.Model):
         )
 
     @staticmethod
+    def get_landlords_map(property_ids: list) -> dict:
+        """Bulk-fetch basic landlord details per property_id, keyed as {property_id: landlord_dict}."""
+        rows = PropertyDetail.objects.filter(property_id__in=property_ids).values(
+            'property_id', 'landlord_id', 'landlord__first_name', 'landlord__last_name',
+            'landlord__lead_id__phone_number', 'landlord__lead_id__email',
+        )
+        result = {}
+        for row in rows:
+            if not row['landlord_id']:
+                continue
+            name = f"{row.get('landlord__first_name') or ''} {row.get('landlord__last_name') or ''}".strip() or None
+            result[row['property_id']] = {
+                'id': row['landlord_id'],
+                'name': name,
+                'phoneNumber': row.get('landlord__lead_id__phone_number'),
+                'email': row.get('landlord__lead_id__email'),
+            }
+        return result
+
+    @staticmethod
     def update(
         property_id: int,
         **kwargs
@@ -1054,6 +1074,8 @@ class PropertyDetail(models.Model):
             if value is not None:
                 if key == 'allowed_tenant_types' and not isinstance(value, list):
                     continue # Should be a list
+                if key == 'country' and isinstance(value, str):
+                    value = value.strip().title()
                 setattr(property_detail, key, value)
         
         property_detail.save()

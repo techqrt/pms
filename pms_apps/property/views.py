@@ -88,6 +88,15 @@ class PropertyView:
         def _from_building(key):
             return building_data.get(key) if building_data else None
 
+        def _from_type_data(key):
+            type_data = {
+                'Commercial': params.commercial_data,
+                'Flat': params.flat_data,
+                'Villa': params.villa_data,
+                'Warehouse': params.warehouse_data,
+            }.get(params.rental_type)
+            return getattr(type_data, key, None) if type_data else None
+
         # Mirror nested data to root Property fields for cleaner visibility
         block = params.block or params.property_details.address_line_2
         building_details = params.building_details or params.property_details.building_name or _from_building('name')
@@ -135,9 +144,9 @@ class PropertyView:
                 'building_name': params.property_details.building_name or _from_building('name'),
                 'unit_number': params.property_details.unit_number,
                 'rental_purpose': params.property_details.rental_purpose,
-                'total_floors': params.property_details.total_floors,
-                'carpet_area_sqft': params.property_details.carpet_area_sqft,
-                'builtup_area_sqft': params.property_details.builtup_area_sqft,
+                'total_floors': params.property_details.total_floors or _from_building('total_floors'),
+                'carpet_area_sqft': params.property_details.carpet_area_sqft or _from_type_data('carpet_area_sqft'),
+                'builtup_area_sqft': params.property_details.builtup_area_sqft or _from_type_data('builtup_area_sqft'),
                 'monthly_rent': params.property_details.monthly_rent,
                 'security_deposit_amount': params.property_details.security_deposit_amount,
                 'electricity_charge_type': params.property_details.electricity_charge_type or None,
@@ -154,12 +163,12 @@ class PropertyView:
                 'country': params.property_details.country or _from_building('country'),
                 'pincode': params.property_details.pincode or _from_building('pincode'),
                 'google_map_location': params.property_details.google_map_location or _from_building('google_map_location'),
-                'year_of_construction': params.property_details.year_of_construction,
+                'year_of_construction': params.property_details.year_of_construction or _from_building('year_of_construction'),
                 'other_charges': params.property_details.other_charges,
                 'available_from': params.property_details.available_from,
                 'current_tenant_id': params.property_details.current_tenant_id,
                 'address_line_2': params.property_details.address_line_2,
-                'internal_notes': params.property_details.internal_notes,
+                'internal_notes': params.property_details.internal_notes or _from_type_data('internal_notes'),
                 'furnishing_status': params.property_details.furnishing_status,
                 'payment_due_date': params.property_details.payment_due_date,
                 'rent_increase_date': params.property_details.rent_increase_date,
@@ -170,11 +179,11 @@ class PropertyView:
                 property_detail_kwargs.update({
                     'flat_number': params.flat_data.flat_number,
                     'floor_number': params.flat_data.floor_number,
-                    'building_block': params.flat_data.building_block,
+                    'building_block': params.flat_data.building_block or _from_building('block'),
                     'flat_configuration': params.flat_data.flat_configuration,
                     'no_of_bathrooms': params.flat_data.no_of_bathrooms,
-                    'kitchen_type': params.flat_data.kitchen_type,
-                    'facing': params.flat_data.facing,
+                    'kitchen_type': params.flat_data.kitchen_type or params.property_details.kitchen_type,
+                    'facing': params.flat_data.facing or params.property_details.facing,
                     'balcony': params.flat_data.balcony,
                     'parking': params.flat_data.parking,
                     'lift': params.flat_data.lift,
@@ -222,6 +231,8 @@ class PropertyView:
                     'super_builtup_area_sqft': params.commercial_data.super_builtup_area_sqft,
                     'pantry': params.commercial_data.pantry,
                     'store_room': params.commercial_data.store_room,
+                    'facing': params.commercial_data.facing or params.property_details.facing,
+                    'kitchen_type': params.commercial_data.kitchen_type or params.property_details.kitchen_type,
                 })
             elif params.rental_type == 'Villa' and params.villa_data:
                 property_detail_kwargs.update({
@@ -259,8 +270,8 @@ class PropertyView:
                     'maintenance_charge_amount': params.villa_data.maintenance_charge_amount,
                     'electricity_charge_amount': params.villa_data.electricity_charge_amount,
                     'water_charge_amount': params.villa_data.water_charge_amount,
-                    'facing': params.villa_data.facing,
-                    'kitchen_type': params.villa_data.kitchen_type,
+                    'facing': params.villa_data.facing or params.property_details.facing,
+                    'kitchen_type': params.villa_data.kitchen_type or params.property_details.kitchen_type,
                     'swimming_pool': params.villa_data.swimming_pool,
                     'unit': params.villa_data.unit,
                     'super_builtup_area_sqft': params.villa_data.super_builtup_area_sqft,
@@ -303,6 +314,8 @@ class PropertyView:
                     'power_load_kw': params.warehouse_data.power_load_kw,
                     'plot_area_sqft': params.warehouse_data.plot_area_sqft,
                     'loading_area': params.warehouse_data.loading_area,
+                    'facing': params.warehouse_data.facing or params.property_details.facing,
+                    'kitchen_type': params.warehouse_data.kitchen_type or params.property_details.kitchen_type,
                 })
 
             PropertyDetail.create(**property_detail_kwargs)
@@ -509,7 +522,7 @@ class PropertyView:
                 'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount',
                 'gst_applicable', 'gst_percentage', 'security_deposit_months', 'lease_type',
                 'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business',
-                'pantry', 'store_room'
+                'pantry', 'store_room', 'facing', 'kitchen_type'
             ]
             property_dict['commercialData'] = {self._to_camel_case(k): detail_dict.get(k) for k in commercial_fields if k in detail_dict}
         elif rental_type == 'Villa':
@@ -522,9 +535,24 @@ class PropertyView:
                 'security_guard', 'clubhouse_access', 'gym', 'childrens_play_area',
                 'internal_roads', 'street_lights', 'gated_community', 'bachelor_allowed',
                 'pets_allowed', 'power_backup', 'cctv', 'allowed_tenant_types', 'store_room',
-                'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount'
+                'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount',
+                'facing', 'kitchen_type', 'swimming_pool', 'unit', 'super_builtup_area_sqft', 'pantry'
             ]
             property_dict['villaData'] = {self._to_camel_case(k): detail_dict.get(k) for k in villa_fields if k in detail_dict}
+        elif rental_type == 'Warehouse':
+            warehouse_fields = [
+                'warehouse_category', 'warehouse_name', 'industrial_estate_name', 'plot_shed_number',
+                'ownership_type', 'clear_height_ft', 'no_of_bays', 'no_of_loading_docks', 'dock_height_ft',
+                'floor_load_capacity_mt_sqft', 'column_spacing_ft', 'has_mezzanine_floor',
+                'office_space_area_sqft', 'has_transformer', 'water_supply_source', 'has_drainage_system',
+                'has_internet_fiber', 'entry_gate_width_ft', 'road_width_ft', 'truck_parking_capacity',
+                'container_access', 'turning_radius', 'has_weighbridge_nearby', 'monthly_rent_type',
+                'rent_escalation_percentage', 'lock_in_period_months', 'allowed_industry_types',
+                'maintenance_charges', 'cam_charges', 'security_deposit_type', 'security_deposit_months',
+                'has_dg_backup', 'power_load_kw', 'plot_area_sqft', 'loading_area',
+                'facing', 'kitchen_type'
+            ]
+            property_dict['warehouseData'] = {self._to_camel_case(k): detail_dict.get(k) for k in warehouse_fields if k in detail_dict}
 
     @Common(response_handler=PropertyResponseGetSerializer).exception_handler
     def get_extract(self, params: PropertyGetRequest):
@@ -581,6 +609,7 @@ class PropertyView:
                     photos_urls.append(ImageUtils.get_photo_url(str(photo.photo)))
         property_dict['photos'] = photos_urls
         property_dict['assignedTo'] = Property.get_assignees_map([params.property_id]).get(params.property_id, [])
+        property_dict['landlord'] = PropertyDetail.get_landlords_map([params.property_id]).get(params.property_id)
 
         return Response(
             status=status.HTTP_200_OK,
@@ -643,6 +672,7 @@ class PropertyView:
                         photos_map[photo.property_id].append(photo_url)
 
         assignees_map = Property.get_assignees_map(property_ids)
+        landlords_map = PropertyDetail.get_landlords_map(property_ids)
 
         for property_dict in serialized_properties:
             pid = property_dict.get('propertyId')
@@ -653,6 +683,8 @@ class PropertyView:
             property_dict['photos'] = photos_map.get(pid, [])
             # Add assigned users
             property_dict['assignedTo'] = assignees_map.get(pid, [])
+            # Add landlord
+            property_dict['landlord'] = landlords_map.get(pid)
 
         final_data = Utils.add_page_parameter(
             final_data=serialized_properties,

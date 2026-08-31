@@ -41,6 +41,8 @@ class PropertyCommonData:
     furnishing_status: str | None = None
     payment_due_date: date | None = None
     rent_increase_date: date | None = None
+    facing: str | None = None
+    kitchen_type: str | None = None
 
 
 @dataclass
@@ -74,6 +76,11 @@ class CommercialPropertyData:
     super_builtup_area_sqft: Decimal | None = None
     pantry: bool | None = None
     store_room: bool | None = None
+    carpet_area_sqft: Decimal | None = None
+    builtup_area_sqft: Decimal | None = None
+    facing: str | None = None
+    kitchen_type: str | None = None
+    internal_notes: str | None = None
 
 
 @dataclass
@@ -100,6 +107,9 @@ class FlatPropertyData:
     maintenance_charge_amount: Decimal | None = None
     electricity_charge_amount: Decimal | None = None
     water_charge_amount: Decimal | None = None
+    carpet_area_sqft: Decimal | None = None
+    builtup_area_sqft: Decimal | None = None
+    internal_notes: str | None = None
 
 
 @dataclass
@@ -144,6 +154,9 @@ class VillaPropertyData:
     unit: str | None = None
     super_builtup_area_sqft: Decimal | None = None
     pantry: bool | None = None
+    carpet_area_sqft: Decimal | None = None
+    builtup_area_sqft: Decimal | None = None
+    internal_notes: str | None = None
 
 
 @dataclass
@@ -184,6 +197,11 @@ class WarehousePropertyData:
     security_deposit_amount: Decimal | None = None
     security_deposit_type: str | None = None
     loading_area: str | None = None
+    carpet_area_sqft: Decimal | None = None
+    builtup_area_sqft: Decimal | None = None
+    facing: str | None = None
+    kitchen_type: str | None = None
+    internal_notes: str | None = None
 
 
 @dataclass
