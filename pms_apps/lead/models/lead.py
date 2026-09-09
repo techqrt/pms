@@ -401,14 +401,17 @@ class Lead(models.Model):
         filter_value : str = '',
         search_key : str = '',
         ) -> list:
-        data = Lead.objects.filter(lead_assign_to__user_id=manager_user_id)
+        """`manager_user_id` may be a single user_id or an iterable of user_ids
+        (e.g. a Manager plus every Employee assigned to them) - leads assigned
+        to any of them are returned."""
+        assigned_to_ids = manager_user_id if isinstance(manager_user_id, (list, set, tuple)) else [manager_user_id]
+        data = Lead.objects.filter(lead_assign_to__user_id__in=assigned_to_ids)
         if filter_key and filter_value:
-            data = Lead.objects.filter(lead_assign_to__user_id=manager_user_id, **{filter_key:filter_value})
+            data = data.filter(**{filter_key:filter_value})
         if search_key:
-            data = Lead.objects.filter(
+            data = data.filter(
                 Q(first_name__icontains = search_key) |
-                Q(last_name__icontains = search_key),
-                lead_assign_to__user_id=manager_user_id
+                Q(last_name__icontains = search_key)
             )
         if sort_by:
             data = data.order_by(('-' if sort_order == 'desc' else '') + sort_by)

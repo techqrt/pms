@@ -98,13 +98,21 @@ class ITTechnicianView:
             params.filter_key
         ])
 
-        pages = Paginator(ITTechnician.get_all(
+        technician_list = ITTechnician.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
             search_key=params.search_key
-        ), per_page=params.limit)
+        )
+
+        # A Technician (there's no Manager link for this role) only ever
+        # sees their own record; any other authenticated role keeps the
+        # existing unrestricted view.
+        if ITTechnician.objects.filter(technician_id=params.user_id).exists():
+            technician_list = [row for row in technician_list if row.get('technician_id') == params.user_id]
+
+        pages = Paginator(technician_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
             raise ValueError('Page limit exceed!')

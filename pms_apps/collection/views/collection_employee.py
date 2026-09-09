@@ -100,6 +100,8 @@ class CollectionEmployeeView:
 
     @Common(response_handler=CollectionEmployeeResponseGetAllSerializer).exception_handler
     def get_all_employee_extract(self, params: GetAll):
+        from pms_apps.collection.models.collection_manager import CollectionManager
+
         reversed_mapped = CollectionUtils.reverse_mapper([
             params.sort_by,
             params.filter_key
@@ -109,13 +111,22 @@ class CollectionEmployeeView:
         filter_key_db = reversed_mapped.get(
             params.filter_key) or params.filter_key
 
-        pages = Paginator(CollectionEmployee.get_all(
+        employee_list = CollectionEmployee.get_all(
             sort_by=sort_by_db,
             sort_order=params.sort_order,
             filter_key=filter_key_db,
             filter_value=params.filter_value,
             search_key=params.search_key
-        ), per_page=params.limit)
+        )
+
+        # A Manager sees only their own team; an Employee sees only themself;
+        # any other authenticated role keeps the existing unrestricted view.
+        if CollectionManager.objects.filter(manager_id=params.user_id).exists():
+            employee_list = [row for row in employee_list if row.get('manager_ref_id') == params.user_id]
+        elif CollectionEmployee.objects.filter(employee_id=params.user_id).exists():
+            employee_list = [row for row in employee_list if row.get('employee_id') == params.user_id]
+
+        pages = Paginator(employee_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
             raise ValueError('Page limit exceed!')

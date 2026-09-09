@@ -3,7 +3,86 @@ from rest_framework.test import APIClient
 
 from pms_apps.authentication.models import User
 from pms_apps.marketing.models.marketing_manager import MarketingManager
+from pms_apps.marketing.models.marketing_employee import MarketingEmployee
 from pms_apps.common.models.permissions import LeadPermission, PropertyPermission
+
+
+class MarketingManagerGetAllScopingTests(TestCase):
+    """Issue 3: manager/get_all/ must return the authenticated Manager's own
+    data plus their Employees' data, and never another Manager's team.
+    Issue 4: an Employee hitting this endpoint must only see their own
+    Manager, never another team."""
+
+    def setUp(self):
+        lead_permission_id = LeadPermission().create(lead=True)
+        property_permission_id = PropertyPermission().create(property=True)
+
+        self.manager_user = User.objects.create(
+            name="Manager One", phone_number="1200000001", department="Marketing", role="Manager"
+        )
+        MarketingManager().create(
+            manager_id=self.manager_user.user_id, name="Manager One", dob=None, department="Marketing",
+            campaigns_led=0, team_size=0,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+        self.employee_user = User.objects.create(
+            name="Employee One", phone_number="1200000002", department="Marketing", role="Employee"
+        )
+        MarketingEmployee().create(
+            employee_id=self.employee_user.user_id, name="Employee One", dob=None,
+            designation="", department="Marketing", campaigns_assigned=0, leads_generated=0,
+            manager_ref=self.manager_user.user_id,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+        self.other_manager_user = User.objects.create(
+            name="Manager Two", phone_number="1200000003", department="Marketing", role="Manager"
+        )
+        MarketingManager().create(
+            manager_id=self.other_manager_user.user_id, name="Manager Two", dob=None, department="Marketing",
+            campaigns_led=0, team_size=0,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+        self.other_employee_user = User.objects.create(
+            name="Employee Two", phone_number="1200000004", department="Marketing", role="Employee"
+        )
+        MarketingEmployee().create(
+            employee_id=self.other_employee_user.user_id, name="Employee Two", dob=None,
+            designation="", department="Marketing", campaigns_assigned=0, leads_generated=0,
+            manager_ref=self.other_manager_user.user_id,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+    def _client_for(self, user):
+        client = APIClient(HTTP_USER_AGENT="pytest")
+        client.force_authenticate(user=user)
+        return client
+
+    def test_manager_get_all_returns_own_data_and_own_employees_only(self):
+        response = self._client_for(self.manager_user).get("/marketing/manager/get_all/")
+        self.assertEqual(response.status_code, 200, response.data)
+        rows = response.data["data"]["data"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["managerId"], self.manager_user.user_id)
+
+        employee_ids = [e["employeeId"] for e in rows[0]["employees"]]
+        self.assertEqual(employee_ids, [self.employee_user.user_id])
+
+    def test_manager_get_all_excludes_other_managers(self):
+        response = self._client_for(self.manager_user).get("/marketing/manager/get_all/")
+        self.assertEqual(response.status_code, 200, response.data)
+        manager_ids = [row["managerId"] for row in response.data["data"]["data"]]
+        self.assertNotIn(self.other_manager_user.user_id, manager_ids)
+
+    def test_employee_get_all_returns_only_their_own_manager(self):
+        response = self._client_for(self.employee_user).get("/marketing/manager/get_all/")
+        self.assertEqual(response.status_code, 200, response.data)
+        rows = response.data["data"]["data"]
+        manager_ids = [row["managerId"] for row in rows]
+        self.assertEqual(manager_ids, [self.manager_user.user_id])
+        self.assertNotIn(self.other_manager_user.user_id, manager_ids)
 
 
 class MarketingManagerUpdatePasswordTests(TestCase):
