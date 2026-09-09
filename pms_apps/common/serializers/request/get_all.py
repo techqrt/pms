@@ -8,8 +8,13 @@ from django.utils import timezone
 
 class GetAllSerializer(serializers.Serializer):
     values = serializers.CharField(max_length=100, required=False, default='')
-    page_num = serializers.IntegerField(default=1)
-    limit = serializers.IntegerField(default=Configurations.pagination_count)
+    page_num = serializers.IntegerField(
+        default=1, min_value=1, error_messages={'min_value': 'Must be 1 or greater.'}
+    )
+    limit = serializers.IntegerField(
+        default=Configurations.pagination_count, min_value=1,
+        error_messages={'min_value': 'Must be greater than 0.'}
+    )
     sort_by = serializers.CharField(max_length=100, required=False, default='')
     sort_order = serializers.ChoiceField(choices=['asc', 'desc'], required=False, default='asc')
     filter_key = serializers.CharField(max_length=100, required=False, default='')

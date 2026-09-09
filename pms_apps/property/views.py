@@ -137,6 +137,11 @@ class PropertyView:
                 building_id=params.building_id,
             )
 
+            # A Marketing Employee retains edit access to a property they
+            # create by staying its assigned handler (see update_extract).
+            if PropertyUtils.get_marketing_role(params.user_id) == 'Employee':
+                Property.objects.get(property_id=property_id).assigned_to.add(params.user_id)
+
             from pms_apps.property.models.property_details import PropertyDetail
 
             property_detail_kwargs = {
@@ -360,6 +365,12 @@ class PropertyView:
         if not property_obj:
             raise ValueError(self.data_no_match)
 
+        # Marketing Employees can view all properties but must not be able to
+        # edit them - except a property they created or are assigned to,
+        # which they keep edit rights on. Managers may edit everything.
+        if not PropertyUtils.can_employee_edit_property(params.property_id, params.user_id):
+            raise ValueError("Not allowed to access this resource")
+
         new_building_data = None
         if params.building_id:
             from pms_apps.property.models.building import Building
@@ -560,16 +571,20 @@ class PropertyView:
         if not property_data:
             raise ValueError(self.data_no_match)
         
+        # Marketing department users (Manager or Employee) can view every property.
+        has_access = PropertyUtils.get_marketing_role(params.user_id) is not None
+
         # Check if user has access to this property
-        is_assigned = Property.objects.filter(
-            property_id=params.property_id,
-            assigned_to__user_id=params.user_id
-        ).exists()
-        has_access = (
-            property_data.get('created_by__user_id') == params.user_id or
-            is_assigned
-        )
-        
+        if not has_access:
+            is_assigned = Property.objects.filter(
+                property_id=params.property_id,
+                assigned_to__user_id=params.user_id
+            ).exists()
+            has_access = (
+                property_data.get('created_by__user_id') == params.user_id or
+                is_assigned
+            )
+
         # Check if user is the landlord through PropertyDetail
         if not has_access:
             from pms_apps.property.models.property_details import PropertyDetail
@@ -578,7 +593,7 @@ class PropertyView:
                 landlord__lead_id__user_id=params.user_id
             ).exists()
             has_access = landlord_check
-        
+
         if not has_access:
             raise ValueError("Not allowed to access this resource")
 
@@ -609,7 +624,9 @@ class PropertyView:
                     photos_urls.append(ImageUtils.get_photo_url(str(photo.photo)))
         property_dict['photos'] = photos_urls
         property_dict['assignedTo'] = Property.get_assignees_map([params.property_id]).get(params.property_id, [])
-        property_dict['landlord'] = PropertyDetail.get_landlords_map([params.property_id]).get(params.property_id)
+        landlord = PropertyDetail.get_landlords_map([params.property_id]).get(params.property_id)
+        landlord_assign_to_id = PropertyDetail.get_landlord_assignment_map([params.property_id]).get(params.property_id)
+        property_dict['landlord'] = PropertyUtils.redact_landlord_for_employee(landlord, landlord_assign_to_id, params.user_id)
 
         return Response(
             status=status.HTTP_200_OK,
@@ -635,6 +652,7 @@ class PropertyView:
             max_rent=params.max_rent,
             from_date=params.from_date,
             to_date=params.to_date,
+            unrestricted=PropertyUtils.get_marketing_role(params.user_id) is not None,
         )
 
         pages = Paginator(property_list, per_page=params.limit)
@@ -673,6 +691,7 @@ class PropertyView:
 
         assignees_map = Property.get_assignees_map(property_ids)
         landlords_map = PropertyDetail.get_landlords_map(property_ids)
+        landlord_assignment_map = PropertyDetail.get_landlord_assignment_map(property_ids)
 
         for property_dict in serialized_properties:
             pid = property_dict.get('propertyId')
@@ -683,8 +702,11 @@ class PropertyView:
             property_dict['photos'] = photos_map.get(pid, [])
             # Add assigned users
             property_dict['assignedTo'] = assignees_map.get(pid, [])
-            # Add landlord
-            property_dict['landlord'] = landlords_map.get(pid)
+            # Add landlord (redacted to name-only for Marketing Employees not
+            # assigned to this landlord)
+            property_dict['landlord'] = PropertyUtils.redact_landlord_for_employee(
+                landlords_map.get(pid), landlord_assignment_map.get(pid), params.user_id
+            )
 
         final_data = Utils.add_page_parameter(
             final_data=serialized_properties,
@@ -701,6 +723,12 @@ class PropertyView:
 
     @Common().exception_handler
     def delete_extract(self, params: PropertyDeleteRequest):
+        # Same ownership rule as update_extract: a Marketing Employee may
+        # delete a property they created or are assigned to; Managers can
+        # delete anything.
+        if not PropertyUtils.can_employee_edit_property(params.property_id, params.user_id):
+            raise ValueError("Not allowed to access this resource")
+
         property_obj = Property.get(property_id=params.property_id)
         if not property_obj:
             raise ValueError(self.data_no_match)
@@ -721,6 +749,14 @@ class PropertyView:
         queryset = Property.objects.filter(property_id__in=params.property_ids, is_active=True)
         if queryset.count() != len(params.property_ids):
             raise ValueError(self.data_no_match)
+
+        # Same ownership rule as delete_extract, applied to every property in
+        # the batch - an Employee must own/be assigned to ALL of them.
+        if not all(
+            PropertyUtils.can_employee_edit_property(property_id, params.user_id)
+            for property_id in params.property_ids
+        ):
+            raise ValueError("Not allowed to access this resource")
 
         with transaction.atomic():
             Property.delete_many(ids=params.property_ids)
@@ -745,7 +781,8 @@ class PropertyView:
             sort_order=params.sort_order,
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
-            search_key=params.search_key
+            search_key=params.search_key,
+            unrestricted=PropertyUtils.get_marketing_role(params.user_id) is not None,
         )
 
         property_count = len(property_list)
@@ -1117,7 +1154,12 @@ class PropertyView:
     @Common().exception_handler
     def assign_extract(self, params: PropertyAssignmentCreateRequest):
         from pms_apps.lead.models.lead import Lead
-        
+
+        # A Marketing Employee may only assign a property to a tenant when
+        # they are the assigned handler for both - Managers are unrestricted.
+        if not PropertyUtils.can_assign_property_to_tenant(params.property_id, params.tenant_id, params.user_id):
+            raise ValueError("Not allowed to access this resource")
+
         # Validate property detail exists
         property_detail = PropertyDetail.objects.filter(property_id=params.property_id).first()
         if not property_detail:
@@ -1184,6 +1226,19 @@ class PropertyView:
 
     @Common().exception_handler
     def update_assignment_extract(self, params: PropertyAssignmentUpdateRequest):
+        # Same property+tenant assignment rule as assign_extract - a Marketing
+        # Employee may only edit an assignment they're the handler for on both
+        # sides; Managers are unrestricted.
+        existing = PropertyAssignment.objects.filter(
+            property_assignment_id=params.property_assignment_id
+        ).values('property_id', 'tenant_id').first()
+        if not existing:
+            raise ValueError(self.data_no_match)
+        if not PropertyUtils.can_assign_property_to_tenant(
+            existing['property_id'], existing['tenant_id'], params.user_id
+        ):
+            raise ValueError("Not allowed to access this resource")
+
         assignment_id = PropertyAssignment.update(
             property_assignment_id=params.property_assignment_id,
             assignment_status=params.assignment_status,

@@ -1062,6 +1062,16 @@ class PropertyDetail(models.Model):
         return result
 
     @staticmethod
+    def get_landlord_assignment_map(property_ids: list) -> dict:
+        """Bulk-fetch {property_id: landlord's lead_assign_to_id}, used to decide
+        whether a Marketing Employee is the assigned handler for a property's
+        landlord (and therefore allowed to see their full contact details)."""
+        rows = PropertyDetail.objects.filter(property_id__in=property_ids).values(
+            'property_id', 'landlord__lead_assign_to_id',
+        )
+        return {row['property_id']: row['landlord__lead_assign_to_id'] for row in rows}
+
+    @staticmethod
     def update(
         property_id: int,
         **kwargs

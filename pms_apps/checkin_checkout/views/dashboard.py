@@ -16,6 +16,7 @@ from pms_apps.checkin_checkout.models.check_out_inspection_item import CheckOutI
 from pms_apps.checkin_checkout.models.check_out_utility_reading import CheckOutUtilityReading
 from pms_apps.checkin_checkout.models.check_out_key import CheckOutKey
 from pms_apps.checkin_checkout.models.check_out_payment import CheckOutPayment
+from pms_apps.checkin_checkout.authorization import get_check_in_check_out_role
 
 
 def _percentage(part: int, total: int) -> float:
@@ -122,6 +123,10 @@ class MainDashboardView:
             query = CheckOut.objects.filter(
                 is_active=True, settlement_status="Pending"
             ).order_by("-created_at")
+            # Check-In/Check-Out Employees only see settlements for records
+            # assigned to them - Managers and other roles see everything.
+            if get_check_in_check_out_role(params.user_id) == 'Employee':
+                query = query.filter(assigned_employee_id=params.user_id)
             rows = list(query.values("check_out_id", "tenant_id", "property_id", "total_amount"))
 
             tenant_ids = {r["tenant_id"] for r in rows if r.get("tenant_id")}
@@ -252,6 +257,10 @@ class CheckInDashboardView:
             query = CheckIn.objects.filter(
                 is_active=True, check_in_date__gte=today
             ).order_by("check_in_date")
+            # Check-In/Check-Out Employees only see upcoming check-ins assigned
+            # to them - Managers and other roles see everything.
+            if get_check_in_check_out_role(params.user_id) == 'Employee':
+                query = query.filter(assigned_employee_id=params.user_id)
             rows = list(query.values(
                 "check_in_id", "check_in_date", "tenant_id", "property_id",
                 "assigned_employee_id", "assigned_employee__name",
@@ -397,6 +406,10 @@ class CheckOutDashboardView:
             query = CheckOut.objects.filter(
                 is_active=True, check_out_date__gte=today
             ).order_by("check_out_date")
+            # Check-In/Check-Out Employees only see upcoming check-outs assigned
+            # to them - Managers and other roles see everything.
+            if get_check_in_check_out_role(params.user_id) == 'Employee':
+                query = query.filter(assigned_employee_id=params.user_id)
             rows = list(query.values(
                 "check_out_id", "check_out_date", "tenant_id", "property_id",
                 "assigned_employee_id", "assigned_employee__name",

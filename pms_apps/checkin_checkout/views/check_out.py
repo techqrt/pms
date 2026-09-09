@@ -9,6 +9,7 @@ from pms_apps.common.common import Common
 from pms_apps.common.utils import Utils
 
 from pms_apps.checkin_checkout.utils import CheckOutUtils
+from pms_apps.checkin_checkout.authorization import check_record_access, get_check_in_check_out_role, resolve_parent_id
 from pms_apps.checkin_checkout.serializers.response.get_check_out import CheckOutResponseGetSerializer
 from pms_apps.checkin_checkout.serializers.response.get_all_check_out import CheckOutResponseGetAllSerializer
 
@@ -98,6 +99,21 @@ class CheckOutView:
         if params.tenant_id and not Lead.objects.filter(lead_id=params.tenant_id).exists():
             raise ValueError(f"Invalid Tenant ID: {params.tenant_id}")
 
+        if params.check_in_id:
+            from pms_apps.checkin_checkout.models.check_in import CheckIn
+
+            check_in = CheckIn.objects.filter(
+                check_in_id=params.check_in_id, is_active=True
+            ).values('check_in_status').first()
+            if not check_in:
+                raise ValueError(f"Invalid Check-In ID: {params.check_in_id}")
+            if check_in['check_in_status'] != 'Completed':
+                raise ValueError(
+                    "Cannot convert this check-in to a check-out until its status is 'Completed'"
+                )
+            if CheckOut.objects.filter(check_in_id=params.check_in_id, is_active=True).exists():
+                raise ValueError("A check-out has already been created for this check-in")
+
         payment_proof = params.payment_proof
 
         with transaction.atomic():
@@ -108,7 +124,10 @@ class CheckOutView:
                 property_assignment_id=params.property_assignment_id,
                 check_in_id=params.check_in_id,
                 tenant_id=params.tenant_id,
-                assigned_employee_id=params.assigned_employee_id,
+                # Never create an unowned record: if the caller didn't specify
+                # a handler, default to the creator (mirrors the Property
+                # module's auto-assign-creator pattern and CheckIn's).
+                assigned_employee_id=params.assigned_employee_id or params.user_id,
                 check_out_date=params.check_out_date,
                 check_out_status=params.check_out_status,
                 remarks_notes=params.remarks_notes,
@@ -892,6 +911,7 @@ class CheckOutView:
         detail = CheckOut.get(params.check_out_id)
         if not detail:
             raise ValueError(self.data_no_match)
+        check_record_access(detail.get('assigned_employee_id'), params.user_id)
 
         data = json.loads(CheckOutUtils().mapper(data=[detail]))[0]
         data['paymentProof'] = self._resolve_file_url(data.get('paymentProof'))
@@ -925,12 +945,19 @@ class CheckOutView:
     def get_all_extract(self, params: CheckOutGetAllRequest):
         reversed_mapped = CheckOutUtils.reverse_mapper([params.sort_by])
 
+        # Check-In/Check-Out Employees only see records assigned to them; this
+        # overrides any client-supplied assigned_employee_id filter to close
+        # off attempts to view another employee's records via that param.
+        assigned_employee_id = params.assigned_employee_id
+        if get_check_in_check_out_role(params.user_id) == 'Employee':
+            assigned_employee_id = [params.user_id]
+
         check_out_list = CheckOut.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             status=params.status,
             building=params.building,
-            assigned_employee_id=params.assigned_employee_id,
+            assigned_employee_id=assigned_employee_id,
             manager_approval=params.manager_approval,
             key_return_status=params.key_return_status,
             payment_status=params.payment_status,
@@ -964,6 +991,18 @@ class CheckOutView:
             data=Utils.success_response_data(message=self.data_get, data=data)
         )
 
+    def _authorize_edit(self, check_out_id: int, user_id: int) -> None:
+        detail = CheckOut.get(check_out_id)
+        if not detail:
+            raise ValueError(self.data_no_match)
+        check_record_access(detail.get('assigned_employee_id'), user_id)
+
+    def _authorize_edit_by_child(self, child_model, pk_field: str, pk_value, user_id: int) -> None:
+        check_out_id = resolve_parent_id(child_model, pk_field, pk_value, 'check_out_id')
+        if check_out_id is None:
+            raise ValueError(self.data_no_match)
+        self._authorize_edit(check_out_id, user_id)
+
     def _update_response(self, check_out_id: int) -> Response:
         return Response(
             status=status.HTTP_200_OK,
@@ -975,6 +1014,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_information_extract(self, params: CheckOutInformationUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_information(
             check_out_id=params.check_out_id,
             assigned_employee_id=params.assigned_employee_id,
@@ -988,6 +1028,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_tenant_details_extract(self, params: CheckOutTenantDetailsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_tenant_details(
             check_out_id=params.check_out_id,
             tenant_code=params.tenant_code,
@@ -1012,6 +1053,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_property_details_extract(self, params: CheckOutPropertyDetailsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_property_details(
             check_out_id=params.check_out_id,
             property_type=params.property_type,
@@ -1027,6 +1069,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_rental_details_extract(self, params: CheckOutRentalDetailsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_rental_details(
             check_out_id=params.check_out_id,
             monthly_rent=params.monthly_rent,
@@ -1041,6 +1084,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_property_inspection_extract(self, params: CheckOutPropertyInspectionUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_property_inspection(
             check_out_id=params.check_out_id,
             inspection_required=params.inspection_required,
@@ -1058,6 +1102,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_repair_damage_extract(self, params: CheckOutRepairDamageUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_repair_damage(
             check_out_id=params.check_out_id,
             repair_required=params.repair_required,
@@ -1077,6 +1122,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_utility_meter_readings_extract(self, params: CheckOutUtilityMeterReadingsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_utility_meter_readings(
             check_out_id=params.check_out_id,
             electricity_meter_reading=params.electricity_meter_reading,
@@ -1088,6 +1134,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_finance_details_extract(self, params: CheckOutFinanceDetailsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         processed = None
         if params.payment_proof:
             processed = ImageUtils.process_photo(
@@ -1112,6 +1159,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_key_return_extract(self, params: CheckOutKeyReturnUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_key_return(
             check_out_id=params.check_out_id,
             key_number=params.key_number,
@@ -1129,6 +1177,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_comments_extract(self, params: CheckOutCommentsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_comments(
             check_out_id=params.check_out_id,
             internal_comments=params.internal_comments,
@@ -1140,6 +1189,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_documents_extract(self, params: CheckOutDocumentsUpdateRequest):
+        self._authorize_edit(params.check_out_id, params.user_id)
         check_out_id = CheckOut.update_documents(
             check_out_id=params.check_out_id,
             documents_notes=params.documents_notes,
@@ -1149,8 +1199,10 @@ class CheckOutView:
 
     @Common().exception_handler
     def delete_extract(self, params: CheckOutDeleteRequest):
-        if not CheckOut.get(params.check_out_id):
+        detail = CheckOut.get(params.check_out_id)
+        if not detail:
             raise ValueError(self.data_no_match)
+        check_record_access(detail.get('assigned_employee_id'), params.user_id)
 
         with transaction.atomic():
             CheckOut.delete(check_out_id=params.check_out_id)
@@ -1162,8 +1214,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def upload_document_extract(self, params: CheckOutDocumentUploadRequest):
-        if not CheckOut.get(params.check_out_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_out_id, params.user_id)
 
         processed = ImageUtils.process_photo(
             params.file, upload_path="checkin_checkout/check_out_documents/"
@@ -1202,6 +1253,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_document_extract(self, params: CheckOutDocumentUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckOutDocument, 'check_out_document_id', params.check_out_document_id, params.user_id
+        )
         document_id = CheckOutDocument.update(
             check_out_document_id=params.check_out_document_id,
             document_name=params.document_name,
@@ -1219,6 +1273,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def delete_document_extract(self, params: CheckOutDocumentDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckOutDocument, 'check_out_document_id', params.check_out_document_id, params.user_id
+        )
         CheckOutDocument.delete(params.check_out_document_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1227,8 +1284,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def create_inspection_item_extract(self, params: CheckOutInspectionItemCreateRequest):
-        if not CheckOut.get(params.check_out_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_out_id, params.user_id)
 
         item = CheckOutInspectionItem()
         if params.photo:
@@ -1265,6 +1321,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_inspection_item_extract(self, params: CheckOutInspectionItemUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckOutInspectionItem, 'check_out_inspection_item_id', params.check_out_inspection_item_id, params.user_id
+        )
         item_id = CheckOutInspectionItem.update(
             check_out_inspection_item_id=params.check_out_inspection_item_id,
             category=params.category,
@@ -1289,6 +1348,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def delete_inspection_item_extract(self, params: CheckOutInspectionItemDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckOutInspectionItem, 'check_out_inspection_item_id', params.check_out_inspection_item_id, params.user_id
+        )
         CheckOutInspectionItem.delete(params.check_out_inspection_item_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1297,8 +1359,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def create_utility_reading_extract(self, params: CheckOutUtilityReadingCreateRequest):
-        if not CheckOut.get(params.check_out_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_out_id, params.user_id)
 
         reading = CheckOutUtilityReading()
         reading_id = reading.create(
@@ -1325,6 +1386,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_utility_reading_extract(self, params: CheckOutUtilityReadingUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckOutUtilityReading, 'check_out_utility_reading_id', params.check_out_utility_reading_id, params.user_id
+        )
         reading_id = CheckOutUtilityReading.update(
             check_out_utility_reading_id=params.check_out_utility_reading_id,
             utility_type=params.utility_type,
@@ -1348,6 +1412,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def delete_utility_reading_extract(self, params: CheckOutUtilityReadingDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckOutUtilityReading, 'check_out_utility_reading_id', params.check_out_utility_reading_id, params.user_id
+        )
         CheckOutUtilityReading.delete(params.check_out_utility_reading_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1356,8 +1423,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def create_payment_extract(self, params: CheckOutPaymentCreateRequest):
-        if not CheckOut.get(params.check_out_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_out_id, params.user_id)
 
         payment = CheckOutPayment()
         payment_id = payment.create(
@@ -1384,6 +1450,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_payment_extract(self, params: CheckOutPaymentUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckOutPayment, 'check_out_payment_id', params.check_out_payment_id, params.user_id
+        )
         payment_id = CheckOutPayment.update(
             check_out_payment_id=params.check_out_payment_id,
             description=params.description,
@@ -1407,6 +1476,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def delete_payment_extract(self, params: CheckOutPaymentDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckOutPayment, 'check_out_payment_id', params.check_out_payment_id, params.user_id
+        )
         CheckOutPayment.delete(params.check_out_payment_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1415,8 +1487,7 @@ class CheckOutView:
 
     @Common().exception_handler
     def create_key_extract(self, params: CheckOutKeyCreateRequest):
-        if not CheckOut.get(params.check_out_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_out_id, params.user_id)
 
         key = CheckOutKey()
         key_id = key.create(
@@ -1438,6 +1509,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def update_key_extract(self, params: CheckOutKeyUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckOutKey, 'check_out_key_id', params.check_out_key_id, params.user_id
+        )
         key_id = CheckOutKey.update(
             check_out_key_id=params.check_out_key_id,
             key_number=params.key_number,
@@ -1456,6 +1530,9 @@ class CheckOutView:
 
     @Common().exception_handler
     def delete_key_extract(self, params: CheckOutKeyDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckOutKey, 'check_out_key_id', params.check_out_key_id, params.user_id
+        )
         CheckOutKey.delete(params.check_out_key_id)
         return Response(
             status=status.HTTP_200_OK,

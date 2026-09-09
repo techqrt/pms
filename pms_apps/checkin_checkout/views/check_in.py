@@ -9,6 +9,7 @@ from pms_apps.common.common import Common
 from pms_apps.common.utils import Utils
 
 from pms_apps.checkin_checkout.utils import CheckInUtils
+from pms_apps.checkin_checkout.authorization import check_record_access, get_check_in_check_out_role, resolve_parent_id
 from pms_apps.checkin_checkout.serializers.response.get import CheckInResponseGetSerializer
 from pms_apps.checkin_checkout.serializers.response.get_all import CheckInResponseGetAllSerializer
 
@@ -103,7 +104,11 @@ class CheckInView:
                 created_by=params.user_id,
                 property_assignment_id=params.property_assignment_id,
                 tenant_id=params.tenant_id,
-                assigned_employee_id=params.assigned_employee_id,
+                # Never create an unowned record: if the caller didn't specify
+                # a handler, default to the creator (mirrors the Property
+                # module's auto-assign-creator pattern) so the record isn't
+                # locked out of every Employee's access, including their own.
+                assigned_employee_id=params.assigned_employee_id or params.user_id,
                 check_in_date=params.check_in_date,
                 check_in_status=params.check_in_status,
                 remarks_notes=params.remarks_notes,
@@ -1012,6 +1017,7 @@ class CheckInView:
         detail = CheckIn.get(params.check_in_id)
         if not detail:
             raise ValueError(self.data_no_match)
+        check_record_access(detail.get('assigned_employee_id'), params.user_id)
 
         data = json.loads(CheckInUtils().mapper(data=[detail]))[0]
         data['agreementDocument'] = self._resolve_file_url(data.get('agreementDocument'))
@@ -1045,12 +1051,19 @@ class CheckInView:
     def get_all_extract(self, params: CheckInGetAllRequest):
         reversed_mapped = CheckInUtils.reverse_mapper([params.sort_by])
 
+        # Check-In/Check-Out Employees only see records assigned to them; this
+        # overrides any client-supplied assigned_employee_id filter to close
+        # off attempts to view another employee's records via that param.
+        assigned_employee_id = params.assigned_employee_id
+        if get_check_in_check_out_role(params.user_id) == 'Employee':
+            assigned_employee_id = [params.user_id]
+
         check_in_list = CheckIn.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             status=params.status,
             building=params.building,
-            assigned_employee_id=params.assigned_employee_id,
+            assigned_employee_id=assigned_employee_id,
             manager_approval=params.manager_approval,
             key_handover_status=params.key_handover_status,
             search_key=params.search_key,
@@ -1084,8 +1097,10 @@ class CheckInView:
 
     @Common().exception_handler
     def delete_extract(self, params: CheckInDeleteRequest):
-        if not CheckIn.get(params.check_in_id):
+        detail = CheckIn.get(params.check_in_id)
+        if not detail:
             raise ValueError(self.data_no_match)
+        check_record_access(detail.get('assigned_employee_id'), params.user_id)
 
         with transaction.atomic():
             CheckIn.delete(check_in_id=params.check_in_id)
@@ -1094,6 +1109,18 @@ class CheckInView:
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_delete)
         )
+
+    def _authorize_edit(self, check_in_id: int, user_id: int) -> None:
+        detail = CheckIn.get(check_in_id)
+        if not detail:
+            raise ValueError(self.data_no_match)
+        check_record_access(detail.get('assigned_employee_id'), user_id)
+
+    def _authorize_edit_by_child(self, child_model, pk_field: str, pk_value, user_id: int) -> None:
+        check_in_id = resolve_parent_id(child_model, pk_field, pk_value, 'check_in_id')
+        if check_in_id is None:
+            raise ValueError(self.data_no_match)
+        self._authorize_edit(check_in_id, user_id)
 
     def _update_response(self, check_in_id: int) -> Response:
         return Response(
@@ -1106,6 +1133,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_information_extract(self, params: CheckInInformationUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_information(
             check_in_id=params.check_in_id,
             assigned_employee_id=params.assigned_employee_id,
@@ -1118,6 +1146,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_tenant_details_extract(self, params: CheckInTenantDetailsUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_tenant_details(
             check_in_id=params.check_in_id,
             tenant_code=params.tenant_code,
@@ -1145,6 +1174,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_property_details_extract(self, params: CheckInPropertyDetailsUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_property_details(
             check_in_id=params.check_in_id,
             property_type=params.property_type,
@@ -1159,6 +1189,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_rental_details_extract(self, params: CheckInRentalDetailsUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_rental_details(
             check_in_id=params.check_in_id,
             monthly_rent=params.monthly_rent,
@@ -1173,6 +1204,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_property_inspection_extract(self, params: CheckInPropertyInspectionUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_property_inspection(
             check_in_id=params.check_in_id,
             inspection_required=params.inspection_required,
@@ -1191,6 +1223,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_repair_approval_extract(self, params: CheckInRepairApprovalUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_repair_approval(
             check_in_id=params.check_in_id,
             repair_required=params.repair_required,
@@ -1211,6 +1244,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_utility_meter_readings_extract(self, params: CheckInUtilityMeterReadingsUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_utility_meter_readings(
             check_in_id=params.check_in_id,
             electricity_meter_reading=params.electricity_meter_reading,
@@ -1223,6 +1257,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_agreement_details_extract(self, params: CheckInAgreementDetailsUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         processed = None
         if params.agreement_document:
             processed = ImageUtils.process_photo(
@@ -1255,6 +1290,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_key_handover_extract(self, params: CheckInKeyHandoverUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_key_handover(
             check_in_id=params.check_in_id,
             key_number=params.key_number,
@@ -1279,6 +1315,7 @@ class CheckInView:
 
     @Common().exception_handler
     def update_comments_extract(self, params: CheckInCommentsUpdateRequest):
+        self._authorize_edit(params.check_in_id, params.user_id)
         check_in_id = CheckIn.update_comments(
             check_in_id=params.check_in_id,
             internal_comments=params.internal_comments,
@@ -1290,8 +1327,7 @@ class CheckInView:
 
     @Common().exception_handler
     def upload_document_extract(self, params: CheckInDocumentUploadRequest):
-        if not CheckIn.get(params.check_in_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_in_id, params.user_id)
 
         processed = ImageUtils.process_photo(params.file, upload_path="checkin_checkout/check_in_documents/")
         if not processed:
@@ -1319,8 +1355,7 @@ class CheckInView:
 
     @Common().exception_handler
     def create_inspection_item_extract(self, params: CheckInInspectionItemCreateRequest):
-        if not CheckIn.get(params.check_in_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_in_id, params.user_id)
 
         item = CheckInInspectionItem()
         if params.photo:
@@ -1356,6 +1391,9 @@ class CheckInView:
 
     @Common().exception_handler
     def update_inspection_item_extract(self, params: CheckInInspectionItemUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckInInspectionItem, 'check_in_inspection_item_id', params.check_in_inspection_item_id, params.user_id
+        )
         item_id = CheckInInspectionItem.update(
             check_in_inspection_item_id=params.check_in_inspection_item_id,
             category=params.category,
@@ -1379,6 +1417,9 @@ class CheckInView:
 
     @Common().exception_handler
     def delete_inspection_item_extract(self, params: CheckInInspectionItemDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckInInspectionItem, 'check_in_inspection_item_id', params.check_in_inspection_item_id, params.user_id
+        )
         CheckInInspectionItem.delete(params.check_in_inspection_item_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1387,8 +1428,7 @@ class CheckInView:
 
     @Common().exception_handler
     def create_utility_reading_extract(self, params: CheckInUtilityReadingCreateRequest):
-        if not CheckIn.get(params.check_in_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_in_id, params.user_id)
 
         reading = CheckInUtilityReading()
         reading_id = reading.create(
@@ -1415,6 +1455,9 @@ class CheckInView:
 
     @Common().exception_handler
     def update_utility_reading_extract(self, params: CheckInUtilityReadingUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckInUtilityReading, 'check_in_utility_reading_id', params.check_in_utility_reading_id, params.user_id
+        )
         reading_id = CheckInUtilityReading.update(
             check_in_utility_reading_id=params.check_in_utility_reading_id,
             utility_type=params.utility_type,
@@ -1438,6 +1481,9 @@ class CheckInView:
 
     @Common().exception_handler
     def delete_utility_reading_extract(self, params: CheckInUtilityReadingDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckInUtilityReading, 'check_in_utility_reading_id', params.check_in_utility_reading_id, params.user_id
+        )
         CheckInUtilityReading.delete(params.check_in_utility_reading_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1446,8 +1492,7 @@ class CheckInView:
 
     @Common().exception_handler
     def create_payment_extract(self, params: CheckInPaymentCreateRequest):
-        if not CheckIn.get(params.check_in_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_in_id, params.user_id)
 
         payment = CheckInPayment()
         payment_id = payment.create(
@@ -1471,6 +1516,9 @@ class CheckInView:
 
     @Common().exception_handler
     def update_payment_extract(self, params: CheckInPaymentUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckInPayment, 'check_in_payment_id', params.check_in_payment_id, params.user_id
+        )
         payment_id = CheckInPayment.update(
             check_in_payment_id=params.check_in_payment_id,
             description=params.description,
@@ -1491,6 +1539,9 @@ class CheckInView:
 
     @Common().exception_handler
     def delete_payment_extract(self, params: CheckInPaymentDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckInPayment, 'check_in_payment_id', params.check_in_payment_id, params.user_id
+        )
         CheckInPayment.delete(params.check_in_payment_id)
         return Response(
             status=status.HTTP_200_OK,
@@ -1499,8 +1550,7 @@ class CheckInView:
 
     @Common().exception_handler
     def create_key_extract(self, params: CheckInKeyCreateRequest):
-        if not CheckIn.get(params.check_in_id):
-            raise ValueError(self.data_no_match)
+        self._authorize_edit(params.check_in_id, params.user_id)
 
         key = CheckInKey()
         key_id = key.create(
@@ -1522,6 +1572,9 @@ class CheckInView:
 
     @Common().exception_handler
     def update_key_extract(self, params: CheckInKeyUpdateRequest):
+        self._authorize_edit_by_child(
+            CheckInKey, 'check_in_key_id', params.check_in_key_id, params.user_id
+        )
         key_id = CheckInKey.update(
             check_in_key_id=params.check_in_key_id,
             key_number=params.key_number,
@@ -1540,6 +1593,9 @@ class CheckInView:
 
     @Common().exception_handler
     def delete_key_extract(self, params: CheckInKeyDeleteRequest):
+        self._authorize_edit_by_child(
+            CheckInKey, 'check_in_key_id', params.check_in_key_id, params.user_id
+        )
         CheckInKey.delete(params.check_in_key_id)
         return Response(
             status=status.HTTP_200_OK,
