@@ -175,19 +175,35 @@ class MarketingManagerView:
 
     @Common(response_handler=MarketingManagerResponseGetAllSerializer).exception_handler
     def get_all_manager_extract(self, params: GetAll):
+        from pms_apps.marketing.models.marketing_employee import MarketingEmployee
+
         reversed_mapped = MarketingUtils.reverse_mapper([
             params.sort_by,
             params.filter_key
         ])
 
-        manager_list = MarketingManager.get_all(
-            sort_by=reversed_mapped.get(params.sort_by),
-            sort_order=params.sort_order,
-            filter_key=reversed_mapped.get(params.filter_key),
-            filter_value=params.filter_value,
-            search_key=params.search_key
-        )
-        
+        is_manager = MarketingManager.objects.filter(manager_id=params.user_id).exists()
+        employee_manager_ref_id = MarketingEmployee.objects.filter(
+            employee_id=params.user_id
+        ).values_list('manager_ref_id', flat=True).first()
+
+        if is_manager:
+            # A Manager only ever sees their own manager record (+ their employees, below).
+            manager_row = MarketingManager.get(manager_id=params.user_id)
+            manager_list = [manager_row] if manager_row else []
+        elif employee_manager_ref_id:
+            # An Employee only sees the manager they report to - never other managers.
+            manager_row = MarketingManager.get(manager_id=employee_manager_ref_id)
+            manager_list = [manager_row] if manager_row else []
+        else:
+            manager_list = MarketingManager.get_all(
+                sort_by=reversed_mapped.get(params.sort_by),
+                sort_order=params.sort_order,
+                filter_key=reversed_mapped.get(params.filter_key),
+                filter_value=params.filter_value,
+                search_key=params.search_key
+            )
+
         pages = Paginator(manager_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
@@ -200,7 +216,7 @@ class MarketingManagerView:
 
         # Process profile picture URLs for each manager
         page_managers_dict = {m['manager_id']: m for m in page_data if m}
-        
+
         for item in data:
             manager_id = item.get('managerId')
             if manager_id in page_managers_dict:
@@ -213,6 +229,21 @@ class MarketingManagerView:
                         photo_url = ImageUtils.get_photo_url(profile_picture_path)
                         if photo_url:
                             item['profilePicture'] = photo_url
+
+        # A Manager also gets their own team's employee records attached, so
+        # they can identify eligible employees to assign leads to.
+        if is_manager:
+            employee_rows = list(MarketingEmployee.objects.filter(manager_ref_id=params.user_id).values(
+                "employee_id", "name", "dob", "designation", "department",
+                "campaigns_assigned", "leads_generated", "manager_ref_id",
+                "lead_permission__lead", "property_permission__property",
+                "created_date_time", "employee_id__phone_number", "employee_id__email",
+            ))
+            employee_utils = MarketingUtils(entity='employee', columns_required=[])
+            employees_data = json.loads(employee_utils.mapper(employee_rows))
+            for item in data:
+                if item.get('managerId') == params.user_id:
+                    item['employees'] = employees_data
 
         data = Utils.add_page_parameter(final_data=data, page_num=params.page_num, total_page=pages.num_pages,
                                         present_url=params.present_url,

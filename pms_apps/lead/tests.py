@@ -9,6 +9,60 @@ from pms_apps.marketing.models.marketing_employee import MarketingEmployee
 from pms_apps.checkin_checkout.models.check_in_check_out_manager import CheckInCheckOutManager
 from pms_apps.checkin_checkout.models.check_in_check_out_employee import CheckInCheckOutEmployee
 from pms_apps.common.models.permissions import LeadPermission, PropertyPermission
+from pms_apps.property.models.property import Property
+from pms_apps.property.models.property_details import PropertyDetail
+from pms_apps.property.models.property_assignment import PropertyAssignment
+
+
+class LeadCountBreakdownTests(TestCase):
+    """/lead/count/ must report a Tenant/Landlord breakdown and a conversion
+    rate, where a lead counts as converted once it's actually linked to a
+    property (Tenant via PropertyAssignment, Landlord via PropertyDetail)."""
+
+    def setUp(self):
+        self.caller = User.objects.create(name="Any User", phone_number="4000000000")
+        creator = User.objects.create(name="Creator", phone_number="4000000001")
+
+        def make_lead(phone, first_name, purpose):
+            lead_user = User.objects.create(name=first_name, phone_number=phone, department=purpose)
+            return Lead.objects.create(
+                lead_id=lead_user, first_name=first_name, last_name="Test", purpose=purpose,
+            )
+
+        # Converted tenant: has a PropertyAssignment.
+        self.converted_tenant = make_lead("4000000010", "ConvertedTenant", "Tenant")
+        self.property = Property.objects.create(rental_type="Flat", rental_for="Family", created_by=creator)
+        PropertyAssignment.objects.create(property=self.property, tenant=self.converted_tenant)
+
+        # Unconverted tenant: no PropertyAssignment.
+        self.unconverted_tenant = make_lead("4000000011", "UnconvertedTenant", "Tenant")
+
+        # Converted landlord: owns a PropertyDetail.
+        self.converted_landlord = make_lead("4000000012", "ConvertedLandlord", "Landlord")
+        landlord_property = Property.objects.create(rental_type="Flat", rental_for="Family", created_by=creator)
+        PropertyDetail().create(
+            property_id=landlord_property.property_id, building_name="Test Building",
+            monthly_rent=0, security_deposit_amount=0, late_fee_type="Day wise", late_fee_value=0,
+            current_status="Vacant", landlord_id=self.converted_landlord.lead_id_id, created_by_id=creator.user_id,
+            address_line_1="", area_zone="", city="", state="", country="", pincode="",
+        )
+
+        # Unconverted landlord: no PropertyDetail.
+        self.unconverted_landlord = make_lead("4000000013", "UnconvertedLandlord", "Landlord")
+
+    def _client(self):
+        client = APIClient(HTTP_USER_AGENT="pytest")
+        client.force_authenticate(user=self.caller)
+        return client
+
+    def test_count_returns_purpose_breakdown_and_conversion_rate(self):
+        response = self._client().get("/lead/count/")
+        self.assertEqual(response.status_code, 200, response.data)
+        data = response.data["data"]
+        self.assertEqual(data["count"], 4)
+        self.assertEqual(data["byPurpose"], {"Tenant": 2, "Landlord": 2})
+        self.assertEqual(data["convertedCount"], 2)
+        self.assertEqual(data["conversionRate"], 50.0)
 
 
 class LeadCreateRequestSerilizerTests(TestCase):
@@ -200,6 +254,27 @@ class LeadAssignmentAuthorizationTests(TestCase):
         self.assigned_landlord = make_lead("2000000012", "AssignedLandlord", "Landlord", self.employee_user)
         self.unassigned_landlord = make_lead("2000000013", "UnassignedLandlord", "Landlord", self.other_employee_user)
 
+        # A second, unrelated Manager/Employee pair - used to prove Manager
+        # scoping stops at their own team and doesn't leak to other teams.
+        self.unrelated_manager_user = User.objects.create(
+            name="Unrelated Manager", phone_number="2000000020", department="Marketing", role="Manager"
+        )
+        MarketingManager().create(
+            manager_id=self.unrelated_manager_user.user_id, name="Unrelated Manager", dob=None, department="Marketing",
+            campaigns_led=0, team_size=0,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+        self.unrelated_employee_user = User.objects.create(
+            name="Unrelated Employee", phone_number="2000000021", department="Marketing", role="Employee"
+        )
+        MarketingEmployee().create(
+            employee_id=self.unrelated_employee_user.user_id, name="Unrelated Employee", dob=None,
+            designation="", department="Marketing", campaigns_assigned=0, leads_generated=0,
+            manager_ref=self.unrelated_manager_user.user_id,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+        self.unrelated_tenant = make_lead("2000000022", "UnrelatedTenant", "Tenant", self.unrelated_employee_user)
+
     def _client_for(self, user):
         client = APIClient(HTTP_USER_AGENT="pytest")
         client.force_authenticate(user=user)
@@ -273,13 +348,16 @@ class LeadAssignmentAuthorizationTests(TestCase):
         self.assertNotIn(self.unassigned_tenant.lead_id_id, ids)
         self.assertNotIn(self.unassigned_landlord.lead_id_id, ids)
 
-    def test_manager_get_all_only_returns_leads_assigned_to_manager(self):
-        """Regression: Manager scoping (pre-existing behaviour) must be unchanged."""
+    def test_manager_get_all_returns_leads_assigned_to_manager_or_their_employees(self):
+        """A Manager must see leads assigned to any Employee reporting to them
+        (not just leads assigned to the Manager themself), but never leads
+        belonging to a different Manager's team."""
         response = self._client_for(self.manager_user).get("/lead/get_all/")
         self.assertEqual(response.status_code, 200, response.data)
         ids = [item["leadId"] for item in response.data["data"]["data"]]
-        self.assertNotIn(self.assigned_tenant.lead_id_id, ids)
-        self.assertNotIn(self.unassigned_tenant.lead_id_id, ids)
+        self.assertIn(self.assigned_tenant.lead_id_id, ids)
+        self.assertIn(self.unassigned_tenant.lead_id_id, ids)
+        self.assertNotIn(self.unrelated_tenant.lead_id_id, ids)
 
 
 class ManagerAssignmentVisibilityTests(TestCase):
@@ -352,6 +430,30 @@ class ManagerAssignmentVisibilityTests(TestCase):
         other_ids = [item["leadId"] for item in other_list.data["data"]["data"]]
         self.assertNotIn(lead_id, other_ids)
 
+    def test_employee_created_lead_visible_to_their_manager(self):
+        """Issue 2: a lead an Employee creates and assigns to themself must
+        be visible to their Lead Manager, via both get_all and count."""
+        create_response = self._client_for(self.assignee_employee).post(
+            "/lead/create/",
+            data={
+                "first_name": "Employee", "last_name": "Created", "phone_number": "3000000011",
+                "purpose": "Tenant", "lead_category": "Bachelor",
+                "lead_assign_to": {"user_id": self.assignee_employee.user_id},
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, 201, create_response.data)
+        lead_id = create_response.data["data"]["lead_id"]
+
+        manager_list = self._client_for(self.manager_user).get("/lead/get_all/")
+        self.assertEqual(manager_list.status_code, 200, manager_list.data)
+        manager_ids = [item["leadId"] for item in manager_list.data["data"]["data"]]
+        self.assertIn(lead_id, manager_ids)
+
+        manager_count = self._client_for(self.manager_user).get("/lead/count/")
+        self.assertEqual(manager_count.status_code, 200, manager_count.data)
+        self.assertGreaterEqual(manager_count.data["data"]["count"], 1)
+
 
 class LeadSecurityRegressionTests(TestCase):
     """Phase 8: direct-API-bypass checks for the tenant/landlord (Lead)
@@ -422,6 +524,32 @@ class CheckInCheckOutLeadAuthorizationTests(TestCase):
             lead_assign_to=self.cico_employee,
         )
 
+        # A second, unrelated CICO Manager/Employee pair to prove scoping
+        # stops at the Manager's own team.
+        self.unrelated_cico_manager = User.objects.create(
+            name="Unrelated CICO Manager", phone_number="9600000010", department="Check-In Check-Out", role="Manager"
+        )
+        CheckInCheckOutManager().create(
+            manager_id=self.unrelated_cico_manager.user_id, name="Unrelated CICO Manager", dob=None,
+            department="Check-In Check-Out", team_size=0,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+        self.unrelated_cico_employee = User.objects.create(
+            name="Unrelated CICO Employee", phone_number="9600000011", department="Check-In Check-Out", role="Employee"
+        )
+        CheckInCheckOutEmployee().create(
+            employee_id=self.unrelated_cico_employee.user_id, name="Unrelated CICO Employee", dob=None, designation="",
+            department="Check-In Check-Out", manager_ref=self.unrelated_cico_manager.user_id,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+        unrelated_tenant_user = User.objects.create(
+            name="Unrelated CICO Tenant", phone_number="9600000012", department="Tenant"
+        )
+        self.unrelated_tenant = Lead.objects.create(
+            lead_id=unrelated_tenant_user, first_name="Unrelated", last_name="Tenant", purpose="Tenant",
+            lead_assign_to=self.unrelated_cico_employee,
+        )
+
     def _client_for(self, user):
         client = APIClient(HTTP_USER_AGENT="pytest")
         client.force_authenticate(user=user)
@@ -446,10 +574,13 @@ class CheckInCheckOutLeadAuthorizationTests(TestCase):
         self.assertEqual(ids, [self.tenant.lead_id_id])
 
     def test_cico_manager_get_all_scoped_to_managers_own_assignments(self):
+        """A CICO Manager sees leads assigned to their own team (including
+        employees), but never a different Manager's team."""
         response = self._client_for(self.cico_manager).get("/lead/get_all/?values=leadId")
         self.assertEqual(response.status_code, 200, response.data)
         ids = [item["leadId"] for item in response.data["data"]["data"]]
-        self.assertNotIn(self.tenant.lead_id_id, ids)
+        self.assertIn(self.tenant.lead_id_id, ids)
+        self.assertNotIn(self.unrelated_tenant.lead_id_id, ids)
 
 
 class LeadGetAllPaginationTests(TestCase):

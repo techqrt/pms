@@ -25,6 +25,10 @@ from django.core.paginator import Paginator
 import json
 
 
+def _percentage(part: int, total: int) -> float:
+    return round((part / total) * 100, 2) if total else 0.0
+
+
 def _restricted_manager_id(user_id: int):
     """Marketing and Check-In Check-Out are the two departments whose tenant/
     landlord (Lead) access is scoped by assignment (lead_assign_to). Returns
@@ -37,6 +41,21 @@ def _is_restricted_employee(user_id: int) -> bool:
         MarketingEmployee.objects.filter(employee_id=user_id).exists()
         or CheckInCheckOutEmployee.objects.filter(employee_id=user_id).exists()
     )
+
+
+def _assigned_to_ids_for_manager(user_id: int) -> list:
+    """A Manager sees leads assigned either to themself or to any Employee
+    reporting to them (manager_ref), across Marketing and Check-In Check-Out."""
+    ids = {user_id}
+    if MarketingManager.get_id(user_id):
+        ids.update(
+            MarketingEmployee.objects.filter(manager_ref_id=user_id).values_list('employee_id', flat=True)
+        )
+    if CheckInCheckOutManager.get_id(user_id):
+        ids.update(
+            CheckInCheckOutEmployee.objects.filter(manager_ref_id=user_id).values_list('employee_id', flat=True)
+        )
+    return list(ids)
 
 
 class LeadView:
@@ -260,10 +279,11 @@ class LeadView:
                 params.filter_key
             ])
 
-            # Marketing Managers and Employees only see leads assigned to them.
+            # Marketing/CICO Managers see leads assigned to them or to their
+            # employees; Employees only see leads assigned to them directly.
             if manager_id or is_employee:
                 lead_list = Lead.get_all_by_assigned_user(
-                    manager_user_id=params.user_id,
+                    manager_user_id=_assigned_to_ids_for_manager(params.user_id) if manager_id else params.user_id,
                     sort_by=reversed_mapped.get(params.sort_by),
                     sort_order=params.sort_order,
                     filter_key=reversed_mapped.get(params.filter_key),
@@ -334,6 +354,9 @@ class LeadView:
 
     @Common().exception_handler
     def count_extract(self, params: GetAll):
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+        from pms_apps.property.models.property_details import PropertyDetail
+
         with transaction.atomic():
             manager_id = _restricted_manager_id(params.user_id)
             is_employee = _is_restricted_employee(params.user_id)
@@ -342,10 +365,11 @@ class LeadView:
                 params.filter_key
             ])
 
-            # Marketing Managers and Employees only see leads assigned to them.
+            # Marketing/CICO Managers see leads assigned to them or to their
+            # employees; Employees only see leads assigned to them directly.
             if manager_id or is_employee:
                 lead_list = Lead.get_all_by_assigned_user(
-                    manager_user_id=params.user_id,
+                    manager_user_id=_assigned_to_ids_for_manager(params.user_id) if manager_id else params.user_id,
                     sort_by=reversed_mapped.get(params.sort_by),
                     sort_order=params.sort_order,
                     filter_key=reversed_mapped.get(params.filter_key),
@@ -360,10 +384,39 @@ class LeadView:
                     filter_value=params.filter_value,
                     search_key=params.search_key
                 )
-            
+
             lead_count = len(lead_list)
-            
+
+            # Landlord/Tenant breakdown, keeping every known purpose in the
+            # response even when its count is 0 (mirrors property/count/'s byType).
+            by_purpose = {choice: 0 for choice, _ in Lead.PURPOSE_CHOICES}
+            tenant_ids = set()
+            landlord_ids = set()
+            for lead in lead_list:
+                purpose = lead.get('purpose')
+                if purpose in by_purpose:
+                    by_purpose[purpose] += 1
+                if purpose == 'Tenant':
+                    tenant_ids.add(lead['lead_id'])
+                elif purpose == 'Landlord':
+                    landlord_ids.add(lead['lead_id'])
+
+            # A lead is "converted" once it is actually linked to a property:
+            # a Tenant lead via an assignment, a Landlord lead via ownership.
+            converted_tenant_count = PropertyAssignment.objects.filter(
+                tenant_id__in=tenant_ids
+            ).values('tenant_id').distinct().count() if tenant_ids else 0
+            converted_landlord_count = PropertyDetail.objects.filter(
+                landlord_id__in=landlord_ids
+            ).values('landlord_id').distinct().count() if landlord_ids else 0
+            converted_count = converted_tenant_count + converted_landlord_count
+
         return Response(
             status=status.HTTP_200_OK,
-            data=Utils.success_response_data(message="Total leads count", data={"count": lead_count})
+            data=Utils.success_response_data(message="Total leads count", data={
+                "count": lead_count,
+                "byPurpose": by_purpose,
+                "convertedCount": converted_count,
+                "conversionRate": _percentage(converted_count, lead_count),
+            })
         )

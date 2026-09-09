@@ -92,18 +92,34 @@ class ITManagerView:
 
     @Common(response_handler=ITManagerResponseGetAllSerializer).exception_handler
     def get_all_manager_extract(self, params: GetAll):
+        from pms_apps.IT.models.IT_employee import ITEmployee
+
         reversed_mapped = ITUtils.reverse_mapper([
             params.sort_by,
             params.filter_key
         ])
 
-        pages = Paginator(ITManager.get_all(
+        manager_list = ITManager.get_all(
             sort_by=reversed_mapped.get(params.sort_by),
             sort_order=params.sort_order,
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
             search_key=params.search_key
-        ), per_page=params.limit)
+        )
+
+        # A Manager sees only themself; an Employee sees only the manager
+        # they report to; any other authenticated role keeps the existing
+        # unrestricted view.
+        if ITManager.objects.filter(manager_id=params.user_id).exists():
+            manager_list = [row for row in manager_list if row.get('manager_id') == params.user_id]
+        else:
+            employee_manager_ref_id = ITEmployee.objects.filter(
+                employee_id=params.user_id
+            ).values_list('manager_ref_id', flat=True).first()
+            if employee_manager_ref_id:
+                manager_list = [row for row in manager_list if row.get('manager_id') == employee_manager_ref_id]
+
+        pages = Paginator(manager_list, per_page=params.limit)
 
         if pages.num_pages < params.page_num:
             raise ValueError('Page limit exceed!')
