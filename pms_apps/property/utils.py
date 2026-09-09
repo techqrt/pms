@@ -1,5 +1,5 @@
 import json
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from pms_apps.common.common import Common
 from pms_apps.marketing.models.marketing_employee import MarketingEmployee
 from pms_apps.marketing.models.marketing_manager import MarketingManager
@@ -36,6 +36,76 @@ class PropertyUtils:
             'landlord_id': 'landlordId',
             'current_tenant_id': 'currentTenantId'
         }
+
+    @staticmethod
+    def get_marketing_role(user_id: int) -> str | None:
+        """Returns 'Manager'/'Employee' if the user has a Marketing profile, else None."""
+        if MarketingManager.get_id(user_id):
+            return 'Manager'
+        if MarketingEmployee.objects.filter(employee_id=user_id).exists():
+            return 'Employee'
+        return None
+
+    @staticmethod
+    def get_restricted_role(user_id: int) -> str | None:
+        """Returns 'Manager'/'Employee' if the user belongs to Marketing or
+        Check-In Check-Out - the two departments whose property/lead edit
+        access is scoped by assignment (created_by/assigned_to). Every other
+        department's access to these endpoints is unaffected by this check."""
+        role = PropertyUtils.get_marketing_role(user_id)
+        if role:
+            return role
+        from pms_apps.checkin_checkout.authorization import get_check_in_check_out_role
+        return get_check_in_check_out_role(user_id)
+
+    @staticmethod
+    def can_employee_edit_property(property_id: int, user_id: int) -> bool:
+        """A Marketing/Check-In Check-Out Employee may edit or delete a
+        property they created OR are an assigned handler of
+        (Property.assigned_to) - the same ownership rule applies to both
+        actions. Managers and other departments are unrestricted."""
+        if PropertyUtils.get_restricted_role(user_id) != 'Employee':
+            return True
+
+        from pms_apps.property.models.property import Property
+        return Property.objects.filter(
+            property_id=property_id
+        ).filter(
+            Q(created_by__user_id=user_id) | Q(assigned_to__user_id=user_id)
+        ).exists()
+
+    @staticmethod
+    def can_assign_property_to_tenant(property_id: int, tenant_id: int, user_id: int) -> bool:
+        """A Marketing/Check-In Check-Out Employee may only link a property to
+        a tenant when they are the assigned handler for BOTH that property
+        (Property.assigned_to) and that tenant (Lead.lead_assign_to). Managers
+        and other departments are unrestricted, consistent with every other
+        property/lead rule."""
+        if PropertyUtils.get_restricted_role(user_id) != 'Employee':
+            return True
+
+        from pms_apps.property.models.property import Property
+        from pms_apps.lead.models.lead import Lead
+
+        is_assigned_to_property = Property.objects.filter(
+            property_id=property_id, assigned_to__user_id=user_id
+        ).exists()
+        is_assigned_to_tenant = Lead.objects.filter(
+            lead_id=tenant_id, lead_assign_to_id=user_id
+        ).exists()
+        return is_assigned_to_property and is_assigned_to_tenant
+
+    @staticmethod
+    def redact_landlord_for_employee(landlord: dict | None, landlord_assign_to_id, user_id: int) -> dict | None:
+        """Marketing/Check-In Check-Out Employees see only the landlord's name
+        unless that landlord is assigned to them (lead_assign_to == user_id),
+        in which case they get full contact details, same as Managers and
+        other departments."""
+        if not landlord:
+            return landlord
+        if PropertyUtils.get_restricted_role(user_id) == 'Employee' and landlord_assign_to_id != user_id:
+            return {**landlord, 'phoneNumber': None, 'email': None}
+        return landlord
 
     @staticmethod
     def flatten_to_nested_dict(df):

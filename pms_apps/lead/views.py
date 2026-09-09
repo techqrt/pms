@@ -16,10 +16,27 @@ from pms_apps.lead.serilizers.response.get import LeadResponseGetSerializer
 from pms_apps.lead.serilizers.response.get_all import LeadResponseGetAllSerilizer
 from .utils import LeadUtils
 from pms_apps.marketing.models.marketing_manager import MarketingManager
+from pms_apps.marketing.models.marketing_employee import MarketingEmployee
+from pms_apps.checkin_checkout.models.check_in_check_out_manager import CheckInCheckOutManager
+from pms_apps.checkin_checkout.models.check_in_check_out_employee import CheckInCheckOutEmployee
 from pms_apps.property.image_utils import ImageUtils
 from django.core.paginator import Paginator
 
 import json
+
+
+def _restricted_manager_id(user_id: int):
+    """Marketing and Check-In Check-Out are the two departments whose tenant/
+    landlord (Lead) access is scoped by assignment (lead_assign_to). Returns
+    the caller's manager profile id for whichever one applies, else None."""
+    return MarketingManager.get_id(user_id) or CheckInCheckOutManager.get_id(user_id)
+
+
+def _is_restricted_employee(user_id: int) -> bool:
+    return (
+        MarketingEmployee.objects.filter(employee_id=user_id).exists()
+        or CheckInCheckOutEmployee.objects.filter(employee_id=user_id).exists()
+    )
 
 
 class LeadView:
@@ -88,16 +105,17 @@ class LeadView:
     @Common().country_city_validation
     def update_extract(self, params: LeadUpdateRequest):
         with transaction.atomic():
-            manager_id = MarketingManager.get_id(params.user_id)
+            manager_id = _restricted_manager_id(params.user_id)
+            is_employee = _is_restricted_employee(params.user_id)
 
-            
-            if params.user_id != params.lead_id and params.user_id != manager_id:
+            if params.user_id != params.lead_id and manager_id is None and not is_employee:
                 raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            # If marketing manager, verify lead is assigned to them
-            if manager_id and params.user_id == manager_id:
+            # If marketing manager/employee (not the lead's own account), the
+            # lead must be assigned to them.
+            if params.user_id != params.lead_id:
                 if lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
 
@@ -165,15 +183,17 @@ class LeadView:
     @Common().exception_handler
     def delete_extract(self, params):
         with transaction.atomic():
-            manager_id = MarketingManager.get_id(params.user_id)
-            
-            if params.user_id != params.lead_id and params.user_id != manager_id:
+            manager_id = _restricted_manager_id(params.user_id)
+            is_employee = _is_restricted_employee(params.user_id)
+
+            if params.user_id != params.lead_id and manager_id is None and not is_employee:
                 raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            # If marketing manager, verify lead is assigned to them
-            if manager_id and params.user_id == manager_id:
+            # If marketing manager/employee (not the lead's own account), the
+            # lead must be assigned to them.
+            if params.user_id != params.lead_id:
                 if lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
             Lead.remove(lead_id=lead_data.get('lead_id'))
@@ -186,14 +206,16 @@ class LeadView:
     @Common(response_handler=LeadResponseGetSerializer).exception_handler
     def get_extract(self, params):
         with transaction.atomic():
-            manager_id = MarketingManager.get_id(params.user_id)
-            if params.user_id != params.lead_id and params.user_id != manager_id:
+            manager_id = _restricted_manager_id(params.user_id)
+            is_employee = _is_restricted_employee(params.user_id)
+            if params.user_id != params.lead_id and manager_id is None and not is_employee:
                 raise ValueError("Not allowed to access this resource")
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=True)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            # If marketing manager, verify lead is assigned to them
-            if manager_id and params.user_id == manager_id:
+            # If marketing manager/employee (not the lead's own account), the
+            # lead must be assigned to them.
+            if params.user_id != params.lead_id:
                 if lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
 
@@ -231,14 +253,15 @@ class LeadView:
     @Common(response_handler=LeadResponseGetAllSerilizer).exception_handler
     def get_all_extract(self,params : GetAll):
         with transaction.atomic():
-            manager_id = MarketingManager.get_id(params.user_id)
+            manager_id = _restricted_manager_id(params.user_id)
+            is_employee = _is_restricted_employee(params.user_id)
             reversed_mapped = LeadUtils.reverse_mapper([
                 params.sort_by,
                 params.filter_key
             ])
 
-            # If marketing manager, get only leads assigned to them
-            if manager_id:
+            # Marketing Managers and Employees only see leads assigned to them.
+            if manager_id or is_employee:
                 lead_list = Lead.get_all_by_assigned_user(
                     manager_user_id=params.user_id,
                     sort_by=reversed_mapped.get(params.sort_by),
@@ -292,9 +315,9 @@ class LeadView:
                         if lead_id in profile_image_map:
                             item['profileImage'] = profile_image_map[lead_id]
             
-            # Check if no leads assigned to marketing manager
+            # Check if no leads assigned to marketing manager/employee
             message = self.data_get
-            if manager_id and not data:
+            if (manager_id or is_employee) and not data:
                 message = "You don't have any leads assigned to you"
     
             data = Utils.add_page_parameter(    
@@ -312,14 +335,15 @@ class LeadView:
     @Common().exception_handler
     def count_extract(self, params: GetAll):
         with transaction.atomic():
-            manager_id = MarketingManager.get_id(params.user_id)
+            manager_id = _restricted_manager_id(params.user_id)
+            is_employee = _is_restricted_employee(params.user_id)
             reversed_mapped = LeadUtils.reverse_mapper([
                 params.sort_by,
                 params.filter_key
             ])
 
-            # If marketing manager, get only leads assigned to them
-            if manager_id:
+            # Marketing Managers and Employees only see leads assigned to them.
+            if manager_id or is_employee:
                 lead_list = Lead.get_all_by_assigned_user(
                     manager_user_id=params.user_id,
                     sort_by=reversed_mapped.get(params.sort_by),

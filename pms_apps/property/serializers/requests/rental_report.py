@@ -8,8 +8,13 @@ from pms_apps.property.dataclasses.requests.rental_report import RentalReportReq
 
 
 class RentalReportSerializer(serializers.Serializer):
-    page_num = serializers.IntegerField(default=1)
-    limit = serializers.IntegerField(default=Configurations.pagination_count)
+    page_num = serializers.IntegerField(
+        default=1, min_value=1, error_messages={'min_value': 'Must be 1 or greater.'}
+    )
+    limit = serializers.IntegerField(
+        default=Configurations.pagination_count, min_value=1,
+        error_messages={'min_value': 'Must be greater than 0.'}
+    )
     search = serializers.CharField(max_length=255, required=False, default='')
     property_types = serializers.CharField(
         required=False, default='',

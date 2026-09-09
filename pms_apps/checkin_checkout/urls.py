@@ -6,8 +6,12 @@ from pms_apps.checkin_checkout.controllers.dashboard import (
     CheckInDashboardViewController,
     CheckOutDashboardViewController,
 )
+from pms_apps.checkin_checkout.controllers.staff import CheckInCheckOutStaffViewController
 
 urlpatterns = [
+    path("manager/get_all/", CheckInCheckOutStaffViewController.get_all_manager, name="get_all_check_in_check_out_manager"),
+    path("employee/get_all/", CheckInCheckOutStaffViewController.get_all_employee, name="get_all_check_in_check_out_employee"),
+
     path("dashboard/summary/", DashboardViewController.summary, name="checkin_checkout_dashboard_summary"),
     path("dashboard/pending_settlements/", DashboardViewController.pending_settlements, name="checkin_checkout_dashboard_pending_settlements"),
 

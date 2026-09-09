@@ -7,5 +7,6 @@ class Configurations:
     db_password = config('DB_PASSWORD')
     db_host = config('DB_HOST')
     pagination_count = 10
+    max_pagination_limit = 200
     db_port = config('DB_PORT')
     debug = False if config('DEBUG') == 'False' else True

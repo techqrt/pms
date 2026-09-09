@@ -225,6 +225,7 @@ class Property(models.Model):
         max_rent=None,
         from_date=None,
         to_date=None,
+        unrestricted: bool = False,
     ) -> list:
         TYPE_ALIAS_TO_DB = {"Apartment": "Flat"}
         FEATURE_FILTERS = {
@@ -233,13 +234,16 @@ class Property(models.Model):
             "Pool": ~Q(propertydetail__swimming_pool="No") & Q(propertydetail__swimming_pool__isnull=False),
         }
 
-        data = Property.objects.filter(
-            is_active=True
-        ).filter(
-            Q(created_by__user_id=user_id) |
-            Q(assigned_to__user_id=user_id) |
-            Q(propertydetail__landlord__lead_id__user_id=user_id)
-        ).distinct()
+        data = Property.objects.filter(is_active=True)
+
+        # Marketing department users see every property (view-all rule); everyone
+        # else keeps the existing created/assigned/landlord-scoped visibility.
+        if not unrestricted:
+            data = data.filter(
+                Q(created_by__user_id=user_id) |
+                Q(assigned_to__user_id=user_id) |
+                Q(propertydetail__landlord__lead_id__user_id=user_id)
+            ).distinct()
 
         if filter_key and filter_value:
             data = data.filter(**{filter_key: filter_value})
