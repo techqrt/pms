@@ -65,6 +65,64 @@ class LeadCountBreakdownTests(TestCase):
         self.assertEqual(data["conversionRate"], 50.0)
 
 
+class LeadGetAssignedPropertyFieldTests(TestCase):
+    """lead/get/ must include a Tenant lead's currently assigned property
+    (via PropertyAssignment), or a blank object if none is assigned."""
+
+    def setUp(self):
+        self.creator = User.objects.create(name="Creator", phone_number="4100000000")
+
+        tenant_user = User.objects.create(name="No Property Tenant", phone_number="4100000001", department="Tenant")
+        self.unassigned_tenant = Lead.objects.create(
+            lead_id=tenant_user, first_name="No", last_name="Property", purpose="Tenant",
+        )
+
+        tenant_user2 = User.objects.create(name="Has Property Tenant", phone_number="4100000002", department="Tenant")
+        self.assigned_tenant = Lead.objects.create(
+            lead_id=tenant_user2, first_name="Has", last_name="Property", purpose="Tenant",
+        )
+        self.property = Property.objects.create(
+            rental_type="Flat", rental_for="Family", created_by=self.creator,
+            block="A", floor="2", flat_number=201,
+        )
+        PropertyAssignment.objects.create(property=self.property, tenant=self.assigned_tenant)
+
+        landlord_user = User.objects.create(name="Some Landlord", phone_number="4100000003", department="Landlord")
+        self.landlord = Lead.objects.create(
+            lead_id=landlord_user, first_name="Some", last_name="Landlord", purpose="Landlord",
+        )
+
+    def _client_for(self, user):
+        client = APIClient(HTTP_USER_AGENT="pytest")
+        client.force_authenticate(user=user)
+        return client
+
+    def test_tenant_with_no_assignment_gets_blank_property(self):
+        """A lead may always view their own record."""
+        response = self._client_for(self.unassigned_tenant.lead_id).get(
+            f"/lead/get/?lead_id={self.unassigned_tenant.lead_id_id}"
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["data"]["assignedProperty"], {})
+
+    def test_tenant_with_assignment_gets_property_details(self):
+        response = self._client_for(self.assigned_tenant.lead_id).get(
+            f"/lead/get/?lead_id={self.assigned_tenant.lead_id_id}"
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        assigned_property = response.data["data"]["assignedProperty"]
+        self.assertEqual(assigned_property["propertyId"], self.property.property_id)
+        self.assertEqual(assigned_property["block"], "A")
+        self.assertEqual(assigned_property["flatNumber"], 201)
+
+    def test_landlord_lead_gets_blank_property(self):
+        """assignedProperty is a Tenant-only concept; a Landlord lead always
+        gets a blank object regardless of any PropertyDetail ownership."""
+        response = self._client_for(self.landlord.lead_id).get(f"/lead/get/?lead_id={self.landlord.lead_id_id}")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["data"]["assignedProperty"], {})
+
+
 class LeadCreateRequestSerilizerTests(TestCase):
     """Validation tests for Create Lead: only first_name, last_name,
     phone_number (contact number), purpose (lead type) and lead_category
@@ -453,6 +511,56 @@ class ManagerAssignmentVisibilityTests(TestCase):
         manager_count = self._client_for(self.manager_user).get("/lead/count/")
         self.assertEqual(manager_count.status_code, 200, manager_count.data)
         self.assertGreaterEqual(manager_count.data["data"]["count"], 1)
+
+    def test_manager_can_reassign_lead_multiple_times(self):
+        """A Manager must be able to reassign a lead repeatedly - to another
+        Employee, and back to themself - not just assign it once."""
+        create_response = self._client_for(self.manager_user).post(
+            "/lead/create/",
+            data={
+                "first_name": "Reassign", "last_name": "Me", "phone_number": "3000000020",
+                "purpose": "Tenant", "lead_category": "Bachelor",
+                "lead_assign_to": {"user_id": self.assignee_employee.user_id},
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, 201, create_response.data)
+        lead_id = create_response.data["data"]["lead_id"]
+
+        # Reassign from assignee_employee -> other_employee.
+        reassign_response = self._client_for(self.manager_user).put(
+            "/lead/update/",
+            data={
+                "lead_id": lead_id,
+                "lead_assign_to": {"user_id": self.other_employee.user_id},
+                "permissions": {"property": True},
+            },
+            format="json",
+        )
+        self.assertEqual(reassign_response.status_code, 200, reassign_response.data)
+
+        other_view = self._client_for(self.other_employee).get(f"/lead/get/?lead_id={lead_id}")
+        self.assertEqual(other_view.status_code, 200, other_view.data)
+        assignee_view = self._client_for(self.assignee_employee).get(f"/lead/get/?lead_id={lead_id}")
+        self.assertEqual(assignee_view.status_code, 400, assignee_view.data)
+
+        # Reassign back to the Manager themself.
+        reassign_to_manager_response = self._client_for(self.manager_user).put(
+            "/lead/update/",
+            data={
+                "lead_id": lead_id,
+                "lead_assign_to": {"user_id": self.manager_user.user_id},
+                "permissions": {"property": True},
+            },
+            format="json",
+        )
+        self.assertEqual(reassign_to_manager_response.status_code, 200, reassign_to_manager_response.data)
+
+        manager_view = self._client_for(self.manager_user).get(f"/lead/get/?lead_id={lead_id}")
+        self.assertEqual(manager_view.status_code, 200, manager_view.data)
+
+        other_view_after = self._client_for(self.other_employee).get(f"/lead/get/?lead_id={lead_id}")
+        self.assertEqual(other_view_after.status_code, 400, other_view_after.data)
 
 
 class LeadSecurityRegressionTests(TestCase):

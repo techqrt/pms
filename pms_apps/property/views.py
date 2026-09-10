@@ -628,6 +628,10 @@ class PropertyView:
         landlord_assign_to_id = PropertyDetail.get_landlord_assignment_map([params.property_id]).get(params.property_id)
         property_dict['landlord'] = PropertyUtils.redact_landlord_for_employee(landlord, landlord_assign_to_id, params.user_id)
 
+        tenant = PropertyAssignment.get_current_tenants_map([params.property_id]).get(params.property_id)
+        tenant_assign_to_id = PropertyAssignment.get_tenant_assignment_map([params.property_id]).get(params.property_id)
+        property_dict['tenant'] = PropertyUtils.redact_landlord_for_employee(tenant, tenant_assign_to_id, params.user_id) or {}
+
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_get, data=property_dict)
