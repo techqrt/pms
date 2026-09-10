@@ -67,7 +67,7 @@ class JWTAuthentication(BaseAuthentication):
         path = request.path.lower().split('/')
         permissions = payload.get('permissions',{})
 
-        depeartment = payload.get('department').lower()
+        depeartment = (payload.get('department') or '').lower()
         if depeartment == 'tenant' or depeartment == 'landlord':
             depeartment = 'lead'
 
@@ -86,7 +86,10 @@ class JWTAuthentication(BaseAuthentication):
             'owner' : permissions.get('owner',False),
             'check-in check-out' : permissions.get('check-in check-out',False),
         }
-        permissions_mapping.pop(depeartment)
+        # A missing/unrecognized department (e.g. a User row edited via Django
+        # Admin with no department set) must not crash auth - just don't
+        # exempt any department from the checks below.
+        permissions_mapping.pop(depeartment, None)
 
         for key, value in permissions_mapping.items():
             if key in path:

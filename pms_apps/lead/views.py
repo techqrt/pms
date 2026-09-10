@@ -132,10 +132,14 @@ class LeadView:
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            # If marketing manager/employee (not the lead's own account), the
-            # lead must be assigned to them.
+            # A Manager may act on any lead assigned to them or to one of
+            # their Employees (so they can reassign it); an Employee (or a
+            # non-team caller) must be the lead's exact current assignee.
             if params.user_id != params.lead_id:
-                if lead_data.get('lead_assign_to__user_id') != params.user_id:
+                if manager_id:
+                    if lead_data.get('lead_assign_to__user_id') not in _assigned_to_ids_for_manager(params.user_id):
+                        raise ValueError("Not allowed to access this resource")
+                elif lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
 
             property_permission_id = None
@@ -210,10 +214,14 @@ class LeadView:
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=False)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            # If marketing manager/employee (not the lead's own account), the
-            # lead must be assigned to them.
+            # A Manager may act on any lead assigned to them or to one of
+            # their Employees; an Employee (or a non-team caller) must be
+            # the lead's exact current assignee.
             if params.user_id != params.lead_id:
-                if lead_data.get('lead_assign_to__user_id') != params.user_id:
+                if manager_id:
+                    if lead_data.get('lead_assign_to__user_id') not in _assigned_to_ids_for_manager(params.user_id):
+                        raise ValueError("Not allowed to access this resource")
+                elif lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
             Lead.remove(lead_id=lead_data.get('lead_id'))
 
@@ -232,10 +240,14 @@ class LeadView:
             lead_data = Lead.get(lead_id=params.lead_id, include_profile_image=True)
             if lead_data is None:
                 raise ValueError(self.data_no_match)
-            # If marketing manager/employee (not the lead's own account), the
-            # lead must be assigned to them.
+            # A Manager may act on any lead assigned to them or to one of
+            # their Employees; an Employee (or a non-team caller) must be
+            # the lead's exact current assignee.
             if params.user_id != params.lead_id:
-                if lead_data.get('lead_assign_to__user_id') != params.user_id:
+                if manager_id:
+                    if lead_data.get('lead_assign_to__user_id') not in _assigned_to_ids_for_manager(params.user_id):
+                        raise ValueError("Not allowed to access this resource")
+                elif lead_data.get('lead_assign_to__user_id') != params.user_id:
                     raise ValueError("Not allowed to access this resource")
 
             columns = [column for column in params.values.split(',') if column]
@@ -263,6 +275,25 @@ class LeadView:
                     profile_image_url = ImageUtils.get_photo_url(profile_image_value)
                     if profile_image_url:
                         data['profileImage'] = profile_image_url
+
+            # For Tenant leads, include their currently assigned property
+            # (latest non-terminal PropertyAssignment), blank if none.
+            data['assignedProperty'] = {}
+            if data.get('purpose') == 'Tenant':
+                from pms_apps.property.models.property_assignment import PropertyAssignment
+                assignment = PropertyAssignment.objects.filter(
+                    tenant_id=params.lead_id, is_active=True
+                ).exclude(assignment_status__in=["Completed", "Cancelled"]).select_related(
+                    'property'
+                ).order_by('-assigned_on').first()
+                if assignment:
+                    data['assignedProperty'] = {
+                        'propertyId': assignment.property.property_id,
+                        'block': assignment.property.block,
+                        'buildingDetails': assignment.property.building_details,
+                        'floor': assignment.property.floor,
+                        'flatNumber': assignment.property.flat_number,
+                    }
 
         return Response(
             status=status.HTTP_200_OK,

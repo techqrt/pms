@@ -627,3 +627,49 @@ class PropertyGetAllPaginationTests(TestCase):
             response = self._client().get("/property/get_all/?page_num=1&limit=999999999")
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(len(response.data["data"]["data"]), 2)
+
+
+class PropertyGetTenantFieldTests(TestCase):
+    """property/get/ must include the currently assigned tenant's basic
+    details (via PropertyAssignment), or a blank object if no tenant is
+    currently assigned."""
+
+    def setUp(self):
+        self.creator = User.objects.create(name="Creator", phone_number="7100000000")
+        self.property = Property.objects.create(rental_type="Flat", rental_for="Family", created_by=self.creator)
+        self.client_ = APIClient(HTTP_USER_AGENT="pytest")
+        self.client_.force_authenticate(user=self.creator)
+
+    def test_no_assignment_returns_blank_tenant(self):
+        response = self.client_.get(f"/property/get/?property_id={self.property.property_id}")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["data"]["tenant"], {})
+
+    def test_active_assignment_returns_tenant_details(self):
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+
+        tenant_user = User.objects.create(name="Tenant Person", phone_number="7100000001", department="Tenant")
+        tenant_lead = Lead.objects.create(
+            lead_id=tenant_user, first_name="Tenant", last_name="Person", purpose="Tenant",
+        )
+        PropertyAssignment.objects.create(property=self.property, tenant=tenant_lead)
+
+        response = self.client_.get(f"/property/get/?property_id={self.property.property_id}")
+        self.assertEqual(response.status_code, 200, response.data)
+        tenant = response.data["data"]["tenant"]
+        self.assertEqual(tenant["tenantId"], tenant_lead.lead_id_id)
+        self.assertEqual(tenant["firstName"], "Tenant")
+        self.assertEqual(tenant["phoneNumber"], "7100000001")
+
+    def test_completed_assignment_does_not_count_as_current_tenant(self):
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+
+        tenant_user = User.objects.create(name="Past Tenant", phone_number="7100000002", department="Tenant")
+        tenant_lead = Lead.objects.create(
+            lead_id=tenant_user, first_name="Past", last_name="Tenant", purpose="Tenant",
+        )
+        PropertyAssignment.objects.create(property=self.property, tenant=tenant_lead, assignment_status="Completed")
+
+        response = self.client_.get(f"/property/get/?property_id={self.property.property_id}")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["data"]["tenant"], {})

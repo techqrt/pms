@@ -507,6 +507,51 @@ class PropertyAssignment(models.Model):
         ).first()
 
     @staticmethod
+    def get_current_tenants_map(property_ids: list) -> dict:
+        """Bulk-fetch the current tenant's basic details per property_id (the
+        latest non-terminal assignment), keyed as {property_id: tenant_dict}.
+        A property with no current tenant is simply absent from the result."""
+        rows = PropertyAssignment.objects.filter(
+            property_id__in=property_ids, is_active=True
+        ).exclude(assignment_status__in=["Completed", "Cancelled"]).order_by(
+            'property_id', '-assigned_on'
+        ).values(
+            'property_id', 'tenant_id', 'tenant__first_name', 'tenant__last_name',
+            'tenant__lead_id__phone_number', 'tenant__lead_id__email',
+        )
+        result = {}
+        for row in rows:
+            pid = row['property_id']
+            if pid in result or not row['tenant_id']:
+                continue
+            result[pid] = {
+                'tenantId': row['tenant_id'],
+                'firstName': row.get('tenant__first_name'),
+                'lastName': row.get('tenant__last_name'),
+                'phoneNumber': row.get('tenant__lead_id__phone_number'),
+                'email': row.get('tenant__lead_id__email'),
+            }
+        return result
+
+    @staticmethod
+    def get_tenant_assignment_map(property_ids: list) -> dict:
+        """Bulk-fetch {property_id: current tenant's lead_assign_to_id}, used
+        to decide whether a Marketing Employee is the assigned handler for a
+        property's tenant (and therefore allowed to see their full contact
+        details)."""
+        rows = PropertyAssignment.objects.filter(
+            property_id__in=property_ids, is_active=True
+        ).exclude(assignment_status__in=["Completed", "Cancelled"]).order_by(
+            'property_id', '-assigned_on'
+        ).values('property_id', 'tenant__lead_assign_to_id')
+        result = {}
+        for row in rows:
+            pid = row['property_id']
+            if pid not in result:
+                result[pid] = row.get('tenant__lead_assign_to_id')
+        return result
+
+    @staticmethod
     def delete(property_assignment_id: int):
         """Soft delete assignment."""
         return PropertyAssignment.objects.filter(
