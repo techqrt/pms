@@ -6,4 +6,5 @@ urlpatterns = [
     path("login/", AuthController.login, name="login"),
     path("login-with-username/", AuthController.login_with_username, name="login_with_username"),
     path("verify-otp/", AuthController.verify_otp, name="verify_otp"),
+    path("me/", AuthController.me, name="me"),
 ]

@@ -2,7 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -69,3 +69,13 @@ class AuthController:
     @permission_classes([AllowAny])
     def verify_otp(request: Request) -> Response:
         return UserAuthView().verify_otp(params=request.data)
+
+    @extend_schema(
+        description="Get the authenticated user's own profile, regardless of department/role.",
+        responses=SwaggerPage.response(description="Caller's own profile"),
+        tags=["Authentication"],
+    )
+    @api_view(["GET"])
+    @permission_classes([IsAuthenticated])
+    def me(request: Request) -> Response:
+        return UserAuthView().me_extract(user_id=request.user.user_id)

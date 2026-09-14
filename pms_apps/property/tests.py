@@ -673,3 +673,73 @@ class PropertyGetTenantFieldTests(TestCase):
         response = self.client_.get(f"/property/get/?property_id={self.property.property_id}")
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data["data"]["tenant"], {})
+
+
+class PropertyCountOccupancyAlignmentTests(TestCase):
+    """/property/count/ and /property/occupancy/summary/ must always agree
+    on "how many properties does this caller see" - they previously used
+    different models/filters (Property.get_all_by_user, per-caller scoped,
+    vs an unconditional system-wide PropertyDetail query), giving different
+    totals for the same caller."""
+
+    def setUp(self):
+        lead_permission_id = LeadPermission().create(lead=True)
+        property_permission_id = PropertyPermission().create(property=True)
+
+        self.owner_a = User.objects.create(name="Owner A", phone_number="7200000001")
+        self.owner_b = User.objects.create(name="Owner B", phone_number="7200000002")
+
+        self.property_a = Property.objects.create(rental_type="Flat", rental_for="Family", created_by=self.owner_a)
+        landlord_user_a = User.objects.create(name="Landlord A", phone_number="7200000003", department="Landlord")
+        landlord_a = Lead.objects.create(lead_id=landlord_user_a, first_name="Landlord", last_name="A", purpose="Landlord")
+        PropertyDetail().create(
+            property_id=self.property_a.property_id, building_name="Building A",
+            monthly_rent=0, security_deposit_amount=0, late_fee_type="Day wise", late_fee_value=0,
+            current_status="Occupied", landlord_id=landlord_a.lead_id_id, created_by_id=self.owner_a.user_id,
+            address_line_1="", area_zone="", city="", state="", country="", pincode="",
+        )
+
+        self.property_b = Property.objects.create(rental_type="Flat", rental_for="Family", created_by=self.owner_b)
+        landlord_user_b = User.objects.create(name="Landlord B", phone_number="7200000004", department="Landlord")
+        landlord_b = Lead.objects.create(lead_id=landlord_user_b, first_name="Landlord", last_name="B", purpose="Landlord")
+        PropertyDetail().create(
+            property_id=self.property_b.property_id, building_name="Building B",
+            monthly_rent=0, security_deposit_amount=0, late_fee_type="Day wise", late_fee_value=0,
+            current_status="Vacant", landlord_id=landlord_b.lead_id_id, created_by_id=self.owner_b.user_id,
+            address_line_1="", area_zone="", city="", state="", country="", pincode="",
+        )
+
+        self.marketing_manager = User.objects.create(
+            name="Marketing Manager", phone_number="7200000005", department="Marketing", role="Manager"
+        )
+        MarketingManager().create(
+            manager_id=self.marketing_manager.user_id, name="Marketing Manager", dob=None, department="Marketing",
+            campaigns_led=0, team_size=0, lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+    def _client_for(self, user):
+        client = APIClient(HTTP_USER_AGENT="pytest")
+        client.force_authenticate(user=user)
+        return client
+
+    def test_scoped_caller_sees_matching_totals(self):
+        count_response = self._client_for(self.owner_a).get("/property/count/")
+        self.assertEqual(count_response.status_code, 200, count_response.data)
+        occupancy_response = self._client_for(self.owner_a).get("/property/occupancy/summary/")
+        self.assertEqual(occupancy_response.status_code, 200, occupancy_response.data)
+
+        self.assertEqual(count_response.data["data"]["count"], 1)
+        self.assertEqual(occupancy_response.data["data"]["totalProperties"], 1)
+        self.assertEqual(occupancy_response.data["data"]["rented"], 1)
+        self.assertEqual(occupancy_response.data["data"]["vacant"], 0)
+
+    def test_unrestricted_caller_sees_matching_totals(self):
+        count_response = self._client_for(self.marketing_manager).get("/property/count/")
+        self.assertEqual(count_response.status_code, 200, count_response.data)
+        occupancy_response = self._client_for(self.marketing_manager).get("/property/occupancy/summary/")
+        self.assertEqual(occupancy_response.status_code, 200, occupancy_response.data)
+
+        self.assertEqual(count_response.data["data"]["count"], 2)
+        self.assertEqual(occupancy_response.data["data"]["totalProperties"], 2)
+        self.assertEqual(occupancy_response.data["data"]["rented"], 1)
+        self.assertEqual(occupancy_response.data["data"]["vacant"], 1)

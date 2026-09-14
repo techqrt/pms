@@ -1,7 +1,9 @@
 import json
+import re
 
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -17,6 +19,7 @@ from pms_apps.checkin_checkout.dataclasses.requests.create_check_in import Check
 from pms_apps.checkin_checkout.dataclasses.requests.get_all_check_in import CheckInGetAllRequest
 from pms_apps.checkin_checkout.dataclasses.requests.get_check_in import CheckInGetRequest
 from pms_apps.checkin_checkout.dataclasses.requests.delete_check_in import CheckInDeleteRequest
+from pms_apps.checkin_checkout.dataclasses.requests.respond_check_in_request import CheckInRequestRespondRequest
 from pms_apps.checkin_checkout.dataclasses.requests.update_check_in import (
     CheckInInformationUpdateRequest,
     CheckInTenantDetailsUpdateRequest,
@@ -1093,6 +1096,116 @@ class CheckInView:
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(message=self.data_get, data=data)
+        )
+
+    @Common(response_handler=CheckInResponseGetAllSerializer).exception_handler
+    def get_pending_requests_extract(self, params: CheckInGetAllRequest):
+        """Check-In inquiries auto-routed from a property assignment that
+        nobody has accepted or rejected yet (Pending status, unclaimed).
+        Any Check-In Employee or Manager may view this pool."""
+        if get_check_in_check_out_role(params.user_id) is None:
+            raise ValueError("Not allowed to access this resource")
+
+        reversed_mapped = CheckInUtils.reverse_mapper([params.sort_by])
+
+        check_in_list = CheckIn.get_all(
+            sort_by=reversed_mapped.get(params.sort_by),
+            sort_order=params.sort_order,
+            status=["Pending"],
+            building=params.building,
+            unclaimed_only=True,
+            search_key=params.search_key,
+            from_date=params.from_date,
+            to_date=params.to_date,
+        )
+
+        pages = Paginator(check_in_list, per_page=params.limit)
+
+        if pages.num_pages < params.page_num:
+            raise ValueError('Page limit exceed!')
+
+        page_data = pages.page(params.page_num)
+        columns = [column for column in params.values.split(',') if column]
+
+        check_in_utils = CheckInUtils(columns_required=columns)
+        data = json.loads(check_in_utils.mapper(data=page_data))
+
+        data = Utils.add_page_parameter(
+            final_data=data,
+            page_num=params.page_num,
+            total_page=pages.num_pages,
+            present_url=params.present_url,
+            next_page_required=True if pages.num_pages != params.page_num else False
+        )
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(message=self.data_get, data=data)
+        )
+
+    @Common().exception_handler
+    def respond_to_request_extract(self, params: CheckInRequestRespondRequest):
+        """Accept or reject a Pending, unclaimed Check-In inquiry. Accepting
+        makes the caller the responsible assigned_employee and moves the
+        status to In Progress. Rejecting leaves it Pending/unclaimed so
+        another Check-In Employee or Manager can pick it up, recording the
+        decision in status_history (the existing convention for this model -
+        no separate audit table)."""
+        if get_check_in_check_out_role(params.user_id) is None:
+            raise ValueError("Not allowed to access this resource")
+
+        with transaction.atomic():
+            check_in = CheckIn.objects.select_for_update().filter(
+                check_in_id=params.check_in_id, is_active=True
+            ).first()
+            if not check_in:
+                raise ValueError(self.data_no_match)
+
+            if check_in.check_in_status != "Pending" or check_in.assigned_employee_id is not None:
+                raise ValueError("This check-in request has already been claimed or handled.")
+
+            # Accepting changes check_in_status/assigned_employee_id, so the
+            # guard above already catches a second accept. Rejecting leaves
+            # both unchanged by design (the item stays Pending/unclaimed for
+            # the next person), so that guard alone can't catch the *same*
+            # user double-submitting (double-click/retried request) landing
+            # moments after their own first response. Scoped to the same
+            # user only - a different user's legitimate response (e.g.
+            # Employee B accepting shortly after Employee A rejected) must
+            # never be blocked by this. The acting user is parsed out of the
+            # last status_history line rather than compared as a substring,
+            # since e.g. "user 3" is a substring of "user 33".
+            _RESPONSE_DEBOUNCE_SECONDS = 3
+            last_line = check_in.status_history.rsplit("\n", 1)[-1] if check_in.status_history else ""
+            last_actor_match = re.search(r"user (\d+)", last_line)
+            same_user_resubmit = (
+                last_actor_match is not None and int(last_actor_match.group(1)) == params.user_id
+            )
+            if (
+                same_user_resubmit
+                and check_in.updated_at
+                and (timezone.now() - check_in.updated_at).total_seconds() < _RESPONSE_DEBOUNCE_SECONDS
+            ):
+                raise ValueError("This check-in request has already been claimed or handled.")
+
+            if params.accept:
+                check_in.assigned_employee_id = params.user_id
+                check_in.check_in_status = "In Progress"
+                note = f"Pending -> In Progress (accepted by user {params.user_id})"
+            else:
+                note = f"Rejected by user {params.user_id}" + (
+                    f": {params.rejection_reason}" if params.rejection_reason else ""
+                )
+
+            check_in.status_history = f"{check_in.status_history}\n{note}" if check_in.status_history else note
+            check_in.save()
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data=Utils.success_response_data(
+                message="Check-in request accepted" if params.accept else "Check-in request rejected",
+                data={"check_in_id": check_in.check_in_id}
+            )
         )
 
     @Common().exception_handler
