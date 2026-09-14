@@ -204,10 +204,87 @@ class UserAuthView(APIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
     # ----------------------------------------------------
+    # GET /auth/me/ - generic, role-agnostic "who am I" profile
+    # ----------------------------------------------------
+    def me_extract(self, user_id: int):
+        """Returns the caller's own basic User fields plus their
+        department-specific profile, reusing each department's existing
+        Manager/Employee/Technician .get() method. Lives under /auth/,
+        which is exempt from JWTAuthentication's department-permission gate
+        entirely, so - unlike e.g. /marketing/manager/get/ - it can never
+        403 a user just for belonging to a different department."""
+        user_row = User.get(user_id=user_id)
+        if user_row is None:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={"error": "User not found."},
+            )
+
+        department = user_row.get('department')
+        role = user_row.get('role')
+
+        profile_map = {
+            ("Tenant", None): lambda: Lead.get(lead_id=user_id, include_profile_image=True),
+            ("Landlord", None): lambda: Lead.get(lead_id=user_id, include_profile_image=True),
+            ("Marketing", "Manager"): lambda: MarketingManager.get(manager_id=user_id),
+            ("Marketing", "Employee"): lambda: MarketingEmployee.get(employee_id=user_id),
+            ("Property", "Manager"): lambda: PropertyManager.get(manager_id=user_id),
+            ("Property", "Employee"): lambda: PropertyEmployee.get(employee_id=user_id),
+            ("Maintenance", "Manager"): lambda: MaintenanceManager.get(manager_id=user_id),
+            ("Maintenance", "Employee"): lambda: MaintenanceEmployee.get(employee_id=user_id),
+            ("Maintenance", "Technician"): lambda: MaintenanceTechnician.get(technician_id=user_id),
+            ("Reception", "Manager"): lambda: ReceptionManager.get(manager_id=user_id),
+            ("Reception", "Employee"): lambda: ReceptionEmployee.get(employee_id=user_id),
+            ("Finance", "Manager"): lambda: FinanceManager.get(manager_id=user_id),
+            ("Finance", "Employee"): lambda: FinanceEmployee.get(employee_id=user_id),
+            ("Collection", "Manager"): lambda: CollectionManager.get(manager_id=user_id),
+            ("Collection", "Employee"): lambda: CollectionEmployee.get(employee_id=user_id),
+            ("Legal", "Manager"): lambda: LegalManager.get(manager_id=user_id),
+            ("Legal", "Employee"): lambda: LegalEmployee.get(employee_id=user_id),
+            ("IT", "Manager"): lambda: ITManager.get(manager_id=user_id),
+            ("IT", "Employee"): lambda: ITEmployee.get(employee_id=user_id),
+            ("IT", "Technician"): lambda: ITTechnician.get(technician_id=user_id),
+            ("Check-In Check-Out", "Manager"): lambda: CheckInCheckOutManager.get(manager_id=user_id),
+            ("Check-In Check-Out", "Employee"): lambda: CheckInCheckOutEmployee.get(employee_id=user_id),
+            ("Owner", "Owner"): lambda: Owner.get(owner_id=user_id),
+            ("General Manager", "General Manager"): lambda: GeneralManager.get(general_manager_id=user_id),
+        }
+
+        profile_fn = profile_map.get((department, role))
+        profile = profile_fn() if profile_fn else None
+
+        return Response(
+            status=status.HTTP_200_OK,
+            data={
+                "userId": user_id,
+                "name": user_row.get('name'),
+                "phoneNumber": user_row.get('phone_number'),
+                "email": user_row.get('email'),
+                "department": department,
+                "role": role,
+                "profile": profile or {},
+            },
+        )
+
+    # ----------------------------------------------------
     # Module Instance Creation Logic (unchanged)
     # ----------------------------------------------------
     def _create_module_instance(self, user, role, module):
         """Creates the appropriate module model instance dynamically."""
+        from pms_apps.common.models.permissions import LeadPermission, PropertyPermission
+
+        def new_lead_permission_id():
+            # Every Manager/Employee gets their OWN permission record (never
+            # shared) so it can be edited independently later. Defaults to
+            # granted - a null record here previously meant the auth layer
+            # silently denied cross-department access the role legitimately
+            # needs (e.g. Check-In Check-Out staff reading Lead records),
+            # with no way to grant it after the fact for departments that
+            # have no update endpoint.
+            return LeadPermission.objects.create(lead=True).permission_id
+
+        def new_property_permission_id():
+            return PropertyPermission.objects.create(property=True).permission_id
 
         # Global roles
         if role == "Owner":
@@ -219,29 +296,34 @@ class UserAuthView(APIView):
 
         # Module-based role mapping
         module_map = {
-            "Tenant": lambda: Lead.objects.create(lead_id=user, purpose='Tenant'),
-            "Landlord": lambda: Lead.objects.create(lead_id=user, purpose='Landlord'),
+            "Tenant": lambda: Lead.objects.create(lead_id=user, purpose='Tenant', property_permissions_id=new_property_permission_id()),
+            "Landlord": lambda: Lead.objects.create(lead_id=user, purpose='Landlord', property_permissions_id=new_property_permission_id()),
             "HR": lambda: HREmployee.objects.create(hr_employee_id=user),
 
             "Marketing": lambda: (
-                MarketingManager.objects.create(manager_id=user)
+                MarketingManager.objects.create(manager_id=user, lead_permission_id=new_lead_permission_id(), property_permission_id=new_property_permission_id())
                 if role == "Manager"
-                else MarketingEmployee.objects.create(employee_id=user)
+                else MarketingEmployee.objects.create(employee_id=user, lead_permission_id=new_lead_permission_id(), property_permission_id=new_property_permission_id())
             ),
             "Property": lambda: (
                 PropertyManager.objects.create(manager_id=user)
                 if role == "Manager"
                 else PropertyEmployee.objects.create(employee_id=user)
             ),
+            # Maintenance's Manager/Employee/Technician models only have a
+            # property_permission field (no lead_permission at all).
             "Maintenance": lambda: (
-                MaintenanceManager.objects.create(manager_id=user)
+                MaintenanceManager.objects.create(manager_id=user, property_permission_id=new_property_permission_id())
                 if role == "Manager"
-                else MaintenanceEmployee.objects.create(employee_id=user)
+                else MaintenanceEmployee.objects.create(employee_id=user, property_permission_id=new_property_permission_id())
                 if role == "Employee"
-                else MaintenanceTechnician.objects.create(technician_id=user)
+                else MaintenanceTechnician.objects.create(technician_id=user, property_permission_id=new_property_permission_id())
                 if role == "Technician"
                 else None
             ),
+            # Reception/Finance/Collection/Legal/IT's Manager/Employee models
+            # have neither lead_permission nor property_permission fields at
+            # all - nothing to grant here.
             "Reception": lambda: (
                 ReceptionManager.objects.create(manager_id=user)
                 if role == "Manager"
@@ -262,6 +344,8 @@ class UserAuthView(APIView):
                 if role == "Manager"
                 else LegalEmployee.objects.create(employee_id=user)
             ),
+            # IT's Manager/Employee/Technician models have neither
+            # lead_permission nor property_permission fields at all.
             "IT": lambda: (
                 ITManager.objects.create(manager_id=user)
                 if role == "Manager"
@@ -272,9 +356,9 @@ class UserAuthView(APIView):
                 else None
             ),
             "Check-In Check-Out": lambda: (
-                CheckInCheckOutManager.objects.create(manager_id=user)
+                CheckInCheckOutManager.objects.create(manager_id=user, lead_permission_id=new_lead_permission_id(), property_permission_id=new_property_permission_id())
                 if role == "Manager"
-                else CheckInCheckOutEmployee.objects.create(employee_id=user)
+                else CheckInCheckOutEmployee.objects.create(employee_id=user, lead_permission_id=new_lead_permission_id(), property_permission_id=new_property_permission_id())
             ),
         }
 

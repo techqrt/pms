@@ -662,6 +662,7 @@ class CheckIn(models.Model):
         search_key: str = None,
         from_date=None,
         to_date=None,
+        unclaimed_only: bool = False,
     ) -> list:
         from django.db.models import Q
 
@@ -669,6 +670,13 @@ class CheckIn(models.Model):
 
         if status:
             query = query.filter(check_in_status__in=status)
+        if unclaimed_only:
+            query = query.filter(assigned_employee_id__isnull=True)
+            # A linked assignment that's since been Cancelled/Completed means
+            # this auto-routed inquiry is stale - don't let it sit claimable
+            # in the pool (BUG-001). Check-ins with no linked assignment (e.g.
+            # manually created) are unaffected - the exclude() no-ops on NULL.
+            query = query.exclude(property_assignment__assignment_status__in=["Cancelled", "Completed"])
         if assigned_employee_id:
             query = query.filter(assigned_employee_id__in=assigned_employee_id)
         if manager_approval:

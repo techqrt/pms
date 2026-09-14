@@ -3,6 +3,8 @@ from rest_framework.test import APIClient
 
 from pms_apps.authentication.models import User
 from pms_apps.property.models.property import Property
+from pms_apps.property.models.property_details import PropertyDetail
+from pms_apps.lead.models.lead import Lead
 from pms_apps.checkin_checkout.models.check_in import CheckIn
 from pms_apps.checkin_checkout.models.check_out import CheckOut
 from pms_apps.checkin_checkout.models.check_in_key import CheckInKey
@@ -453,6 +455,89 @@ class CheckInCheckOutStaffListingTests(TestCase):
         response = client.get("/checkin-checkout/employee/get_all/")
         self.assertEqual(response.status_code, 403)
 
+    def test_manager_can_grant_their_own_lead_permission(self):
+        """Frontend gap: Check-In/Check-Out staff had no way to be granted
+        lead-read access after registration, since this department had no
+        update endpoint at all - this is what unblocks it."""
+        response = self._client_for(self.manager_user).put(
+            "/checkin-checkout/manager/update/",
+            data={"manager_id": self.manager_user.user_id, "permissions": {"lead": True}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        manager = CheckInCheckOutManager.objects.get(manager_id=self.manager_user.user_id)
+        self.assertTrue(manager.lead_permission.lead)
+
+    def test_employee_can_grant_their_own_lead_permission(self):
+        response = self._client_for(self.employee_user).put(
+            "/checkin-checkout/employee/update/",
+            data={"employee_id": self.employee_user.user_id, "permissions": {"lead": True}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        employee = CheckInCheckOutEmployee.objects.get(employee_id=self.employee_user.user_id)
+        self.assertTrue(employee.lead_permission.lead)
+
+    def test_manager_cannot_update_another_managers_permissions(self):
+        other_manager_user = User.objects.create(
+            name="Other CICO Manager", phone_number="9700000003", department="Check-In Check-Out", role="Manager"
+        )
+        lead_permission_id = LeadPermission().create(lead=False)
+        property_permission_id = PropertyPermission().create(property=False)
+        CheckInCheckOutManager().create(
+            manager_id=other_manager_user.user_id, name="Other CICO Manager", dob=None,
+            department="Check-In Check-Out", team_size=0,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+        response = self._client_for(self.manager_user).put(
+            "/checkin-checkout/manager/update/",
+            data={"manager_id": other_manager_user.user_id, "permissions": {"lead": True}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        other_manager = CheckInCheckOutManager.objects.get(manager_id=other_manager_user.user_id)
+        self.assertFalse(other_manager.lead_permission.lead)
+
+    def test_lead_access_actually_unblocked_after_grant(self):
+        """End-to-end: before granting lead permission, /lead/get_all/ 403s
+        for a CICO manager with no lead permission yet; after granting it
+        via the new update endpoint, it works. Must use a real Bearer token
+        (not force_authenticate) since the 403 in question comes from
+        JWTAuthentication.validate_permissions, which force_authenticate
+        bypasses entirely."""
+        from pms_apps.authentication.utils import generate_jwt_token
+        from pms_apps.activity_log.middlewares.log_middleware import local
+        self.addCleanup(local.__dict__.clear)
+
+        no_lead_manager_user = User.objects.create(
+            name="No Lead CICO Manager", phone_number="9700000004", department="Check-In Check-Out", role="Manager"
+        )
+        CheckInCheckOutManager().create(
+            manager_id=no_lead_manager_user.user_id, name="No Lead CICO Manager", dob=None,
+            department="Check-In Check-Out", team_size=0,
+            lead_permission_id=LeadPermission().create(lead=False),
+            property_permission_id=PropertyPermission().create(property=True),
+        )
+
+        token = generate_jwt_token(no_lead_manager_user)
+        no_lead_manager_user.access_token = token
+        no_lead_manager_user.save()
+        client = APIClient(HTTP_USER_AGENT="pytest")
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        before = client.get("/lead/get_all/")
+        self.assertEqual(before.status_code, 403, before.data)
+
+        grant = client.put(
+            "/checkin-checkout/manager/update/",
+            data={"manager_id": no_lead_manager_user.user_id, "permissions": {"lead": True}},
+            format="json",
+        )
+        self.assertEqual(grant.status_code, 200, grant.data)
+
+        after = client.get("/lead/get_all/")
+        self.assertEqual(after.status_code, 200, after.data)
+
 
 class CheckInCheckOutCreateAutoAssignTests(TestCase):
     """GAP-014: creating a Check-In/Check-Out without assigned_employee_id
@@ -664,3 +749,354 @@ class CheckInCheckOutGetAllPaginationTests(TestCase):
         self.assertEqual(response.status_code, 400, response.data)
         self.assertEqual(response.data["message"], "Validation Error")
         self.assertIn("limit", response.data["error"][0])
+
+
+class CheckInAutoRoutingFromAssignmentTests(TestCase):
+    """A property assignment landing on the default Pending status should
+    auto-create an unclaimed Check-In inquiry (property/views.py
+    assign_extract); Check-In Employees/Managers see it via the pending
+    requests endpoint and accept/reject it via the respond endpoint."""
+
+    def setUp(self):
+        lead_permission_id = LeadPermission().create(lead=True)
+        property_permission_id = PropertyPermission().create(property=True)
+
+        self.manager_user = User.objects.create(
+            name="CICO Manager", phone_number="9900000001", department="Check-In Check-Out", role="Manager"
+        )
+        CheckInCheckOutManager().create(
+            manager_id=self.manager_user.user_id, name="CICO Manager", dob=None, department="Check-In Check-Out",
+            team_size=0, lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+        self.employee_user = User.objects.create(
+            name="CICO Employee", phone_number="9900000002", department="Check-In Check-Out", role="Employee"
+        )
+        CheckInCheckOutEmployee().create(
+            employee_id=self.employee_user.user_id, name="CICO Employee", dob=None, designation="",
+            department="Check-In Check-Out", manager_ref=self.manager_user.user_id,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+        self.other_employee_user = User.objects.create(
+            name="CICO Employee 2", phone_number="9900000003", department="Check-In Check-Out", role="Employee"
+        )
+        CheckInCheckOutEmployee().create(
+            employee_id=self.other_employee_user.user_id, name="CICO Employee 2", dob=None, designation="",
+            department="Check-In Check-Out", manager_ref=self.manager_user.user_id,
+            lead_permission_id=lead_permission_id, property_permission_id=property_permission_id,
+        )
+
+        self.assigner = User.objects.create(name="Assigner", phone_number="9900000004")
+        self.property = Property.objects.create(rental_type="Flat", rental_for="Family", created_by=self.assigner)
+
+        landlord_user = User.objects.create(name="Landlord", phone_number="9900000005", department="Landlord")
+        landlord = Lead.objects.create(
+            lead_id=landlord_user, first_name="Landlord", last_name="Person", purpose="Landlord",
+        )
+        PropertyDetail().create(
+            property_id=self.property.property_id, building_name="Test Building",
+            monthly_rent=0, security_deposit_amount=0, late_fee_type="Day wise", late_fee_value=0,
+            current_status="Vacant", landlord_id=landlord.lead_id_id, created_by_id=self.assigner.user_id,
+            address_line_1="", area_zone="", city="", state="", country="", pincode="",
+        )
+
+        tenant_user = User.objects.create(name="Tenant", phone_number="9900000006", department="Tenant")
+        self.tenant = Lead.objects.create(
+            lead_id=tenant_user, first_name="Test", last_name="Tenant", purpose="Tenant",
+            lead_assign_to=self.assigner,
+        )
+
+    def _client_for(self, user):
+        client = APIClient(HTTP_USER_AGENT="pytest")
+        client.force_authenticate(user=user)
+        return client
+
+    def _assign_property(self):
+        return self._client_for(self.assigner).post(
+            "/property/assign/",
+            data={
+                "property_id": self.property.property_id, "tenant_id": self.tenant.lead_id_id,
+                "assigned_by_id": self.assigner.user_id,
+            },
+            format="json",
+        )
+
+    def test_assigning_property_auto_creates_unclaimed_check_in(self):
+        response = self._assign_property()
+        self.assertEqual(response.status_code, 200, response.data)
+        assignment_id = response.data["data"]["property_assignment_id"]
+
+        check_in = CheckIn.objects.get(property_assignment_id=assignment_id)
+        self.assertIsNone(check_in.assigned_employee_id)
+        self.assertEqual(check_in.check_in_status, "Pending")
+        self.assertEqual(check_in.tenant_id, self.tenant.lead_id_id)
+
+    def test_unclaimed_check_in_appears_in_pending_requests(self):
+        self._assign_property()
+        response = self._client_for(self.employee_user).get("/checkin-checkout/check_in/requests/pending/")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data["data"]["data"]), 1)
+
+    def test_unclaimed_check_in_not_in_normal_employee_get_all(self):
+        self._assign_property()
+        response = self._client_for(self.employee_user).get("/checkin-checkout/check_in/get_all/")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data["data"]["data"]), 0)
+
+    def test_employee_can_accept_pending_request(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        response = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+
+        check_in = CheckIn.objects.get(check_in_id=check_in_id)
+        self.assertEqual(check_in.assigned_employee_id, self.employee_user.user_id)
+        self.assertEqual(check_in.check_in_status, "In Progress")
+
+    def test_debounce_blocks_same_user_immediate_resubmit(self):
+        """The debounce is meant to catch a double-click/retry from the same
+        user, not block a different user's legitimate response."""
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        first = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "reject": True},
+            format="json",
+        )
+        self.assertEqual(first.status_code, 200, first.data)
+
+        # Same user immediately re-submitting the identical action.
+        retry = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "reject": True},
+            format="json",
+        )
+        self.assertEqual(retry.status_code, 400, retry.data)
+        self.assertIn("already been claimed or handled", retry.data["error"][0])
+
+    def test_debounce_does_not_block_different_user_immediate_response(self):
+        """Regression for the bug found in QA: a different user's legitimate
+        accept, arriving moments after another user's reject, must succeed -
+        the debounce must be scoped to the SAME user, not any two responses
+        on the record within the window."""
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        reject = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "reject": True},
+            format="json",
+        )
+        self.assertEqual(reject.status_code, 200, reject.data)
+
+        # A DIFFERENT user, immediately after - must not be debounced.
+        accept = self._client_for(self.other_employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(accept.status_code, 200, accept.data)
+
+    def test_second_accept_after_claim_is_rejected(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        second = self._client_for(self.other_employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(second.status_code, 400, second.data)
+
+    def test_employee_can_reject_and_it_stays_claimable(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        response = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "reject": True, "rejection_reason": "Not my area"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+
+        check_in = CheckIn.objects.get(check_in_id=check_in_id)
+        self.assertIsNone(check_in.assigned_employee_id)
+        self.assertEqual(check_in.check_in_status, "Pending")
+        self.assertIn("Rejected by user", check_in.status_history)
+        self.assertIn("Not my area", check_in.status_history)
+
+        accept_response = self._client_for(self.other_employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(accept_response.status_code, 200, accept_response.data)
+
+    def test_manager_can_accept_pending_request(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        response = self._client_for(self.manager_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+
+    def test_non_check_in_role_user_cannot_respond(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        outsider = User.objects.create(name="Outsider", phone_number="9900000007")
+        response = self._client_for(outsider).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+
+    def test_accept_and_reject_both_true_is_rejected(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        response = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True, "reject": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+
+    def test_assignment_with_non_pending_status_does_not_auto_create_check_in(self):
+        """The trigger fires only when the assignment lands on Pending
+        (confirmed answer) - an assignment explicitly created at a later
+        status should not auto-route an inquiry."""
+        response = self._client_for(self.assigner).post(
+            "/property/assign/",
+            data={
+                "property_id": self.property.property_id, "tenant_id": self.tenant.lead_id_id,
+                "assigned_by_id": self.assigner.user_id, "assignment_status": "Approved",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertFalse(CheckIn.objects.filter(tenant_id=self.tenant.lead_id_id).exists())
+
+    def test_accepted_check_in_no_longer_appears_in_pending_requests(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+
+        response = self._client_for(self.other_employee_user).get("/checkin-checkout/check_in/requests/pending/")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(response.data["data"]["data"]), 0)
+
+    def test_manager_can_reject_pending_request(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        response = self._client_for(self.manager_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "reject": True, "rejection_reason": "Reassign to specialist"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+
+        check_in = CheckIn.objects.get(check_in_id=check_in_id)
+        self.assertIsNone(check_in.assigned_employee_id)
+        self.assertEqual(check_in.check_in_status, "Pending")
+
+    def test_non_check_in_role_user_cannot_view_pending_requests(self):
+        self._assign_property()
+        outsider = User.objects.create(name="Outsider Viewer", phone_number="9900000008")
+
+        response = self._client_for(outsider).get("/checkin-checkout/check_in/requests/pending/")
+        self.assertEqual(response.status_code, 400, response.data)
+
+    def test_respond_to_nonexistent_check_in_id_errors(self):
+        response = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": 999999, "accept": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+
+    def test_cancelled_assignment_check_in_excluded_from_pending_pool(self):
+        """BUG-001 regression: once the linked PropertyAssignment is
+        Cancelled, its auto-routed, still-unclaimed CheckIn must not remain
+        visible/acceptable in the pending pool."""
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+
+        response = self._assign_property()
+        assignment_id = response.data["data"]["property_assignment_id"]
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        PropertyAssignment.update(property_assignment_id=assignment_id, assignment_status="Cancelled")
+
+        pending = self._client_for(self.employee_user).get("/checkin-checkout/check_in/requests/pending/")
+        self.assertEqual(pending.status_code, 200, pending.data)
+        ids_in_pool = [row["checkInId"] for row in pending.data["data"]["data"]]
+        self.assertNotIn(check_in_id, ids_in_pool)
+
+        # Still not acceptable via the respond endpoint either (belt and
+        # braces - the pool exclusion is the primary fix, but accept should
+        # still be attempted safely if someone has a stale link open).
+        respond = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "accept": True},
+            format="json",
+        )
+        self.assertEqual(respond.status_code, 200, respond.data)
+
+    def test_completed_assignment_check_in_excluded_from_pending_pool(self):
+        from pms_apps.property.models.property_assignment import PropertyAssignment
+
+        response = self._assign_property()
+        assignment_id = response.data["data"]["property_assignment_id"]
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        PropertyAssignment.update(property_assignment_id=assignment_id, assignment_status="Completed")
+
+        pending = self._client_for(self.employee_user).get("/checkin-checkout/check_in/requests/pending/")
+        self.assertEqual(pending.status_code, 200, pending.data)
+        ids_in_pool = [row["checkInId"] for row in pending.data["data"]["data"]]
+        self.assertNotIn(check_in_id, ids_in_pool)
+
+    def test_active_assignment_check_in_still_in_pending_pool(self):
+        """Sanity check the exclusion is scoped correctly - a live (Pending)
+        assignment's check-in must still appear."""
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        pending = self._client_for(self.employee_user).get("/checkin-checkout/check_in/requests/pending/")
+        ids_in_pool = [row["checkInId"] for row in pending.data["data"]["data"]]
+        self.assertIn(check_in_id, ids_in_pool)
+
+    def test_reject_reason_is_optional(self):
+        self._assign_property()
+        check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
+
+        response = self._client_for(self.employee_user).patch(
+            "/checkin-checkout/check_in/requests/respond/",
+            data={"check_in_id": check_in_id, "reject": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        check_in = CheckIn.objects.get(check_in_id=check_in_id)
+        self.assertIn("Rejected by user", check_in.status_history)

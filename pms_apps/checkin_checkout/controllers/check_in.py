@@ -51,6 +51,7 @@ from pms_apps.checkin_checkout.serializers.requests.update_check_in_key import (
     CheckInKeyDeleteSerializer,
 )
 from pms_apps.checkin_checkout.serializers.requests.delete_check_in import CheckInDeleteSerializer
+from pms_apps.checkin_checkout.serializers.requests.respond_check_in_request import CheckInRequestRespondSerializer
 from pms_apps.checkin_checkout.serializers.response.get import CheckInResponseGetSerializer
 from pms_apps.checkin_checkout.serializers.response.get_all import CheckInResponseGetAllSerializer
 from pms_apps.checkin_checkout.views.check_in import CheckInView
@@ -109,6 +110,38 @@ class CheckInViewController:
     @SerializerValidations(serializer=CheckInGetAllSerializer).validate
     def get_all(request: Request) -> Response:
         return CheckInView().get_all_extract(params=request.params)
+
+    @extend_schema(
+        description="Get pending Check-In requests auto-routed from property assignments that "
+                     "nobody has accepted or rejected yet - filter by building, search, and date range",
+        parameters=[
+            OpenApiParameter(name='values', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='page_num', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='limit', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_by', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='sort_order', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='search_key', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='building', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='from_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='to_date', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ],
+        responses=SwaggerPage.response(description=CheckInView().data_get, response=CheckInResponseGetAllSerializer)
+    )
+    @api_view(["GET"])
+    @SerializerValidations(serializer=CheckInGetAllSerializer).validate
+    def get_pending_requests(request: Request) -> Response:
+        return CheckInView().get_pending_requests_extract(params=request.params)
+
+    @extend_schema(
+        description="Accept or reject a pending, unclaimed Check-In request. Set exactly one of "
+                     "accept/reject to true; accepting makes the caller the assigned employee.",
+        request=CheckInRequestRespondSerializer,
+        responses=SwaggerPage.response(description=CheckInView().data_update)
+    )
+    @api_view(["PATCH"])
+    @SerializerValidations(serializer=CheckInRequestRespondSerializer).validate
+    def respond_to_request(request: Request) -> Response:
+        return CheckInView().respond_to_request_extract(params=request.params)
 
     @extend_schema(
         description="Delete a Check-In",

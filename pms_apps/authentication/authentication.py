@@ -62,6 +62,29 @@ class JWTAuthentication(BaseAuthentication):
 
         return user, payload 
     
+    # Each department's URL segment (pms/urls.py) - kept as an explicit
+    # mapping rather than derived from the department string, because two of
+    # them ("General Manager" -> general-manager/, "Check-In Check-Out" ->
+    # checkin-checkout/) don't reduce to their URL segment via a simple
+    # lowercase/space-to-hyphen transform. Using this same table for both the
+    # "is this the user's own department" exemption and the path-match below
+    # guarantees the two can never drift out of sync again.
+    DEPARTMENT_URL_SEGMENTS = {
+        'lead': 'lead',
+        'property': 'property',
+        'marketing': 'marketing',
+        'maintenance': 'maintenance',
+        'reception': 'reception',
+        'finance': 'finance',
+        'collection': 'collection',
+        'legal': 'legal',
+        'it': 'it',
+        'general manager': 'general-manager',
+        'hr': 'hr',
+        'owner': 'owner',
+        'check-in check-out': 'checkin-checkout',
+    }
+
     def validate_permissions(self, request, payload) -> bool:
 
         path = request.path.lower().split('/')
@@ -72,28 +95,17 @@ class JWTAuthentication(BaseAuthentication):
             depeartment = 'lead'
 
         permissions_mapping = {
-            'lead' : permissions.get('lead',False),
-            'property': permissions.get('property',False),
-            'marketing' : permissions.get('marketing',False),
-            'maintenance' : permissions.get('maintenance',False),
-            'reception' : permissions.get('reception',False),
-            'finance' : permissions.get('finance',False),
-            'collection' : permissions.get('collection',False),
-            'legal' : permissions.get('legal',False),
-            'it' : permissions.get('it',False),
-            'general manager' : permissions.get('general manager',False),
-            'hr' : permissions.get('hr',False),
-            'owner' : permissions.get('owner',False),
-            'check-in check-out' : permissions.get('check-in check-out',False),
+            self.DEPARTMENT_URL_SEGMENTS[department_key]: permissions.get(department_key, False)
+            for department_key in self.DEPARTMENT_URL_SEGMENTS
         }
         # A missing/unrecognized department (e.g. a User row edited via Django
         # Admin with no department set) must not crash auth - just don't
         # exempt any department from the checks below.
-        permissions_mapping.pop(depeartment, None)
+        permissions_mapping.pop(self.DEPARTMENT_URL_SEGMENTS.get(depeartment), None)
 
         for key, value in permissions_mapping.items():
             if key in path:
-                    if not value: 
+                    if not value:
                         return False
 
         return True

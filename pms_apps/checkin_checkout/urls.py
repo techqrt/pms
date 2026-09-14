@@ -11,6 +11,8 @@ from pms_apps.checkin_checkout.controllers.staff import CheckInCheckOutStaffView
 urlpatterns = [
     path("manager/get_all/", CheckInCheckOutStaffViewController.get_all_manager, name="get_all_check_in_check_out_manager"),
     path("employee/get_all/", CheckInCheckOutStaffViewController.get_all_employee, name="get_all_check_in_check_out_employee"),
+    path("manager/update/", CheckInCheckOutStaffViewController.update_manager, name="update_check_in_check_out_manager"),
+    path("employee/update/", CheckInCheckOutStaffViewController.update_employee, name="update_check_in_check_out_employee"),
 
     path("dashboard/summary/", DashboardViewController.summary, name="checkin_checkout_dashboard_summary"),
     path("dashboard/pending_settlements/", DashboardViewController.pending_settlements, name="checkin_checkout_dashboard_pending_settlements"),
@@ -25,6 +27,8 @@ urlpatterns = [
     path("check_in/create/", CheckInViewController.create, name="create_check_in"),
     path("check_in/get/", CheckInViewController.get, name="get_check_in"),
     path("check_in/get_all/", CheckInViewController.get_all, name="get_all_check_in"),
+    path("check_in/requests/pending/", CheckInViewController.get_pending_requests, name="get_pending_check_in_requests"),
+    path("check_in/requests/respond/", CheckInViewController.respond_to_request, name="respond_check_in_request"),
     path("check_in/delete/", CheckInViewController.delete, name="delete_check_in"),
     path("check_in/update/information/", CheckInViewController.update_information, name="update_check_in_information"),
     path("check_in/update/tenant_details/", CheckInViewController.update_tenant_details, name="update_check_in_tenant_details"),

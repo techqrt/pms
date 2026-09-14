@@ -825,8 +825,17 @@ class PropertyView:
     def occupancy_summary_extract(self, params: GetAll):
         from django.db.models import Count
 
-        detail_query = PropertyDetail.objects.filter(property__is_active=True)
-        total_properties = detail_query.count()
+        # Same source of truth and scoping as /property/count/, so the two
+        # never disagree on "how many properties does this caller see" for
+        # the same caller.
+        property_list = Property.get_all_by_user(
+            user_id=params.user_id,
+            unrestricted=PropertyUtils.get_marketing_role(params.user_id) is not None,
+        )
+        property_ids = [prop['property_id'] for prop in property_list]
+        total_properties = len(property_ids)
+
+        detail_query = PropertyDetail.objects.filter(property_id__in=property_ids)
 
         status_counts = dict(
             detail_query.values("current_status").annotate(count=Count("property_detail_id"))
@@ -1219,7 +1228,28 @@ class PropertyView:
             property_detail.current_tenant = params.tenant_id
             property_detail.current_status = "Booked"
             property_detail.save()
-        
+
+            # Auto-route a Check-In inquiry to the Check-In team as soon as a
+            # fresh (Pending) assignment is made, reusing the same creation
+            # logic the manual Check-In flow uses - but left unclaimed
+            # (assigned_employee_id=None) so any Check-In Employee/Manager
+            # can accept it, instead of defaulting to the creator.
+            if params.assignment_status == "Pending":
+                from pms_apps.checkin_checkout.models.check_in import CheckIn
+
+                has_check_in = CheckIn.objects.filter(
+                    property_assignment_id=assignment_id, is_active=True
+                ).exists()
+                if not has_check_in:
+                    CheckIn().create(
+                        property_id=property_detail.property_id,
+                        created_by=params.assigned_by_id,
+                        property_assignment_id=assignment_id,
+                        tenant_id=params.tenant_id,
+                        assigned_employee_id=None,
+                        check_in_status="Pending",
+                    )
+
         return Response(
             status=status.HTTP_200_OK,
             data=Utils.success_response_data(
