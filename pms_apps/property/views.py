@@ -1229,12 +1229,14 @@ class PropertyView:
             property_detail.current_status = "Booked"
             property_detail.save()
 
-            # Auto-route a Check-In inquiry to the Check-In team as soon as a
-            # fresh (Pending) assignment is made, reusing the same creation
-            # logic the manual Check-In flow uses - but left unclaimed
-            # (assigned_employee_id=None) so any Check-In Employee/Manager
-            # can accept it, instead of defaulting to the creator.
-            if params.assignment_status == "Pending":
+            # Auto-route a Check-In inquiry to the Check-In team as soon as
+            # the assignment is made Active (Marketing's real assign flow
+            # sends this status, not the Pending default), reusing the same
+            # creation logic the manual Check-In flow uses - but left
+            # unclaimed (assigned_employee_id=None) so any Check-In
+            # Employee/Manager can accept it, instead of defaulting to the
+            # creator.
+            if params.assignment_status == "Active":
                 from pms_apps.checkin_checkout.models.check_in import CheckIn
 
                 has_check_in = CheckIn.objects.filter(

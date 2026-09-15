@@ -813,11 +813,14 @@ class CheckInAutoRoutingFromAssignmentTests(TestCase):
         return client
 
     def _assign_property(self):
+        # Mirrors the real Marketing assign flow, which sends assignment_status
+        # explicitly as "Active" (not the Pending default) - that's the actual
+        # trigger condition for auto-routing a Check-In inquiry.
         return self._client_for(self.assigner).post(
             "/property/assign/",
             data={
                 "property_id": self.property.property_id, "tenant_id": self.tenant.lead_id_id,
-                "assigned_by_id": self.assigner.user_id,
+                "assigned_by_id": self.assigner.user_id, "assignment_status": "Active",
             },
             format="json",
         )
@@ -978,20 +981,30 @@ class CheckInAutoRoutingFromAssignmentTests(TestCase):
         )
         self.assertEqual(response.status_code, 400, response.data)
 
-    def test_assignment_with_non_pending_status_does_not_auto_create_check_in(self):
-        """The trigger fires only when the assignment lands on Pending
-        (confirmed answer) - an assignment explicitly created at a later
-        status should not auto-route an inquiry."""
-        response = self._client_for(self.assigner).post(
-            "/property/assign/",
-            data={
-                "property_id": self.property.property_id, "tenant_id": self.tenant.lead_id_id,
-                "assigned_by_id": self.assigner.user_id, "assignment_status": "Approved",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 200, response.data)
-        self.assertFalse(CheckIn.objects.filter(tenant_id=self.tenant.lead_id_id).exists())
+    def test_assignment_with_non_active_status_does_not_auto_create_check_in(self):
+        """The trigger fires only when the assignment lands on Active
+        (confirmed answer) - an assignment left at its Pending default, or
+        explicitly created at any other status, should not auto-route an
+        inquiry."""
+        for status_value in (None, "Approved", "Completed", "Cancelled"):
+            with self.subTest(status_value=status_value):
+                tenant_user = User.objects.create(
+                    name=f"NonActive Tenant {status_value}", phone_number=f"990000{hash(status_value) % 10000:04d}",
+                    department="Tenant",
+                )
+                tenant = Lead.objects.create(
+                    lead_id=tenant_user, first_name="NonActive", last_name="Tenant",
+                    purpose="Tenant", lead_assign_to=self.assigner,
+                )
+                data = {
+                    "property_id": self.property.property_id, "tenant_id": tenant.lead_id_id,
+                    "assigned_by_id": self.assigner.user_id,
+                }
+                if status_value is not None:
+                    data["assignment_status"] = status_value
+                response = self._client_for(self.assigner).post("/property/assign/", data=data, format="json")
+                self.assertEqual(response.status_code, 200, response.data)
+                self.assertFalse(CheckIn.objects.filter(tenant_id=tenant.lead_id_id).exists())
 
     def test_accepted_check_in_no_longer_appears_in_pending_requests(self):
         self._assign_property()
@@ -1078,9 +1091,10 @@ class CheckInAutoRoutingFromAssignmentTests(TestCase):
         ids_in_pool = [row["checkInId"] for row in pending.data["data"]["data"]]
         self.assertNotIn(check_in_id, ids_in_pool)
 
-    def test_active_assignment_check_in_still_in_pending_pool(self):
-        """Sanity check the exclusion is scoped correctly - a live (Pending)
-        assignment's check-in must still appear."""
+    def test_live_assignment_check_in_still_in_pending_pool(self):
+        """Sanity check the Cancelled/Completed exclusion is scoped
+        correctly - a live (Active) assignment's check-in must still appear
+        unclaimed in the pool."""
         self._assign_property()
         check_in_id = CheckIn.objects.get(tenant_id=self.tenant.lead_id_id).check_in_id
 
