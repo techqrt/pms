@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from pms_apps.common.dataclasses.request.permission import Permissions
 from pms_apps.lead.dataclasses.request.create import LeadCreateRequest
+from pms_apps.lead.models.lead import Lead
 from pms_apps.property.serializers.fields import Base64ImageField
 
 class PropertyPermissionRequestSerilizer(serializers.Serializer):
@@ -71,8 +72,8 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
         allow_null = True,
         allow_blank = True
     )
-    purpose = serializers.CharField(
-        max_length = 10
+    purpose = serializers.ChoiceField(
+        choices=Lead.PURPOSE_CHOICES
     )
     po_box = serializers.CharField(
         max_length = 20,

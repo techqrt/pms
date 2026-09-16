@@ -3,6 +3,7 @@ from pms_apps.lead.serilizers.request.create import UserRequestSerilizer,Country
 from pms_apps.lead.dataclasses.request.update import LeadUpdateRequest
 from pms_apps.lead.serilizers.request.create import PropertyPermissionRequestSerilizer
 from pms_apps.lead.dataclasses.request.update import PropertyPermissionUpdateRequest
+from pms_apps.lead.models.lead import Lead
 from pms_apps.property.serializers.fields import Base64ImageField
 from pms_apps.common.sentinels import NOT_PROVIDED
 
@@ -41,8 +42,8 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
         allow_null = True,
         allow_blank = True
     )
-    purpose = serializers.CharField(
-        max_length = 10,required=False
+    purpose = serializers.ChoiceField(
+        choices=Lead.PURPOSE_CHOICES, required=False
     )
     po_box = serializers.CharField(
         max_length = 20,
