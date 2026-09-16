@@ -54,7 +54,7 @@ class BuildingUpdateSerializer(serializers.Serializer):
     power_backup = serializers.BooleanField(required=False, allow_null=True)
 
     commercial_category = serializers.ChoiceField(
-        choices=["Shop", "Office", "Showroom", "Godown", "Industrial Unit"],
+        choices=["Shop", "Office", "Showroom", "Godown", "Industrial Unit", "Residential / Commercial"],
         required=False, allow_null=True
     )
     lift_type = serializers.ChoiceField(

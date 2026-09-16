@@ -61,7 +61,7 @@ class BuildingCreateSerializer(serializers.Serializer):
 
     # Commercial-specific (commercial_category required when property_type == "Commercial")
     commercial_category = serializers.ChoiceField(
-        choices=["Shop", "Office", "Showroom", "Godown", "Industrial Unit"],
+        choices=["Shop", "Office", "Showroom", "Godown", "Industrial Unit", "Residential / Commercial"],
         required=False, allow_null=True
     )
     lift_type = serializers.ChoiceField(
