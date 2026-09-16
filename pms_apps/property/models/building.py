@@ -28,6 +28,7 @@ class Building(models.Model):
         ("Showroom", "Showroom"),
         ("Godown", "Godown"),
         ("Industrial Unit", "Industrial Unit"),
+        ("Residential / Commercial", "Residential / Commercial"),
     ]
     LIFT_TYPE_CHOICES = [
         ("Passenger", "Passenger"),

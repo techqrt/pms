@@ -180,6 +180,7 @@ class PropertyDetail(models.Model):
         ("Showroom", "Showroom"),
         ("Godown", "Godown"),
         ("Industrial Unit", "Industrial Unit"),
+        ("Residential / Commercial", "Residential / Commercial"),
     ]
 
     commercial_category = models.CharField(

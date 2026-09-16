@@ -78,7 +78,7 @@ class PropertyCommonDataSerializer(serializers.Serializer):
 
 class CommercialPropertySerializer(serializers.Serializer):
     commercial_category = serializers.ChoiceField(
-        choices=["Shop", "Office", "Showroom", "Godown", "Industrial Unit"]
+        choices=["Shop", "Office", "Showroom", "Godown", "Industrial Unit", "Residential / Commercial"]
     )
     floor_number = serializers.IntegerField(required=False, allow_null=True)
     frontage_width_ft = serializers.DecimalField(
