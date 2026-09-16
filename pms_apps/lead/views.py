@@ -29,6 +29,19 @@ def _percentage(part: int, total: int) -> float:
     return round((part / total) * 100, 2) if total else 0.0
 
 
+def _normalize_purpose(purpose) -> str:
+    """Case-insensitive match against Lead.PURPOSE_CHOICES, returning the
+    canonical ("Tenant"/"Landlord") value - defense in depth for any
+    pre-existing/legacy row whose purpose wasn't stored in that exact
+    casing (the write path now enforces it via ChoiceField, but old rows
+    predate that). Falls back to the raw value if it doesn't match either."""
+    normalized = (purpose or "").strip().lower()
+    for choice, _ in Lead.PURPOSE_CHOICES:
+        if choice.lower() == normalized:
+            return choice
+    return purpose
+
+
 def _restricted_manager_id(user_id: int):
     """Marketing and Check-In Check-Out are the two departments whose tenant/
     landlord (Lead) access is scoped by assignment (lead_assign_to). Returns
@@ -279,7 +292,7 @@ class LeadView:
             # For Tenant leads, include their currently assigned property
             # (latest non-terminal PropertyAssignment), blank if none.
             data['assignedProperty'] = {}
-            if data.get('purpose') == 'Tenant':
+            if _normalize_purpose(data.get('purpose')) == 'Tenant':
                 from pms_apps.property.models.property_assignment import PropertyAssignment
                 assignment = PropertyAssignment.objects.filter(
                     tenant_id=params.lead_id, is_active=True
@@ -424,7 +437,7 @@ class LeadView:
             tenant_ids = set()
             landlord_ids = set()
             for lead in lead_list:
-                purpose = lead.get('purpose')
+                purpose = _normalize_purpose(lead.get('purpose'))
                 if purpose in by_purpose:
                     by_purpose[purpose] += 1
                 if purpose == 'Tenant':
