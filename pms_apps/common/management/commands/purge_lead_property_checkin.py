@@ -20,7 +20,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--yes", action="store_true",
-            help="Skip the confirmation prompt and delete immediately.",
+            help="Required to actually delete. Without it, only the counts are shown.",
         )
 
     def handle(self, *args, **kwargs):
@@ -39,13 +39,10 @@ class Command(BaseCommand):
             return
 
         if not kwargs["yes"]:
-            confirm = input(
-                "This will permanently delete ALL Lead, Property and CheckIn/CheckOut "
-                "records (and their cascaded children). Type 'yes' to continue: "
-            )
-            if confirm.strip().lower() != "yes":
-                self.stdout.write(self.style.WARNING("Aborted."))
-                return
+            self.stdout.write(self.style.WARNING(
+                "Dry run only - nothing deleted. Re-run with --yes to actually delete."
+            ))
+            return
 
         with transaction.atomic():
             # Property cascades to PropertyDetail, PropertyPhotos, PropertyAssignment,
