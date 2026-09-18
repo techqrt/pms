@@ -10,5 +10,5 @@ class MarketingEmployeeUpdateRequest:
     department: str
     campaigns_assigned: int
     leads_generated: int
-    manager_ref: int
-    permissions: MarketingPermissionUpdateRequest
+    manager_ref: int | None = None
+    permissions: MarketingPermissionUpdateRequest | None = None
