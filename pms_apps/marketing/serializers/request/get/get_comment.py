@@ -12,6 +12,13 @@ class MarketingCommentGetAllRequestSerializer(GetAllSerializer):
     target_type = serializers.ChoiceField(choices=['tenant', 'landlord'], required=True)
     target_id = serializers.IntegerField(required=True)
 
+    def to_internal_value(self, data):
+        # Normalize case (e.g. 'Tenant'/'Landlord' from Lead.purpose) to match the choices
+        if 'target_type' in data and isinstance(data['target_type'], str):
+            data = data.copy()
+            data['target_type'] = data['target_type'].lower()
+        return super().to_internal_value(data)
+
     def create(self, validated_data) -> GetAll:
         # Extract custom fields before passing to GetAll
         validated_data.pop('target_type', None)

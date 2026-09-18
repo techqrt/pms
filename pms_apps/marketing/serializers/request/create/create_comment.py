@@ -8,6 +8,13 @@ class MarketingCommentCreateRequestSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=5000)
     parentCommentId = serializers.IntegerField(required=False, allow_null=True)
 
+    def to_internal_value(self, data):
+        # Normalize case (e.g. 'Tenant'/'Landlord' from Lead.purpose) to match the choices
+        if 'targetType' in data and isinstance(data['targetType'], str):
+            data = data.copy()
+            data['targetType'] = data['targetType'].lower()
+        return super().to_internal_value(data)
+
     def create(self, validated_data) -> MarketingCommentCreateRequest:
         return MarketingCommentCreateRequest(
             target_type=validated_data['targetType'],
