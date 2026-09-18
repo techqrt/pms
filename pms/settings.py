@@ -192,6 +192,10 @@ CSRF_TRUSTED_ORIGINS = [
     "https://checkour.work",
     "http://falw.checkour.work",
     "https://falw.checkour.work",
+    "http://essdemo.alwijha.net",
+    "https://essdemo.alwijha.net",
+    "http://erp.alwijha.net",
+    "https://erp.alwijha.net",
 
 ]
 
@@ -201,7 +205,11 @@ SESSION_COOKIE_SECURE = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://falw.checkour.work",
-    "https://falw.checkour.work"
+    "https://falw.checkour.work",
+    "http://essdemo.alwijha.net",
+    "https://essdemo.alwijha.net",
+    "http://erp.alwijha.net",
+    "https://erp.alwijha.net"
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
