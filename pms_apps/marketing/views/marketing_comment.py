@@ -70,12 +70,13 @@ class MarketingCommentView:
     @Common(response_handler=MarketingCommentGetAllResponseSerializer).exception_handler
     def get_all_comments_extract(self, target_type: str, target_id: int, page: int = 1, page_size: int = 10):
         """Get all comments for a specific target"""
+        target_type = target_type.lower() if isinstance(target_type, str) else target_type
         with transaction.atomic():
             # Validate target user exists
             target_user = User.objects.filter(user_id=target_id).first()
             if not target_user:
                 raise ValueError("Target user not found")
-            
+
             # Validate target_type
             if target_type not in ['tenant', 'landlord']:
                 raise ValueError("Invalid target type. Must be 'tenant' or 'landlord'")
