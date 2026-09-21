@@ -229,6 +229,7 @@ class PropertyView:
                     'lock_in_period_months': params.commercial_data.lock_in_period_months,
                     'allowed_business': params.commercial_data.allowed_business,
                     'prohibited_business': params.commercial_data.prohibited_business,
+                    'allowed_business_other': params.commercial_data.allowed_business_other,
                     'maintenance_charge_amount': params.commercial_data.maintenance_charge_amount,
                     'electricity_charge_amount': params.commercial_data.electricity_charge_amount,
                     'water_charge_amount': params.commercial_data.water_charge_amount,
@@ -532,7 +533,7 @@ class PropertyView:
                 'parking_availability', 'commercial_maintenance_charge_type',
                 'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount',
                 'gst_applicable', 'gst_percentage', 'security_deposit_months', 'lease_type',
-                'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business',
+                'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business', 'allowed_business_other',
                 'pantry', 'store_room', 'facing', 'kitchen_type'
             ]
             property_dict['commercialData'] = {self._to_camel_case(k): detail_dict.get(k) for k in commercial_fields if k in detail_dict}

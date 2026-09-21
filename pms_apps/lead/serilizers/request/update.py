@@ -11,10 +11,10 @@ class LeadUpdateRequestSerilizer(serializers.Serializer):
     lead_id = serializers.IntegerField()
     lead_assign_to = UserRequestSerilizer(required=False)
     first_name = serializers.CharField(
-        max_length = 15,required=False
+        max_length = 100,required=False
     )
     last_name = serializers.CharField(
-        max_length = 15,required=False
+        max_length = 100,required=False
     )
     lead_origin = serializers.CharField(
         max_length = 20,

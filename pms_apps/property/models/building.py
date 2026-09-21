@@ -34,11 +34,13 @@ class Building(models.Model):
         ("Passenger", "Passenger"),
         ("Goods", "Goods"),
         ("Both", "Both"),
+        ("No Lift", "No Lift"),
     ]
     PARKING_AVAILABILITY_CHOICES = [
         ("Open", "Open"),
         ("Covered", "Covered"),
         ("Both", "Both"),
+        ("No Parking", "No Parking"),
     ]
     WAREHOUSE_CATEGORY_CHOICES = [
         ("Industrial Warehouse", "Industrial Warehouse"),

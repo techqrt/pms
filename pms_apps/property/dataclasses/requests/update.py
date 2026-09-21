@@ -63,6 +63,7 @@ class CommercialPropertyUpdateData:
     lock_in_period_months: Optional[int] = None
     allowed_business: Optional[str] = None
     prohibited_business: Optional[str] = None
+    allowed_business_other: Optional[str] = None
     pantry: Optional[bool] = None
     store_room: Optional[bool] = None
 
