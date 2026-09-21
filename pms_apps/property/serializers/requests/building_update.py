@@ -58,12 +58,12 @@ class BuildingUpdateSerializer(serializers.Serializer):
         required=False, allow_null=True
     )
     lift_type = serializers.ChoiceField(
-        choices=["Passenger", "Goods", "Both"], required=False, allow_null=True
+        choices=["Passenger", "Goods", "Both", "No Lift"], required=False, allow_null=True
     )
     fire_safety_compliant = serializers.BooleanField(required=False, allow_null=True)
     emergency_exit = serializers.BooleanField(required=False, allow_null=True)
     parking_availability = serializers.ChoiceField(
-        choices=["Open", "Covered", "Both"], required=False, allow_null=True
+        choices=["Open", "Covered", "Both", "No Parking"], required=False, allow_null=True
     )
     cctv = serializers.BooleanField(required=False, allow_null=True)
 

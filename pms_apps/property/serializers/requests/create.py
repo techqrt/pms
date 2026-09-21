@@ -90,19 +90,19 @@ class CommercialPropertySerializer(serializers.Serializer):
     no_of_cabins = serializers.IntegerField(required=False, allow_null=True)
     no_of_washrooms = serializers.IntegerField(required=False, allow_null=True)
     loading_area = serializers.ChoiceField(
-        choices=["Warehouse", "Godown"], required=False, allow_null=True
+        choices=["Warehouse", "Godown", "Parking"], required=False, allow_null=True
     )
     power_load_kw = serializers.DecimalField(
         max_digits=6, decimal_places=2, required=False, allow_null=True
     )
     has_dg_backup = serializers.BooleanField(required=False, allow_null=True, default=False)
     lift_type = serializers.ChoiceField(
-        choices=["Passenger", "Goods", "Both"], required=False, allow_null=True
+        choices=["Passenger", "Goods", "Both", "No Lift"], required=False, allow_null=True
     )
     fire_safety_compliant = serializers.BooleanField(required=False, allow_null=True, default=False)
     emergency_exit = serializers.BooleanField(required=False, allow_null=True, default=False)
     parking_availability = serializers.ChoiceField(
-        choices=["Open", "Covered", "Both"], required=False, allow_null=True
+        choices=["Open", "Covered", "Both", "No Parking"], required=False, allow_null=True
     )
     commercial_maintenance_charge_type = serializers.ChoiceField(
         choices=["Monthly", "Per SqFt"], required=False, allow_null=True
@@ -128,6 +128,7 @@ class CommercialPropertySerializer(serializers.Serializer):
     lock_in_period_months = serializers.IntegerField(required=False, allow_null=True)
     allowed_business = serializers.CharField(required=False, allow_null=True)
     prohibited_business = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    allowed_business_other = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     cctv = serializers.BooleanField(required=False, allow_null=True, default=False)
     super_builtup_area_sqft = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
@@ -340,7 +341,7 @@ class WarehousePropertySerializer(serializers.Serializer):
         choices=["Months", "Amount"], required=False, allow_null=True
     )
     loading_area = serializers.ChoiceField(
-        choices=["Warehouse", "Godown"], required=False, allow_null=True
+        choices=["Warehouse", "Godown", "Parking"], required=False, allow_null=True
     )
     carpet_area_sqft = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True

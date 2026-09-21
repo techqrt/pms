@@ -29,10 +29,10 @@ class LeadCreateRequestSerilizer(serializers.Serializer):
         allow_null = True
     )
     first_name = serializers.CharField(
-        max_length = 15
+        max_length = 100
     )
     last_name = serializers.CharField(
-        max_length = 15
+        max_length = 100
     )
     phone_number = serializers.CharField(
         max_length = 20

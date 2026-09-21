@@ -72,6 +72,7 @@ class CommercialPropertyData:
     lock_in_period_months: int | None = None
     allowed_business: str | None = None
     prohibited_business: str | None = None
+    allowed_business_other: str | None = None
     cctv: bool | None = None
     super_builtup_area_sqft: Decimal | None = None
     pantry: bool | None = None

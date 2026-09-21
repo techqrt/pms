@@ -206,6 +206,7 @@ class PropertyDetail(models.Model):
     LOADING_AREA_CHOICES = [
     ("Warehouse", "Warehouse"),
     ("Godown", "Godown"),
+    ("Parking", "Parking"),
     ]
     loading_area = models.CharField(
         max_length=12,
@@ -223,6 +224,7 @@ class PropertyDetail(models.Model):
         ("Passenger", "Passenger"),
         ("Goods", "Goods"),
         ("Both", "Both"),
+        ("No Lift", "No Lift"),
     ]
     lift_type = models.CharField(
         max_length=20,
@@ -235,6 +237,7 @@ class PropertyDetail(models.Model):
         ("Open", "Open"),
         ("Covered", "Covered"),
         ("Both", "Both"),
+        ("No Parking", "No Parking"),
     ]
     parking_availability = models.CharField(
         max_length=20,
@@ -281,6 +284,7 @@ class PropertyDetail(models.Model):
 
     allowed_business = models.TextField(null=True,)
     prohibited_business = models.TextField(null=True,blank=True)
+    allowed_business_other = models.TextField(null=True, blank=True)
 
     #flat
     building_block = models.CharField(
@@ -781,6 +785,7 @@ class PropertyDetail(models.Model):
         lock_in_period_months: int = None,
         allowed_business: str = None,
         prohibited_business: str = None,
+        allowed_business_other: str = None,
         # Villa-specific fields
         villa_name: str = None,
         villa_type: str = None,
@@ -951,6 +956,7 @@ class PropertyDetail(models.Model):
             lock_in_period_months=lock_in_period_months,
             allowed_business=allowed_business,
             prohibited_business=prohibited_business,
+            allowed_business_other=allowed_business_other,
             # Villa fields
             villa_name=villa_name,
             villa_type=villa_type,
