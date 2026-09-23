@@ -322,6 +322,7 @@ class WarehousePropertySerializer(serializers.Serializer):
     allowed_industry_types = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True
     )
+    allowed_industry_types_other = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     industrial_estate_name = serializers.CharField(max_length=150, required=False, allow_null=True)
     plot_shed_number = serializers.CharField(max_length=100, required=False, allow_null=True)
     ownership_type = serializers.ChoiceField(

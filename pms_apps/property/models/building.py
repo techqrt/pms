@@ -153,6 +153,7 @@ class Building(models.Model):
     has_drainage_system = models.BooleanField(default=False, null=True)
     has_internet_fiber = models.BooleanField(default=False, null=True)
     allowed_industry_types = models.JSONField(default=list, blank=True)
+    allowed_industry_types_other = models.TextField(null=True, blank=True)
 
     # Shared between Commercial and Warehouse
     power_load_kw = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
@@ -240,6 +241,7 @@ class Building(models.Model):
         has_drainage_system: bool = None,
         has_internet_fiber: bool = None,
         allowed_industry_types: list = None,
+        allowed_industry_types_other: str = None,
         power_load_kw: float = None,
         has_dg_backup: bool = None,
         address_line_2: str = None,
@@ -294,6 +296,7 @@ class Building(models.Model):
         self.has_drainage_system = has_drainage_system
         self.has_internet_fiber = has_internet_fiber
         self.allowed_industry_types = allowed_industry_types or []
+        self.allowed_industry_types_other = allowed_industry_types_other
         self.power_load_kw = power_load_kw
         self.has_dg_backup = has_dg_backup
         self.address_line_1 = address_line_1
@@ -360,6 +363,7 @@ class Building(models.Model):
         has_drainage_system: bool = None,
         has_internet_fiber: bool = None,
         allowed_industry_types: list = None,
+        allowed_industry_types_other: str = None,
         power_load_kw: float = None,
         has_dg_backup: bool = None,
         address_line_1: str = None,
@@ -471,6 +475,8 @@ class Building(models.Model):
             building.has_internet_fiber = has_internet_fiber
         if allowed_industry_types is not None:
             building.allowed_industry_types = allowed_industry_types
+        if allowed_industry_types_other is not None:
+            building.allowed_industry_types_other = allowed_industry_types_other
         if power_load_kw is not None:
             building.power_load_kw = power_load_kw
         if has_dg_backup is not None:
@@ -514,7 +520,7 @@ class Building(models.Model):
             'commercial_category', 'lift_type', 'power_supply', 'fire_safety_compliant', 'emergency_exit',
             'parking_availability', 'cctv',
             'warehouse_category', 'industrial_estate_name', 'ownership_type', 'has_transformer',
-            'water_supply_source', 'has_drainage_system', 'has_internet_fiber', 'allowed_industry_types',
+            'water_supply_source', 'has_drainage_system', 'has_internet_fiber', 'allowed_industry_types', 'allowed_industry_types_other',
             'power_load_kw', 'has_dg_backup',
             'address_line_1', 'address_line_2', 'area_zone', 'city', 'state', 'country',
             'pincode', 'google_map_location', 'internal_notes',
@@ -546,7 +552,7 @@ class Building(models.Model):
             'commercial_category', 'lift_type', 'power_supply', 'fire_safety_compliant', 'emergency_exit',
             'parking_availability', 'cctv',
             'warehouse_category', 'industrial_estate_name', 'ownership_type', 'has_transformer',
-            'water_supply_source', 'has_drainage_system', 'has_internet_fiber', 'allowed_industry_types',
+            'water_supply_source', 'has_drainage_system', 'has_internet_fiber', 'allowed_industry_types', 'allowed_industry_types_other',
             'power_load_kw', 'has_dg_backup',
             'address_line_1', 'address_line_2', 'area_zone', 'city', 'state', 'country',
             'pincode', 'google_map_location', 'internal_notes',

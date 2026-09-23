@@ -88,6 +88,7 @@ class BuildingUpdateSerializer(serializers.Serializer):
     allowed_industry_types = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True
     )
+    allowed_industry_types_other = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     power_load_kw = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
     has_dg_backup = serializers.BooleanField(required=False, allow_null=True)

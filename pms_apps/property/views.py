@@ -313,6 +313,7 @@ class PropertyView:
                     'rent_escalation_percentage': params.warehouse_data.rent_escalation_percentage,
                     'lock_in_period_months': params.warehouse_data.lock_in_period_months,
                     'allowed_industry_types': params.warehouse_data.allowed_industry_types,
+                    'allowed_industry_types_other': params.warehouse_data.allowed_industry_types_other,
                     'maintenance_charges': params.warehouse_data.maintenance_charges,
                     'cam_charges': params.warehouse_data.cam_charges,
                     'security_deposit_type': params.warehouse_data.security_deposit_type,
@@ -560,7 +561,7 @@ class PropertyView:
                 'office_space_area_sqft', 'has_transformer', 'water_supply_source', 'has_drainage_system',
                 'has_internet_fiber', 'entry_gate_width_ft', 'road_width_ft', 'truck_parking_capacity',
                 'container_access', 'turning_radius', 'has_weighbridge_nearby', 'monthly_rent_type',
-                'rent_escalation_percentage', 'lock_in_period_months', 'allowed_industry_types',
+                'rent_escalation_percentage', 'lock_in_period_months', 'allowed_industry_types', 'allowed_industry_types_other',
                 'maintenance_charges', 'cam_charges', 'security_deposit_type', 'security_deposit_months',
                 'has_dg_backup', 'power_load_kw', 'plot_area_sqft', 'loading_area',
                 'facing', 'kitchen_type'

@@ -57,6 +57,7 @@ class BuildingCreateRequest:
     has_drainage_system: bool | None = None
     has_internet_fiber: bool | None = None
     allowed_industry_types: list | None = None
+    allowed_industry_types_other: str | None = None
     power_load_kw: float | None = None
     has_dg_backup: bool | None = None
     address_line_2: str | None = None

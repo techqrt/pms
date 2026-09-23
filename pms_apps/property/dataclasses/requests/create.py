@@ -189,6 +189,7 @@ class WarehousePropertyData:
     rent_escalation_percentage: Decimal | None = None
     lock_in_period_months: int | None = None
     allowed_industry_types: List[str] | None = None
+    allowed_industry_types_other: str | None = None
     industrial_estate_name: str | None = None
     plot_shed_number: str | None = None
     ownership_type: str | None = None

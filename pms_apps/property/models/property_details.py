@@ -666,6 +666,7 @@ class PropertyDetail(models.Model):
         null=True,
         blank=True
     )
+    allowed_industry_types_other = models.TextField(null=True, blank=True)
     
     maintenance_charges = models.DecimalField(
         max_digits=12,
@@ -854,6 +855,7 @@ class PropertyDetail(models.Model):
         monthly_rent_type: str = None,
         rent_escalation_percentage: float = None,
         allowed_industry_types: list = None,
+        allowed_industry_types_other: str = None,
         maintenance_charges: float = None,
         cam_charges: float = None,
         security_deposit_type: str = None,
@@ -1026,6 +1028,7 @@ class PropertyDetail(models.Model):
             monthly_rent_type=monthly_rent_type,
             rent_escalation_percentage=rent_escalation_percentage,
             allowed_industry_types=allowed_industry_types or [],
+            allowed_industry_types_other=allowed_industry_types_other,
             maintenance_charges=maintenance_charges,
             cam_charges=cam_charges,
             security_deposit_type=security_deposit_type,
