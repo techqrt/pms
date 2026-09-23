@@ -78,19 +78,22 @@ class CommercialPropertyUpdateSerializer(serializers.Serializer):
     no_of_cabins = serializers.IntegerField(required=False, allow_null=True)
     no_of_washrooms = serializers.IntegerField(required=False, allow_null=True)
     loading_area = serializers.ChoiceField(
-        choices=["Warehouse", "Godown"], required=False, allow_null=True
+        choices=["Warehouse", "Godown", "Parking"], required=False, allow_null=True
     )
     power_load_kw = serializers.DecimalField(
         max_digits=6, decimal_places=2, required=False, allow_null=True
     )
     has_dg_backup = serializers.BooleanField(required=False, allow_null=True)
     lift_type = serializers.ChoiceField(
-        choices=["Passenger", "Goods", "Both"], required=False, allow_null=True
+        choices=["Passenger", "Goods", "Both", "No Lift"], required=False, allow_null=True
+    )
+    power_supply = serializers.ChoiceField(
+        choices=["Single-Phase", "Three-Phase"], required=False, allow_null=True
     )
     fire_safety_compliant = serializers.BooleanField(required=False, allow_null=True)
     emergency_exit = serializers.BooleanField(required=False, allow_null=True)
     parking_availability = serializers.ChoiceField(
-        choices=["Open", "Covered", "Both"], required=False, allow_null=True
+        choices=["Open", "Covered", "Both", "No Parking"], required=False, allow_null=True
     )
     commercial_maintenance_charge_type = serializers.ChoiceField(
         choices=["Monthly", "Per SqFt"], required=False, allow_null=True
@@ -116,6 +119,7 @@ class CommercialPropertyUpdateSerializer(serializers.Serializer):
     lock_in_period_months = serializers.IntegerField(required=False, allow_null=True)
     allowed_business = serializers.CharField(required=False, allow_null=True)
     prohibited_business = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    allowed_business_other = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     pantry = serializers.BooleanField(required=False, allow_null=True)
     store_room = serializers.BooleanField(required=False, allow_null=True)
 
@@ -232,7 +236,7 @@ class PropertyUpdateSerializer(serializers.Serializer):
     dimension_length_ft = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     dimension_breadth_ft = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     dimension_area_sqft = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
-    rental_type = serializers.ChoiceField(choices=["Flat", "Commercial", "Villa"], required=False, allow_null=True)
+    rental_type = serializers.ChoiceField(choices=["Flat", "Commercial", "Villa", "Warehouse", "Residential / Commercial"], required=False, allow_null=True)
     rental_for = serializers.ChoiceField(choices=["Bachelor", "Family", "Labour"], required=False, allow_null=True)
     advance_amount_rent = serializers.IntegerField(required=False, allow_null=True)
     expected_rent = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)

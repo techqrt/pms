@@ -48,6 +48,7 @@ class CommercialPropertyUpdateData:
     power_load_kw: Optional[Decimal] = None
     has_dg_backup: Optional[bool] = None
     lift_type: Optional[str] = None
+    power_supply: Optional[str] = None
     fire_safety_compliant: Optional[bool] = None
     emergency_exit: Optional[bool] = None
     parking_availability: Optional[str] = None

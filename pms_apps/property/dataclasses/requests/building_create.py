@@ -43,6 +43,7 @@ class BuildingCreateRequest:
     power_backup: bool | None = None
     commercial_category: str | None = None
     lift_type: str | None = None
+    power_supply: str | None = None
     fire_safety_compliant: bool | None = None
     emergency_exit: bool | None = None
     parking_availability: str | None = None

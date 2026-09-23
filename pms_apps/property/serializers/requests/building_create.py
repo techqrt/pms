@@ -7,7 +7,7 @@ from pms_apps.property.serializers.fields import Base64ImageField
 class BuildingCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
     property_type = serializers.ChoiceField(
-        choices=["Flat", "Commercial", "Villa", "Warehouse"],
+        choices=["Flat", "Commercial", "Villa", "Warehouse", "Residential / Commercial"],
         help_text="Locks which unit rental_type may be created under this building."
     )
     block = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
@@ -66,6 +66,9 @@ class BuildingCreateSerializer(serializers.Serializer):
     )
     lift_type = serializers.ChoiceField(
         choices=["Passenger", "Goods", "Both", "No Lift"], required=False, allow_null=True
+    )
+    power_supply = serializers.ChoiceField(
+        choices=["Single-Phase", "Three-Phase"], required=False, allow_null=True
     )
     fire_safety_compliant = serializers.BooleanField(required=False, allow_null=True, default=False)
     emergency_exit = serializers.BooleanField(required=False, allow_null=True, default=False)

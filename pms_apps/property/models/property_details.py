@@ -220,6 +220,10 @@ class PropertyDetail(models.Model):
     )
     has_dg_backup = models.BooleanField(default=False,null=True)
 
+    POWER_SUPPLY_CHOICES = [
+        ("Single-Phase", "Single-Phase"),
+        ("Three-Phase", "Three-Phase"),
+    ]
     LIFT_TYPE_CHOICES = [
         ("Passenger", "Passenger"),
         ("Goods", "Goods"),
@@ -229,6 +233,10 @@ class PropertyDetail(models.Model):
     lift_type = models.CharField(
         max_length=20,
         choices=LIFT_TYPE_CHOICES,null=True
+    )
+    power_supply = models.CharField(
+        max_length=20,
+        choices=POWER_SUPPLY_CHOICES, null=True, blank=True
     )
     fire_safety_compliant = models.BooleanField(default=False,null=True)
     emergency_exit = models.BooleanField(default=False,null=True)
@@ -773,6 +781,7 @@ class PropertyDetail(models.Model):
         power_load_kw: float = None,
         has_dg_backup: bool = None,
         lift_type: str = None,
+        power_supply: str = None,
         fire_safety_compliant: bool = None,
         emergency_exit: bool = None,
         parking_availability: str = None,
@@ -944,6 +953,7 @@ class PropertyDetail(models.Model):
             power_load_kw=power_load_kw,
             has_dg_backup=has_dg_backup,
             lift_type=lift_type,
+            power_supply=power_supply,
             fire_safety_compliant=fire_safety_compliant,
             emergency_exit=emergency_exit,
             parking_availability=parking_availability,

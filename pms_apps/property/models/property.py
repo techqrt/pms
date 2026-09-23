@@ -9,7 +9,8 @@ class Property(models.Model):
         ("Flat", "Flat"),
         ("Commercial", "Commercial"),
         ("Villa","Villa"),
-        ("Warehouse", "Warehouse")
+        ("Warehouse", "Warehouse"),
+        ("Residential / Commercial", "Residential / Commercial")
     ]
 
     RENTAL_FOR_CHOICES = [
@@ -32,7 +33,7 @@ class Property(models.Model):
     dimension_breadth_ft = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     dimension_area_sqft = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
-    rental_type = models.CharField(max_length=20, choices=RENTAL_TYPE_CHOICES, default="Residential")
+    rental_type = models.CharField(max_length=25, choices=RENTAL_TYPE_CHOICES, default="Residential")
 
     rental_for = models.CharField(max_length=20, choices=RENTAL_FOR_CHOICES, default="Family")
 
