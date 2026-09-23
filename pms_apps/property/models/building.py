@@ -81,6 +81,7 @@ class Building(models.Model):
     )
     block = models.CharField(max_length=50, null=True, blank=True)
     total_floors = models.PositiveIntegerField(null=True, blank=True)
+    number_of_units = models.PositiveIntegerField(null=True, blank=True)
     year_of_construction = models.PositiveIntegerField(null=True, blank=True)
 
     # Building-level common facilities/amenities, e.g. ["Parking", "Lift", "CCTV"]
@@ -196,6 +197,7 @@ class Building(models.Model):
         pincode: str,
         block: str = None,
         total_floors: int = None,
+        number_of_units: int = None,
         year_of_construction: int = None,
         facilities: list = None,
         rental_purpose: str = None,
@@ -249,6 +251,7 @@ class Building(models.Model):
         self.property_type = property_type
         self.block = block
         self.total_floors = total_floors
+        self.number_of_units = number_of_units
         self.year_of_construction = year_of_construction
         self.facilities = facilities or []
         self.rental_purpose = rental_purpose
@@ -314,6 +317,7 @@ class Building(models.Model):
         property_type: str = None,
         block: str = None,
         total_floors: int = None,
+        number_of_units: int = None,
         year_of_construction: int = None,
         facilities: list = None,
         rental_purpose: str = None,
@@ -381,6 +385,8 @@ class Building(models.Model):
             building.block = block
         if total_floors is not None:
             building.total_floors = total_floors
+        if number_of_units is not None:
+            building.number_of_units = number_of_units
         if year_of_construction is not None:
             building.year_of_construction = year_of_construction
         if facilities is not None:
@@ -498,7 +504,7 @@ class Building(models.Model):
             building_id=building_id,
             is_active=True
         ).values(
-            'building_id', 'name', 'property_type', 'block', 'total_floors', 'year_of_construction',
+            'building_id', 'name', 'property_type', 'block', 'total_floors', 'number_of_units', 'year_of_construction',
             'facilities', 'rental_purpose', 'allowed_tenant_types',
             'parking', 'lift', 'security', 'gas_pipeline', 'water_supply', 'intercom', 'fire_safety',
             'project_name', 'private_garden', 'private_parking', 'swimming_pool', 'terrace_access',
@@ -530,7 +536,7 @@ class Building(models.Model):
         data = data.order_by("-created_at")
 
         return list(data.values(
-            'building_id', 'name', 'property_type', 'block', 'total_floors', 'year_of_construction',
+            'building_id', 'name', 'property_type', 'block', 'total_floors', 'number_of_units', 'year_of_construction',
             'facilities', 'rental_purpose', 'allowed_tenant_types',
             'parking', 'lift', 'security', 'gas_pipeline', 'water_supply', 'intercom', 'fire_safety',
             'project_name', 'private_garden', 'private_parking', 'swimming_pool', 'terrace_access',
