@@ -12,6 +12,7 @@ class BuildingCreateSerializer(serializers.Serializer):
     )
     block = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
     total_floors = serializers.IntegerField(required=False, allow_null=True)
+    number_of_units = serializers.IntegerField(required=False, allow_null=True)
     year_of_construction = serializers.IntegerField(required=False, allow_null=True)
 
     facilities = serializers.ListField(

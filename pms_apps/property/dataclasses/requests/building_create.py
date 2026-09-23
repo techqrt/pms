@@ -14,6 +14,7 @@ class BuildingCreateRequest:
     pincode: str
     block: str | None = None
     total_floors: int | None = None
+    number_of_units: int | None = None
     year_of_construction: int | None = None
     facilities: list | None = None
     rental_purpose: str | None = None

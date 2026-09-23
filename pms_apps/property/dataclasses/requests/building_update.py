@@ -9,6 +9,7 @@ class BuildingUpdateRequest:
     property_type: Optional[str] = None
     block: Optional[str] = None
     total_floors: Optional[int] = None
+    number_of_units: Optional[int] = None
     year_of_construction: Optional[int] = None
     facilities: Optional[list] = None
     rental_purpose: Optional[str] = None
