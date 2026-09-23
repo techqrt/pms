@@ -8,7 +8,7 @@ class BuildingUpdateSerializer(serializers.Serializer):
     building_id = serializers.IntegerField()
     name = serializers.CharField(max_length=255, required=False, allow_null=True, allow_blank=True)
     property_type = serializers.ChoiceField(
-        choices=["Flat", "Commercial", "Villa", "Warehouse"], required=False, allow_null=True
+        choices=["Flat", "Commercial", "Villa", "Warehouse", "Residential / Commercial"], required=False, allow_null=True
     )
     block = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
     total_floors = serializers.IntegerField(required=False, allow_null=True)
@@ -59,6 +59,9 @@ class BuildingUpdateSerializer(serializers.Serializer):
     )
     lift_type = serializers.ChoiceField(
         choices=["Passenger", "Goods", "Both", "No Lift"], required=False, allow_null=True
+    )
+    power_supply = serializers.ChoiceField(
+        choices=["Single-Phase", "Three-Phase"], required=False, allow_null=True
     )
     fire_safety_compliant = serializers.BooleanField(required=False, allow_null=True)
     emergency_exit = serializers.BooleanField(required=False, allow_null=True)

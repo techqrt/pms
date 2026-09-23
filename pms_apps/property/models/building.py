@@ -17,6 +17,7 @@ class Building(models.Model):
         ("Commercial", "Commercial"),
         ("Villa", "Villa"),
         ("Warehouse", "Warehouse"),
+        ("Residential / Commercial", "Residential / Commercial"),
     ]
 
     # Mirror the exact choices used by the matching Property type-specific
@@ -29,6 +30,10 @@ class Building(models.Model):
         ("Godown", "Godown"),
         ("Industrial Unit", "Industrial Unit"),
         ("Residential / Commercial", "Residential / Commercial"),
+    ]
+    POWER_SUPPLY_CHOICES = [
+        ("Single-Phase", "Single-Phase"),
+        ("Three-Phase", "Three-Phase"),
     ]
     LIFT_TYPE_CHOICES = [
         ("Passenger", "Passenger"),
@@ -72,7 +77,7 @@ class Building(models.Model):
 
     name = models.CharField(max_length=255)
     property_type = models.CharField(
-        max_length=20, choices=PROPERTY_TYPE_CHOICES, null=True, blank=True
+        max_length=25, choices=PROPERTY_TYPE_CHOICES, null=True, blank=True
     )
     block = models.CharField(max_length=50, null=True, blank=True)
     total_floors = models.PositiveIntegerField(null=True, blank=True)
@@ -124,6 +129,7 @@ class Building(models.Model):
         max_length=30, choices=COMMERCIAL_CATEGORY_CHOICES, null=True, blank=True
     )
     lift_type = models.CharField(max_length=20, choices=LIFT_TYPE_CHOICES, null=True, blank=True)
+    power_supply = models.CharField(max_length=20, choices=POWER_SUPPLY_CHOICES, null=True, blank=True)
     fire_safety_compliant = models.BooleanField(default=False, null=True)
     emergency_exit = models.BooleanField(default=False, null=True)
     parking_availability = models.CharField(
@@ -219,6 +225,7 @@ class Building(models.Model):
         power_backup: bool = None,
         commercial_category: str = None,
         lift_type: str = None,
+        power_supply: str = None,
         fire_safety_compliant: bool = None,
         emergency_exit: bool = None,
         parking_availability: str = None,
@@ -271,6 +278,7 @@ class Building(models.Model):
         self.power_backup = power_backup
         self.commercial_category = commercial_category
         self.lift_type = lift_type
+        self.power_supply = power_supply
         self.fire_safety_compliant = fire_safety_compliant
         self.emergency_exit = emergency_exit
         self.parking_availability = parking_availability
@@ -335,6 +343,7 @@ class Building(models.Model):
         power_backup: bool = None,
         commercial_category: str = None,
         lift_type: str = None,
+        power_supply: str = None,
         fire_safety_compliant: bool = None,
         emergency_exit: bool = None,
         parking_availability: str = None,
@@ -430,6 +439,8 @@ class Building(models.Model):
             building.commercial_category = commercial_category
         if lift_type is not None:
             building.lift_type = lift_type
+        if power_supply is not None:
+            building.power_supply = power_supply
         if fire_safety_compliant is not None:
             building.fire_safety_compliant = fire_safety_compliant
         if emergency_exit is not None:
@@ -494,7 +505,7 @@ class Building(models.Model):
             'boundary_wall', 'driveway', 'water_supply_24x7', 'security_guard', 'clubhouse_access',
             'gym', 'childrens_play_area', 'internal_roads', 'street_lights', 'gated_community',
             'power_backup',
-            'commercial_category', 'lift_type', 'fire_safety_compliant', 'emergency_exit',
+            'commercial_category', 'lift_type', 'power_supply', 'fire_safety_compliant', 'emergency_exit',
             'parking_availability', 'cctv',
             'warehouse_category', 'industrial_estate_name', 'ownership_type', 'has_transformer',
             'water_supply_source', 'has_drainage_system', 'has_internet_fiber', 'allowed_industry_types',
@@ -526,7 +537,7 @@ class Building(models.Model):
             'boundary_wall', 'driveway', 'water_supply_24x7', 'security_guard', 'clubhouse_access',
             'gym', 'childrens_play_area', 'internal_roads', 'street_lights', 'gated_community',
             'power_backup',
-            'commercial_category', 'lift_type', 'fire_safety_compliant', 'emergency_exit',
+            'commercial_category', 'lift_type', 'power_supply', 'fire_safety_compliant', 'emergency_exit',
             'parking_availability', 'cctv',
             'warehouse_category', 'industrial_estate_name', 'ownership_type', 'has_transformer',
             'water_supply_source', 'has_drainage_system', 'has_internet_fiber', 'allowed_industry_types',

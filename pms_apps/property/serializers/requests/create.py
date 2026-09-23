@@ -99,6 +99,9 @@ class CommercialPropertySerializer(serializers.Serializer):
     lift_type = serializers.ChoiceField(
         choices=["Passenger", "Goods", "Both", "No Lift"], required=False, allow_null=True
     )
+    power_supply = serializers.ChoiceField(
+        choices=["Single-Phase", "Three-Phase"], required=False, allow_null=True
+    )
     fire_safety_compliant = serializers.BooleanField(required=False, allow_null=True, default=False)
     emergency_exit = serializers.BooleanField(required=False, allow_null=True, default=False)
     parking_availability = serializers.ChoiceField(
@@ -373,7 +376,7 @@ class PropertyCreateSerializer(serializers.Serializer):
     dimension_area_sqft = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, allow_null=True
     )
-    rental_type = serializers.ChoiceField(choices=["Flat", "Commercial", "Villa", "Warehouse"])
+    rental_type = serializers.ChoiceField(choices=["Flat", "Commercial", "Villa", "Warehouse", "Residential / Commercial"])
     rental_for = serializers.ChoiceField(
         choices=["Bachelor", "Family", "Labour"], required=False, default="Family"
     )
