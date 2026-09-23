@@ -97,6 +97,7 @@ class BuildingCreateSerializer(serializers.Serializer):
         child=serializers.CharField(), required=False, allow_null=True,
         help_text="e.g. FMCG, Pharma, Ecommerce, Manufacturing, Logistics"
     )
+    allowed_industry_types_other = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     # Shared between Commercial and Warehouse
     power_load_kw = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)

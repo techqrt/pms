@@ -52,6 +52,7 @@ class BuildingUpdateRequest:
     has_drainage_system: Optional[bool] = None
     has_internet_fiber: Optional[bool] = None
     allowed_industry_types: Optional[list] = None
+    allowed_industry_types_other: Optional[str] = None
     power_load_kw: Optional[float] = None
     has_dg_backup: Optional[bool] = None
     address_line_1: Optional[str] = None
