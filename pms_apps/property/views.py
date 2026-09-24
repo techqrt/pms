@@ -606,6 +606,18 @@ class PropertyView:
         detail_obj = PropertyDetail.get_by_property(property_id=params.property_id)
         detail_dict = model_to_dict(detail_obj) if detail_obj else {}
 
+        # A Commercial unit without its own power_supply/parking_availability/
+        # power_load_kw falls back to the building's value - these are often
+        # building-wide facts, and unlike the boolean fields (has_dg_backup,
+        # fire_safety_compliant) `None` here unambiguously means "not set".
+        if property_data.get('rental_type') == 'Commercial' and property_data.get('building_id'):
+            from pms_apps.property.models.building import Building
+            building_data = Building.get(building_id=property_data.get('building_id'))
+            if building_data:
+                for field in ('power_supply', 'parking_availability', 'power_load_kw'):
+                    if detail_dict.get(field) is None:
+                        detail_dict[field] = building_data.get(field)
+
         utils = PropertyUtils(columns_required=[column for column in params.values.split(',') if column])
         property_dict = json.loads(utils.mapper([property_data]))[0]
         
