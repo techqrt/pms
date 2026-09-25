@@ -532,7 +532,7 @@ class PropertyView:
                 'commercial_category', 'floor_number', 'frontage_width_ft', 'ceiling_height_ft',
                 'no_of_cabins', 'no_of_washrooms', 'loading_area', 'power_load_kw',
                 'has_dg_backup', 'lift_type', 'power_supply', 'fire_safety_compliant', 'emergency_exit',
-                'parking_availability', 'commercial_maintenance_charge_type',
+                'parking_availability', 'cctv', 'commercial_maintenance_charge_type',
                 'maintenance_charge_amount', 'electricity_charge_amount', 'water_charge_amount',
                 'gst_applicable', 'gst_percentage', 'security_deposit_months', 'lease_type',
                 'lease_tenure_years', 'lock_in_period_months', 'allowed_business', 'prohibited_business', 'allowed_business_other',
@@ -606,22 +606,45 @@ class PropertyView:
         detail_obj = PropertyDetail.get_by_property(property_id=params.property_id)
         detail_dict = model_to_dict(detail_obj) if detail_obj else {}
 
-        # A Commercial unit without its own power_supply/parking_availability/
-        # power_load_kw falls back to the building's value - these are often
-        # building-wide facts, and unlike the boolean fields (has_dg_backup,
-        # fire_safety_compliant) `None` here unambiguously means "not set".
-        if property_data.get('rental_type') == 'Commercial' and property_data.get('building_id'):
+        # A unit's building-shared facilities/amenities fall back to the
+        # building's value when the unit doesn't have its own - these are
+        # often building-wide facts. Fields where `None` unambiguously means
+        # "not set" (CharField/DecimalField, no serializer default) fall back
+        # only then; boolean fields default to False at both the model and
+        # serializer level, so they can't distinguish "not set" from
+        # "explicitly No" - for those, the building's True wins whenever the
+        # unit's is falsy, per product decision.
+        building_data = None
+        if property_data.get('building_id'):
             from pms_apps.property.models.building import Building
             building_data = Building.get(building_id=property_data.get('building_id'))
-            if building_data:
-                for field in ('power_supply', 'parking_availability', 'power_load_kw'):
+
+        if building_data:
+            rental_type = property_data.get('rental_type')
+            if rental_type == 'Commercial':
+                for field in ('power_supply', 'parking_availability', 'power_load_kw',
+                              'lift_type', 'commercial_category'):
                     if detail_dict.get(field) is None:
+                        detail_dict[field] = building_data.get(field)
+                for field in ('has_dg_backup', 'fire_safety_compliant', 'cctv', 'emergency_exit'):
+                    if not detail_dict.get(field):
+                        detail_dict[field] = building_data.get(field)
+            elif rental_type == 'Flat':
+                for field in ('parking', 'lift', 'security', 'gas_pipeline',
+                              'water_supply', 'intercom', 'fire_safety'):
+                    if not detail_dict.get(field):
                         detail_dict[field] = building_data.get(field)
 
         utils = PropertyUtils(columns_required=[column for column in params.values.split(',') if column])
         property_dict = json.loads(utils.mapper([property_data]))[0]
-        
+
         self._categorize_property_details(property_dict, detail_dict, property_data.get('rental_type'))
+
+        # PropertyDetail has no per-unit equivalent of Building.facilities
+        # (a free-form list like ["Parking", "Lift", "CCTV"]) - always
+        # surface the building's list.
+        if building_data:
+            property_dict['facilities'] = building_data.get('facilities') or []
 
         # Add photos
         from pms_apps.property.models.property_photos import PropertyPhotos
