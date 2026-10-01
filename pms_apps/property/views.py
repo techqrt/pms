@@ -574,8 +574,9 @@ class PropertyView:
         if not property_data:
             raise ValueError(self.data_no_match)
         
-        # Marketing department users (Manager or Employee) can view every property.
-        has_access = PropertyUtils.get_marketing_role(params.user_id) is not None
+        # Marketing and Check-In/Check-Out department users (Manager or Employee)
+        # can view every property.
+        has_access = PropertyUtils.get_restricted_role(params.user_id) is not None
 
         # Check if user has access to this property
         if not has_access:
@@ -694,7 +695,7 @@ class PropertyView:
             max_rent=params.max_rent,
             from_date=params.from_date,
             to_date=params.to_date,
-            unrestricted=PropertyUtils.get_marketing_role(params.user_id) is not None,
+            unrestricted=PropertyUtils.get_restricted_role(params.user_id) is not None,
         )
 
         pages = Paginator(property_list, per_page=params.limit)
@@ -824,7 +825,7 @@ class PropertyView:
             filter_key=reversed_mapped.get(params.filter_key),
             filter_value=params.filter_value,
             search_key=params.search_key,
-            unrestricted=PropertyUtils.get_marketing_role(params.user_id) is not None,
+            unrestricted=PropertyUtils.get_restricted_role(params.user_id) is not None,
         )
 
         property_count = len(property_list)
@@ -868,7 +869,7 @@ class PropertyView:
         # the same caller.
         property_list = Property.get_all_by_user(
             user_id=params.user_id,
-            unrestricted=PropertyUtils.get_marketing_role(params.user_id) is not None,
+            unrestricted=PropertyUtils.get_restricted_role(params.user_id) is not None,
         )
         property_ids = [prop['property_id'] for prop in property_list]
         total_properties = len(property_ids)

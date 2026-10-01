@@ -237,8 +237,9 @@ class Property(models.Model):
 
         data = Property.objects.filter(is_active=True)
 
-        # Marketing department users see every property (view-all rule); everyone
-        # else keeps the existing created/assigned/landlord-scoped visibility.
+        # Marketing and Check-In/Check-Out department users see every property
+        # (view-all rule); everyone else keeps the existing created/assigned/
+        # landlord-scoped visibility.
         if not unrestricted:
             data = data.filter(
                 Q(created_by__user_id=user_id) |
